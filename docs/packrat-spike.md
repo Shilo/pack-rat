@@ -258,15 +258,18 @@ Suggested runtime layout:
 ```text
 addons/pack_rat/
   pack_rat.gd              # class_name PackRat, static facade
-  pack_rat_service.gd      # Node, owns HTTPRequest nodes and cache state
-  pack_rat_options.gd      # typed options
-  pack_rat_result.gd       # result object
-  pack_rat_request.gd      # progress/cancel/completed request handle
-  internal/
+  core/
+    pack_rat_options.gd    # typed options
+    pack_rat_result.gd     # result object
+    pack_rat_request.gd    # progress/cancel/completed request handle
+  cache/
     pack_rat_cache.gd
     pack_rat_cache_record.gd
+  request/
     pack_rat_http_response.gd
     pack_rat_request_runner.gd
+  util/
+    pack_rat_file_metadata.gd
 ```
 
 The static facade should not require a service node or autoload:
