@@ -55,8 +55,8 @@ func _ready() -> void:
 		_fail("Expected exactly one GET download, got %d." % _get_count)
 		return
 
-	if _head_count < 2:
-		_fail("Expected freshness HEAD requests for download and cache hit, got %d." % _head_count)
+	if _head_count != 1:
+		_fail("Expected one freshness HEAD request for cache hit, got %d." % _head_count)
 		return
 
 	var first_cache_path: String = first.local_path
@@ -75,6 +75,109 @@ func _ready() -> void:
 
 	if _get_count != 2:
 		_fail("Expected stale redownload to perform a second GET, got %d." % _get_count)
+		return
+
+	var metadata_head_count: int = _head_count
+	var metadata_get_count: int = _get_count
+	var metadata_options: PackRatOptions = PackRatOptions.new()
+	metadata_options.id = "metadata_smoke"
+	metadata_options.cache_dir = CACHE_DIR
+	metadata_options.entry_path = MOUNTED_MARKER
+	metadata_options.timeout_seconds = 10.0
+	metadata_options.expected_size = _pack_bytes.size()
+	metadata_options.expected_modified_time = 100
+
+	var metadata_first: PackRatResult = await PackRat.prepare(_url, metadata_options)
+	if not metadata_first.ok or metadata_first.from_cache:
+		_fail("Expected metadata prepare to download. Result: %s" % JSON.stringify(metadata_first.to_dictionary()))
+		return
+
+	if _head_count != metadata_head_count:
+		_fail("Expected metadata prepare to skip HEAD, got %d new HEAD requests." % (_head_count - metadata_head_count))
+		return
+
+	if _get_count != metadata_get_count + 1:
+		_fail("Expected metadata prepare to download once, got %d new GET requests." % (_get_count - metadata_get_count))
+		return
+
+	var metadata_cache_path: String = metadata_first.local_path
+	var metadata_second: PackRatResult = await PackRat.prepare(_url, metadata_options)
+	if not metadata_second.ok or not metadata_second.from_cache:
+		_fail("Expected metadata prepare to reuse cache. Result: %s" % JSON.stringify(metadata_second.to_dictionary()))
+		return
+
+	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
+		_fail("Expected metadata cache hit to skip HEAD and GET.")
+		return
+
+	_build_pack("metadata-version-two")
+	metadata_options.expected_size = _pack_bytes.size()
+	metadata_options.expected_modified_time = 101
+	var metadata_third: PackRatResult = await PackRat.prepare(_url, metadata_options)
+	if not metadata_third.ok or metadata_third.from_cache:
+		_fail("Expected changed expected metadata to download. Result: %s" % JSON.stringify(metadata_third.to_dictionary()))
+		return
+
+	if metadata_third.local_path == metadata_cache_path:
+		_fail("Expected changed expected metadata to use a new cache path.")
+		return
+
+	if _head_count != metadata_head_count or _get_count != metadata_get_count + 2:
+		_fail("Expected changed metadata to skip HEAD and perform one more GET.")
+		return
+
+	var offline_head_count: int = _head_count
+	var offline_get_count: int = _get_count
+	var offline_options: PackRatOptions = PackRatOptions.new()
+	offline_options.id = "offline_smoke"
+	offline_options.cache_dir = CACHE_DIR
+	offline_options.entry_path = MOUNTED_MARKER
+	offline_options.timeout_seconds = 10.0
+	offline_options.offline_first = true
+
+	var offline_first: PackRatResult = await PackRat.prepare(_url, offline_options)
+	if not offline_first.ok or offline_first.from_cache:
+		_fail("Expected offline-first cache miss to download. Result: %s" % JSON.stringify(offline_first.to_dictionary()))
+		return
+
+	var offline_second: PackRatResult = await PackRat.prepare(_url, offline_options)
+	if not offline_second.ok or not offline_second.from_cache:
+		_fail("Expected offline-first cache hit to reuse cache. Result: %s" % JSON.stringify(offline_second.to_dictionary()))
+		return
+
+	if _head_count != offline_head_count or _get_count != offline_get_count + 1:
+		_fail("Expected offline-first to skip HEAD and only download on miss.")
+		return
+
+	var concurrent_head_count: int = _head_count
+	var concurrent_get_count: int = _get_count
+	var concurrent_options: PackRatOptions = PackRatOptions.new()
+	concurrent_options.id = "concurrent_smoke"
+	concurrent_options.cache_dir = CACHE_DIR
+	concurrent_options.entry_path = MOUNTED_MARKER
+	concurrent_options.timeout_seconds = 10.0
+	concurrent_options.expected_size = _pack_bytes.size()
+	concurrent_options.expected_modified_time = 200
+	var concurrent_results: Array[PackRatResult] = []
+	_collect_prepare(concurrent_options, concurrent_results)
+	_collect_prepare(concurrent_options, concurrent_results)
+
+	var wait_until: int = Time.get_ticks_msec() + 3000
+	while concurrent_results.size() < 2 and Time.get_ticks_msec() < wait_until:
+		await get_tree().process_frame
+
+	if concurrent_results.size() != 2:
+		_fail("Timed out waiting for concurrent prepare results.")
+		return
+
+	for index in range(concurrent_results.size()):
+		var concurrent_result: PackRatResult = concurrent_results[index]
+		if not concurrent_result.ok:
+			_fail("Expected concurrent prepare to succeed. Result: %s" % JSON.stringify(concurrent_result.to_dictionary()))
+			return
+
+	if _head_count != concurrent_head_count or _get_count != concurrent_get_count + 1:
+		_fail("Expected concurrent prepares to share one download.")
 		return
 
 	print("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s" % [_head_count, _get_count, third.local_path])
@@ -109,6 +212,11 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 		_write_not_found(peer)
 
 	peer.disconnect_from_host()
+
+
+func _collect_prepare(options: PackRatOptions, output: Array[PackRatResult]) -> void:
+	var result: PackRatResult = await PackRat.prepare(_url, options)
+	output.append(result)
 
 
 func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
