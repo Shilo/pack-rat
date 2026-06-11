@@ -65,7 +65,7 @@ options.id = "hub"
 options.entry_path = "res://worlds/hub/main.tscn"
 
 var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck", options)
-if result.ok:
+if result.ok and ResourceLoader.exists(result.entry_path, "PackedScene"):
 	var scene: PackedScene = load(result.entry_path)
 ```
 
@@ -135,7 +135,7 @@ and static host URLs.
 | `cache_dir` | `"user://pack_rat"` | Directory for `cache.json`, `.part` downloads, and cached packs. Must be a non-root `user://` path without `..` segments. |
 | `replace_files` | `true` | Passed to `ProjectSettings.load_resource_pack()`. Allows the pack to override existing `res://` paths. |
 | `offset` | `0` | Byte offset for embedded PCK files. ZIP packs must use `0`. |
-| `entry_path` | `""` | Optional `res://` path copied into the result for caller convenience. |
+| `entry_path` | `""` | Optional `res://` path copied into the result for caller convenience. PackRat does not validate or load it. |
 | `expected_size` | `0` | If greater than `0`, becomes part of cache identity and is checked against downloaded bytes. |
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
@@ -218,6 +218,10 @@ func prepare_world_transfer(world_id: String, expected_modified_time: int, expec
 	var result: PackRatResult = await PackRat.load_resource_pack(url, options)
 	if not result.ok:
 		push_error(result.error)
+		return
+
+	if not ResourceLoader.exists(scene_path, "PackedScene"):
+		push_error("World scene was not found after mounting pack: %s" % scene_path)
 		return
 
 	get_tree().change_scene_to_file(scene_path)
@@ -337,6 +341,11 @@ Set `replace_files=false` only when override behavior is unwanted.
 HTTP metadata is useful for freshness, not authenticity. It answers "does this
 look changed?" rather than "is this trusted content?"
 
+`entry_path` is also not a validation feature. It is copied into
+`PackRatResult` so caller code can keep its intended scene/resource path next to
+the load result. Check that path with `ResourceLoader.exists()` or your own game
+rules before using it.
+
 ## Performance And Stability Notes
 
 - Downloads use a temporary `.part` path and move into cache only after success.
@@ -351,8 +360,12 @@ look changed?" rather than "is this trusted content?"
   the same time, both may download.
 - Progress polling happens once per frame while a GET is active.
 - `timeout_seconds` is finite by default so stalled downloads fail.
-- If a fresh download replaces a file at an already-mounted path, PackRat warns
-  because Godot resource packs remain mounted for the process lifetime.
+- If a fresh download would target an already-mounted cache path, PackRat keeps
+  the mounted file and stores the new download at a unique cache path. It warns
+  when a different pack is mounted for the same ID.
+- Load packs before loading or preloading resources they are meant to replace.
+  Godot may keep already-loaded scenes, scripts, and resources in memory, so a
+  late-mounted pack does not behave like a clean restart.
 
 ## Example Scene
 
@@ -385,9 +398,11 @@ godot --headless --path . --scene "res://tests/pack_rat_pck_hot_update_probe.tsc
 These smokes cover local metadata reads, `expected_size`,
 `expected_modified_time`, cache hits without `HEAD`/`GET`, changed metadata
 redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
-independent concurrent loads, progress/cancel signals, cache clearing, PCK
-mounting, ZIP mounting, extensionless PCK URLs, repeated cache-hit performance,
-and Godot's same-path hot-update/resource-cache behavior.
+independent concurrent loads, progress/cancel signals, fast-cache cancellation,
+request headers, redirects, timeouts, `replace_files=false`, cache clearing,
+PCK mounting, ZIP mounting, extensionless PCK URLs, MMO-style scene existence,
+repeated cache-hit performance, and Godot's same-path hot-update/resource-cache
+behavior.
 
 ## Troubleshooting
 

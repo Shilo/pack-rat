@@ -4,7 +4,9 @@ const CACHE_DIR: String = "user://pack_rat_http_pck_smoke_cache"
 const SERVER_DIR: String = "user://pack_rat_http_pck_smoke_server"
 const PACK_PATH: String = "user://pack_rat_http_pck_smoke_server/hub.pck"
 const SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/marker.txt"
+const SCENE_SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/mmo_world.tscn"
 const MOUNTED_MARKER: String = "res://pack_rat_http_pck_smoke/marker.txt"
+const MMO_SCENE_PATH: String = "res://server/worlds/mmo_world/mmo_world.tscn"
 const MODIFIED_V2_UNIX: int = 1781122560
 const MODIFIED_V3_UNIX: int = 1781122620
 
@@ -17,6 +19,7 @@ var _etag: String = "\"packrat-smoke-v1\""
 var _last_modified: String = "Wed, 10 Jun 2026 20:15:00 GMT"
 var _fail_get: bool = false
 var _omit_last_modified: bool = false
+var _require_header: bool = false
 var _active_peers: int = 0
 
 
@@ -149,6 +152,17 @@ func _ready() -> void:
 
 	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
 		_fail("Expected size-only metadata cache hit to skip HEAD and GET.")
+		return
+
+	var fast_cancel_request: PackRatRequest = PackRat.load_resource_pack_async(_url, size_options)
+	fast_cancel_request.cancel()
+	await fast_cancel_request.completed
+	if fast_cancel_request.result == null or fast_cancel_request.result.ok:
+		_fail("Expected fast cache async cancel to fail before completion.")
+		return
+
+	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
+		_fail("Expected fast cache async cancel to avoid HEAD and GET.")
 		return
 
 	var repeated_cache_start_usec: int = Time.get_ticks_usec()
@@ -486,6 +500,79 @@ func _ready() -> void:
 		_fail("Expected failed mounts to avoid cache reuse and download twice.")
 		return
 
+	_require_header = true
+	var header_options: PackRatOptions = PackRatOptions.new()
+	header_options.id = "header_smoke"
+	header_options.cache_dir = CACHE_DIR
+	header_options.timeout_seconds = 10.0
+	header_options.request_headers.append("X-PackRat-Smoke: yes")
+	var header_result: PackRatResult = await PackRat.load_resource_pack(_url, header_options)
+	_require_header = false
+	if not header_result.ok:
+		_fail("Expected request_headers to be sent to HTTPRequest. Result: %s" % JSON.stringify(header_result.to_dictionary()))
+		return
+
+	var redirect_url: String = "http://127.0.0.1:%d/redirect.pck" % _server.get_local_port()
+	var redirect_options: PackRatOptions = PackRatOptions.new()
+	redirect_options.id = "redirect_smoke"
+	redirect_options.cache_dir = CACHE_DIR
+	redirect_options.timeout_seconds = 10.0
+	redirect_options.max_redirects = 0
+	var redirect_rejected: PackRatResult = await PackRat.load_resource_pack(redirect_url, redirect_options)
+	if redirect_rejected.ok:
+		_fail("Expected max_redirects=0 to reject redirected URL.")
+		return
+
+	redirect_options.max_redirects = 2
+	var redirect_followed: PackRatResult = await PackRat.load_resource_pack(redirect_url, redirect_options)
+	if not redirect_followed.ok:
+		_fail("Expected max_redirects=2 to follow redirected URL. Result: %s" % JSON.stringify(redirect_followed.to_dictionary()))
+		return
+
+	var timeout_options: PackRatOptions = PackRatOptions.new()
+	timeout_options.id = "timeout_smoke"
+	timeout_options.cache_dir = CACHE_DIR
+	timeout_options.timeout_seconds = 0.05
+	var timeout_url: String = "http://127.0.0.1:%d/timeout.pck" % _server.get_local_port()
+	var timeout_result: PackRatResult = await PackRat.load_resource_pack(timeout_url, timeout_options)
+	if timeout_result.ok:
+		_fail("Expected timeout_seconds to fail a delayed response.")
+		return
+
+	var marker_before_replace_false: String = FileAccess.get_file_as_string(MOUNTED_MARKER)
+	_build_pack("replace-files-false-marker")
+	var replace_false_options: PackRatOptions = PackRatOptions.new()
+	replace_false_options.id = "replace_false_smoke"
+	replace_false_options.cache_dir = CACHE_DIR
+	replace_false_options.timeout_seconds = 10.0
+	replace_false_options.replace_files = false
+	var replace_false_result: PackRatResult = await PackRat.load_resource_pack(_url, replace_false_options)
+	if not replace_false_result.ok:
+		_fail("Expected replace_files=false load to mount. Result: %s" % JSON.stringify(replace_false_result.to_dictionary()))
+		return
+
+	if FileAccess.get_file_as_string(MOUNTED_MARKER) != marker_before_replace_false:
+		_fail("Expected replace_files=false to avoid overriding existing mounted resource path.")
+		return
+
+	_last_modified = "Wed, 10 Jun 2026 20:18:00 GMT"
+	_build_pack("mmo-world-marker")
+	var world_id: String = "mmo_world"
+	var mmo_url: String = "http://127.0.0.1:%d/%s.pck" % [_server.get_local_port(), world_id]
+	var mmo_options: PackRatOptions = PackRatOptions.from_expected_metadata(MODIFIED_V3_UNIX + 60, _pack_bytes.size())
+	var mmo_result: PackRatResult = await PackRat.load_resource_pack(mmo_url, mmo_options)
+	if not mmo_result.ok:
+		_fail("Expected MMO-style metadata flow to load. Result: %s" % JSON.stringify(mmo_result.to_dictionary()))
+		return
+
+	if mmo_result.id != world_id:
+		_fail("Expected canonical MMO URL to derive id '%s', got '%s'." % [world_id, mmo_result.id])
+		return
+
+	if not ResourceLoader.exists(MMO_SCENE_PATH, "PackedScene"):
+		_fail("Expected MMO-style loaded pack to expose scene %s." % MMO_SCENE_PATH)
+		return
+
 	var stale_record_options: PackRatOptions = PackRatOptions.new()
 	stale_record_options.id = "stale_record_smoke"
 	stale_record_options.cache_dir = CACHE_DIR
@@ -570,12 +657,22 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 			_write_invalid_response(peer, true)
 		else:
 			_write_not_found(peer)
+	elif path == "/redirect.pck":
+		_write_redirect(peer, "/hub.pck")
+	elif path == "/timeout.pck":
+		await _write_delayed_response(peer)
 	elif path == "/slow.pck" and method == "GET":
 		_get_count += 1
 		await _write_slow_response(peer)
 	elif _fail_get and method == "GET":
 		_get_count += 1
 		_write_not_found(peer)
+	elif _require_header and not request.contains("\r\nX-PackRat-Smoke: yes\r\n"):
+		if method == "HEAD":
+			_head_count += 1
+		elif method == "GET":
+			_get_count += 1
+		_write_forbidden(peer)
 	elif method == "HEAD":
 		_head_count += 1
 		_write_response(peer, false)
@@ -631,10 +728,38 @@ func _write_slow_response(peer: StreamPeerTCP) -> void:
 		await get_tree().process_frame
 
 
+func _write_delayed_response(peer: StreamPeerTCP) -> void:
+	await get_tree().create_timer(0.5).timeout
+	_write_response(peer, true)
+
+
+func _write_redirect(peer: StreamPeerTCP, location: String) -> void:
+	var headers: String = (
+		"HTTP/1.1 302 Found\r\n"
+		+ "Location: %s\r\n" % location
+		+ "Content-Length: 0\r\n"
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+
+
 func _write_not_found(peer: StreamPeerTCP) -> void:
 	var body: PackedByteArray = "not found".to_utf8_buffer()
 	var headers: String = (
 		"HTTP/1.1 404 Not Found\r\n"
+		+ "Content-Length: %d\r\n" % body.size()
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+	peer.put_data(body)
+
+
+func _write_forbidden(peer: StreamPeerTCP) -> void:
+	var body: PackedByteArray = "forbidden".to_utf8_buffer()
+	var headers: String = (
+		"HTTP/1.1 403 Forbidden\r\n"
 		+ "Content-Length: %d\r\n" % body.size()
 		+ "Connection: close\r\n"
 		+ "\r\n"
@@ -668,6 +793,14 @@ func _build_pack(marker: String) -> void:
 	source.store_string(marker)
 	source = null
 
+	var scene_source: FileAccess = FileAccess.open(SCENE_SOURCE_PATH, FileAccess.WRITE)
+	if scene_source == null:
+		_fail("Could not write smoke scene source file (error %d)." % FileAccess.get_open_error())
+		return
+
+	scene_source.store_string("[gd_scene format=3]\n\n[node name=\"MmoWorld\" type=\"Node\"]\n")
+	scene_source = null
+
 	var packer: PCKPacker = PCKPacker.new()
 	var start_error: Error = packer.pck_start(PACK_PATH)
 	if start_error != OK:
@@ -677,6 +810,11 @@ func _build_pack(marker: String) -> void:
 	var add_error: Error = packer.add_file(MOUNTED_MARKER, SOURCE_PATH)
 	if add_error != OK:
 		_fail("Could not add smoke marker to PCK (error %d)." % add_error)
+		return
+
+	add_error = packer.add_file(MMO_SCENE_PATH, SCENE_SOURCE_PATH)
+	if add_error != OK:
+		_fail("Could not add smoke scene to PCK (error %d)." % add_error)
 		return
 
 	var flush_error: Error = packer.flush()
