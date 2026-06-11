@@ -35,7 +35,6 @@ func _ready() -> void:
 	options.id = "http_pck_smoke"
 	options.cache_dir = CACHE_DIR
 	options.entry_path = MOUNTED_MARKER
-	options.head_timeout_seconds = 2.0
 	options.timeout_seconds = 0.0
 
 	var first := await PackRat.prepare(_url, options)
