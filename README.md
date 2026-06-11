@@ -120,9 +120,11 @@ Deletes one cached pack or all PackRat cache files from disk.
 ```gdscript
 static func PackRat.file_metadata(path: String) -> PackRatFileMetadata
 static func PackRat.github_release_url(owner: String, repo: String, filename: String, tag: String = "latest") -> String
+static func PackRat.join_url(base_url: String, path: String) -> String
 ```
 
-Small helpers for server metadata workflows and direct GitHub Release asset URLs.
+Small helpers for server metadata workflows, direct GitHub Release asset URLs,
+and static host URLs.
 
 ## Options
 
@@ -140,6 +142,18 @@ Small helpers for server metadata workflows and direct GitHub Release asset URLs
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
+
+Create options from a generic server payload:
+
+```gdscript
+var pack: Dictionary = route["pack"]
+var options: PackRatOptions = PackRatOptions.from_pack_info(pack)
+var result: PackRatResult = await PackRat.load_resource_pack(str(pack["url"]), options)
+```
+
+`from_pack_info()` recognizes `id`, `size`, `expected_size`,
+`modified_time`, `expected_modified_time`, `entry_path`, and `offline_first`.
+It intentionally ignores `url`; pass the URL directly to `load_resource_pack()`.
 
 ## Results
 
@@ -183,7 +197,7 @@ active `HTTPRequest` when a download is already running.
 Server-authoritative projects can pass file metadata instead of creating a
 manifest or sidecar file.
 
-On the server, read only file stats:
+On the server, read only file stats and build a generic payload:
 
 ```gdscript
 var metadata: PackRatFileMetadata = PackRat.file_metadata("user://world_packs/hub.pck")
@@ -191,22 +205,18 @@ if not metadata.ok:
 	push_error(metadata.error)
 	return {}
 
-return {
-	"url": "https://example.com/world_packs/hub.pck",
-	"size": metadata.size,
-	"modified_time": metadata.modified_time,
-}
+return metadata.to_pack_info(
+	PackRat.join_url("https://example.com/world_packs", "hub.pck"),
+	"hub",
+	"res://worlds/hub/main.tscn"
+)
 ```
 
 On the client, copy those fields into options:
 
 ```gdscript
-var options: PackRatOptions = PackRatOptions.new()
-options.id = "hub"
-options.expected_size = int(pack_info.size)
-options.expected_modified_time = int(pack_info.modified_time)
-
-var result: PackRatResult = await PackRat.load_resource_pack(str(pack_info.url), options)
+var options: PackRatOptions = PackRatOptions.from_pack_info(pack_info)
+var result: PackRatResult = await PackRat.load_resource_pack(str(pack_info["url"]), options)
 ```
 
 When expected metadata is set, PackRat derives cache identity from the pack ID,
@@ -266,6 +276,15 @@ var tagged_url: String = PackRat.github_release_url("owner", "repo", "hub.pck", 
 ```
 
 This helper only builds direct asset URLs. It does not call the GitHub API.
+
+For ordinary static hosts or CDNs:
+
+```gdscript
+var url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")
+```
+
+`join_url()` only handles slash cleanup. It does not fetch catalogs, list
+directories, or encode provider-specific rules.
 
 ## Cache Cleanup
 
