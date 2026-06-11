@@ -1,10 +1,10 @@
 extends Node
 
-const CACHE_DIR := "user://packrat_http_pck_smoke_cache"
-const SERVER_DIR := "user://packrat_http_pck_smoke_server"
-const PACK_PATH := "user://packrat_http_pck_smoke_server/hub.pck"
-const SOURCE_PATH := "user://packrat_http_pck_smoke_server/marker.txt"
-const MOUNTED_MARKER := "res://packrat_http_pck_smoke/marker.txt"
+const CACHE_DIR := "user://pack_rat_http_pck_smoke_cache"
+const SERVER_DIR := "user://pack_rat_http_pck_smoke_server"
+const PACK_PATH := "user://pack_rat_http_pck_smoke_server/hub.pck"
+const SOURCE_PATH := "user://pack_rat_http_pck_smoke_server/marker.txt"
+const MOUNTED_MARKER := "res://pack_rat_http_pck_smoke/marker.txt"
 
 var _server := TCPServer.new()
 var _pack_bytes: PackedByteArray = []

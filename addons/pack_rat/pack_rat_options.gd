@@ -16,7 +16,7 @@ enum FreshnessMode {
 
 var id: String = ""
 var cache_key: String = ""
-var cache_dir: String = "user://packrat"
+var cache_dir: String = "user://pack_rat"
 var install_mode: InstallMode = InstallMode.AUTO
 var freshness_mode: FreshnessMode = FreshnessMode.AUTO
 var replace_files: bool = false

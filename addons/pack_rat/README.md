@@ -7,7 +7,7 @@ The happy path is intentionally small:
 var result := await PackRat.prepare("https://example.com/packs/hub.pck")
 ```
 
-PackRat downloads to `user://packrat`, keeps stable cache entries separate from
+PackRat downloads to `user://pack_rat`, keeps stable cache entries separate from
 temporary `.part` files, freshness-checks cached content with HTTP metadata when
 servers expose it, and mounts PCK/ZIP files with
 `ProjectSettings.load_resource_pack(..., false)` by default.
@@ -38,7 +38,7 @@ var result := await PackRat.prepare_descriptor(descriptor)
 
 Important defaults:
 
-- `cache_dir = "user://packrat"`
+- `cache_dir = "user://pack_rat"`
 - `replace_files = false`
 - `.pck` and `.zip` URLs mount as resource packs
 - unknown extensions download as cached files
@@ -77,6 +77,6 @@ Assign custom instances on `PackRatOptions` for one call, or configure a custom
 ## Smoke Tests
 
 ```powershell
-godot --headless --path . "res://tests/packrat_component_smoke.tscn"
-godot --headless --path . "res://tests/packrat_http_pck_smoke.tscn"
+godot --headless --path . "res://tests/pack_rat_component_smoke.tscn"
+godot --headless --path . "res://tests/pack_rat_http_pck_smoke.tscn"
 ```

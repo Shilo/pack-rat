@@ -1,7 +1,7 @@
 class_name PackRatJsonCacheStore
 extends PackRatCacheStore
 
-var cache_dir: String = "user://packrat"
+var cache_dir: String = "user://pack_rat"
 var data: Dictionary = {
 	"schema": 1,
 	"items": {},

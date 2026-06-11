@@ -58,7 +58,7 @@ Default behavior:
 
 - infer `id` from filename: `hub`;
 - infer install mode from extension: `.pck` and `.zip` mean resource pack;
-- cache under `user://packrat`;
+- cache under `user://pack_rat`;
 - check the remote URL with `HEAD` when possible;
 - compare `ETag`, `Last-Modified`, and `Content-Length` against the cache
   record;
@@ -104,7 +104,7 @@ enum FreshnessMode {
 
 var id := ""
 var cache_key := ""
-var cache_dir := "user://packrat"
+var cache_dir := "user://pack_rat"
 var install_mode := InstallMode.AUTO
 var freshness_mode := FreshnessMode.AUTO
 var replace_files := false
@@ -158,7 +158,7 @@ Default check:
    - `ETag`;
    - `Last-Modified`;
    - `Content-Length`.
-4. Compare those values against `user://packrat/cache.json`.
+4. Compare those values against `user://pack_rat/cache.json`.
 5. If the cached local file exists and validators match, mount from cache.
 6. If validators changed, are missing, or `HEAD` fails, download according to
    the freshness mode.
@@ -175,7 +175,7 @@ Cache record:
       "etag": "\"abc123\"",
       "last_modified": "Wed, 10 Jun 2026 20:15:00 GMT",
       "content_length": 14528,
-      "local_path": "user://packrat/hub/hub.pck",
+      "local_path": "user://pack_rat/hub/hub.pck",
       "mounted": false,
       "updated_at_unix": 1781122500
     }
@@ -200,9 +200,9 @@ resolve source
 check cache record
 HEAD remote when possible
 decide cached vs stale
-download -> user://packrat/tmp/<cache_key>.part
+download -> user://pack_rat/tmp/<cache_key>.part
 basic validation -> HTTP 2xx, non-empty file, optional size/hash
-move -> user://packrat/<id>/<filename-or-version>.pck
+move -> user://pack_rat/<id>/<filename-or-version>.pck
 update cache.json
 mount
 return result
@@ -260,7 +260,7 @@ plugin.
 Suggested runtime layout:
 
 ```text
-addons/packrat/
+addons/pack_rat/
   pack_rat.gd              # class_name PackRat, static facade
   pack_rat_service.gd      # Node, owns HTTPRequest nodes and cache state
   pack_rat_options.gd      # typed options
@@ -350,7 +350,7 @@ Build first:
 - `PackRat.prepare(url: String, options: PackRatOptions = null)`;
 - typed `PackRatOptions`;
 - typed `PackRatResult`;
-- `user://packrat/cache.json`;
+- `user://pack_rat/cache.json`;
 - `HEAD` freshness check when possible;
 - `HTTPRequest.download_file` to `.part`;
 - PCK/ZIP mounting through `ProjectSettings.load_resource_pack()`;

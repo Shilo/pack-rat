@@ -103,7 +103,7 @@ Avoid names like `ensure_*` because they hide what may happen internally: cache 
 
 2. Infer defaults:
 
-   * cache dir: `user://packrat`
+   * cache dir: `user://pack_rat`
    * install mode: `resource_pack` for `.pck`/`.zip`
    * `replace_files=false`
    * cache key from ID/filename
@@ -148,23 +148,23 @@ Avoid names like `ensure_*` because they hide what may happen internally: cache 
 Default cache location:
 
 ```text
-user://packrat/cache.json
-user://packrat/<id>/<sha256>.pck
-user://packrat/tmp/<id>.pck.part
+user://pack_rat/cache.json
+user://pack_rat/<id>/<sha256>.pck
+user://pack_rat/tmp/<id>.pck.part
 ```
 
-Do not cache downloads under `res://addons/packrat/`.
+Do not cache downloads under `res://addons/pack_rat/`.
 
 The addon code can live under:
 
 ```text
-res://addons/packrat/
+res://addons/pack_rat/
 ```
 
 But downloaded runtime content belongs in:
 
 ```text
-user://packrat/
+user://pack_rat/
 ```
 
 ## Result Object
@@ -332,12 +332,12 @@ Start with:
 
 ```text
 Addon:
-  res://addons/packrat/
+  res://addons/pack_rat/
   PackRat.prepare()
   HTTP source only
   .pck resource-pack installer
   sha256 / sha256_url / hash-in-filename
-  user://packrat cache
+  user://pack_rat cache
   temporary .part downloads
   in-flight prepare dedupe
   replace_files=false by default
@@ -495,17 +495,17 @@ They should not draw over the tan fill area.
 Current colored SVG:
 
 ```text
-packrat_colored.svg
+pack_rat_colored.svg
 ```
 
 Suggested export names:
 
 ```text
-packrat_icon.svg
-packrat_icon_preview.png
-packrat_logo.svg
-packrat_mascot.svg
-packrat_icon_monochrome.svg
+pack_rat_icon.svg
+pack_rat_icon_preview.png
+pack_rat_logo.svg
+pack_rat_mascot.svg
+pack_rat_icon_monochrome.svg
 ```
 
 ## Next Recommended Design Work
