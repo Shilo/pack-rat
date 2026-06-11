@@ -14,10 +14,10 @@ func _ready() -> void:
 			get_tree().quit()
 		return
 
-	var options := PackRatOptions.new()
+	var options: PackRatOptions = PackRatOptions.new()
 	options.entry_path = entry_path
 
-	var result := await PackRat.prepare(pack_url, options)
+	var result: PackRatResult = await PackRat.prepare(pack_url, options)
 	print(JSON.stringify(result.to_dictionary(), "\t"))
 
 	if quit_when_done:

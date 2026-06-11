@@ -1,6 +1,6 @@
 extends Node
 
-const PACKRAT_SCRIPTS := [
+const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/pack_rat.gd"),
 	preload("res://addons/pack_rat/pack_rat_service.gd"),
 	preload("res://addons/pack_rat/pack_rat_options.gd"),
@@ -13,11 +13,11 @@ func _ready() -> void:
 		_fail("PackRat scripts were not preloaded.")
 		return
 
-	var options := PackRatOptions.new()
+	var options: PackRatOptions = PackRatOptions.new()
 	options.id = "Hub Pack"
 	options.entry_path = "res://dlc/hub/main.tscn"
 
-	var invalid := await PackRat.prepare("not-a-url", options)
+	var invalid: PackRatResult = await PackRat.prepare("not-a-url", options)
 	if invalid.ok or invalid.status != PackRatResult.STATUS_FAILED:
 		_fail("Expected invalid URL to return a failed result.")
 		return

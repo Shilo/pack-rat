@@ -4,7 +4,7 @@ PackRat is a tiny runtime helper for downloading, caching, and mounting Godot
 PCK/ZIP packs.
 
 ```gdscript
-var result := await PackRat.prepare("https://example.com/packs/hub.pck")
+var result: PackRatResult = await PackRat.prepare("https://example.com/packs/hub.pck")
 ```
 
 The MVP is intentionally small:
@@ -24,7 +24,7 @@ custom installer workflow is required.
 - Downloads missing or stale packs to `user://pack_rat/tmp/*.part`.
 - Moves successful downloads into `user://pack_rat/<id>/`.
 - Stores cache metadata in `user://pack_rat/cache.json`.
-- Mounts `.pck` and `.zip` files with `replace_files=false` by default.
+- Mounts `.pck` and `.zip` files with `replace_files=true` by default.
 - Returns `PackRatResult` instead of a bare boolean.
 
 ## What It Does Not Do Yet
@@ -44,13 +44,13 @@ look changed?" rather than "is this trusted content?"
 ## Options
 
 ```gdscript
-var options := PackRatOptions.new()
+var options: PackRatOptions = PackRatOptions.new()
 options.id = "hub"
 options.entry_path = "res://worlds/hub/main.tscn"
 
-var result := await PackRat.prepare("https://example.com/packs/hub.pck", options)
+var result: PackRatResult = await PackRat.prepare("https://example.com/packs/hub.pck", options)
 if result.ok:
-	var scene := load(result.entry_path)
+	var scene: PackedScene = load(result.entry_path)
 ```
 
 ## Smoke Tests

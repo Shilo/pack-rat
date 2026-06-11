@@ -1,18 +1,18 @@
 extends Node
 
-const CACHE_DIR := "user://pack_rat_http_pck_smoke_cache"
-const SERVER_DIR := "user://pack_rat_http_pck_smoke_server"
-const PACK_PATH := "user://pack_rat_http_pck_smoke_server/hub.pck"
-const SOURCE_PATH := "user://pack_rat_http_pck_smoke_server/marker.txt"
-const MOUNTED_MARKER := "res://pack_rat_http_pck_smoke/marker.txt"
+const CACHE_DIR: String = "user://pack_rat_http_pck_smoke_cache"
+const SERVER_DIR: String = "user://pack_rat_http_pck_smoke_server"
+const PACK_PATH: String = "user://pack_rat_http_pck_smoke_server/hub.pck"
+const SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/marker.txt"
+const MOUNTED_MARKER: String = "res://pack_rat_http_pck_smoke/marker.txt"
 
-var _server := TCPServer.new()
+var _server: TCPServer = TCPServer.new()
 var _pack_bytes: PackedByteArray = []
-var _url := ""
-var _head_count := 0
-var _get_count := 0
-var _etag := "\"packrat-smoke-v1\""
-var _last_modified := "Wed, 10 Jun 2026 20:15:00 GMT"
+var _url: String = ""
+var _head_count: int = 0
+var _get_count: int = 0
+var _etag: String = "\"packrat-smoke-v1\""
+var _last_modified: String = "Wed, 10 Jun 2026 20:15:00 GMT"
 
 
 func _ready() -> void:
@@ -22,7 +22,7 @@ func _ready() -> void:
 	_make_directory(SERVER_DIR)
 	_build_pack("mounted-from-packrat")
 
-	var listen_error := _server.listen(0, "127.0.0.1")
+	var listen_error: Error = _server.listen(0, "127.0.0.1")
 	if listen_error != OK:
 		_fail("Could not start local HTTP server (error %d)." % listen_error)
 		return
@@ -31,13 +31,13 @@ func _ready() -> void:
 	set_process(true)
 	await get_tree().process_frame
 
-	var options := PackRatOptions.new()
+	var options: PackRatOptions = PackRatOptions.new()
 	options.id = "http_pck_smoke"
 	options.cache_dir = CACHE_DIR
 	options.entry_path = MOUNTED_MARKER
-	options.timeout_seconds = 0.0
+	options.timeout_seconds = 10.0
 
-	var first := await PackRat.prepare(_url, options)
+	var first: PackRatResult = await PackRat.prepare(_url, options)
 	if not first.ok or not first.mounted or first.from_cache:
 		_fail("Expected first prepare to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
 		return
@@ -46,7 +46,7 @@ func _ready() -> void:
 		_fail("Mounted PCK marker was not readable from res://.")
 		return
 
-	var second := await PackRat.prepare(_url, options)
+	var second: PackRatResult = await PackRat.prepare(_url, options)
 	if not second.ok or not second.from_cache or not second.mounted:
 		_fail("Expected second prepare to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
 		return
@@ -59,12 +59,12 @@ func _ready() -> void:
 		_fail("Expected freshness HEAD requests for download and cache hit, got %d." % _head_count)
 		return
 
-	var first_cache_path := first.local_path
+	var first_cache_path: String = first.local_path
 	_etag = "\"packrat-smoke-v2\""
 	_last_modified = "Wed, 10 Jun 2026 20:16:00 GMT"
 	_build_pack("mounted-from-packrat-version-two")
 
-	var third := await PackRat.prepare(_url, options)
+	var third: PackRatResult = await PackRat.prepare(_url, options)
 	if not third.ok or third.from_cache:
 		_fail("Expected changed ETag to redownload. Result: %s" % JSON.stringify(third.to_dictionary()))
 		return
@@ -84,13 +84,13 @@ func _ready() -> void:
 
 func _process(_delta: float) -> void:
 	while _server.is_connection_available():
-		var peer := _server.take_connection()
+		var peer: StreamPeerTCP = _server.take_connection()
 		_serve_peer(peer)
 
 
 func _serve_peer(peer: StreamPeerTCP) -> void:
-	var request := ""
-	var wait_until := Time.get_ticks_msec() + 1000
+	var request: String = ""
+	var wait_until: int = Time.get_ticks_msec() + 1000
 
 	while Time.get_ticks_msec() < wait_until and request.find("\r\n\r\n") < 0:
 		if peer.get_available_bytes() > 0:
@@ -98,7 +98,7 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 		else:
 			await get_tree().process_frame
 
-	var method := request.get_slice(" ", 0)
+	var method: String = request.get_slice(" ", 0)
 	if method == "HEAD":
 		_head_count += 1
 		_write_response(peer, false)
@@ -112,7 +112,7 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 
 
 func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
-	var headers := (
+	var headers: String = (
 		"HTTP/1.1 200 OK\r\n"
 		+ "Content-Type: application/octet-stream\r\n"
 		+ "Content-Length: %d\r\n" % _pack_bytes.size()
@@ -130,8 +130,8 @@ func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
 
 
 func _write_not_found(peer: StreamPeerTCP) -> void:
-	var body := "not found".to_utf8_buffer()
-	var headers := (
+	var body: PackedByteArray = "not found".to_utf8_buffer()
+	var headers: String = (
 		"HTTP/1.1 404 Not Found\r\n"
 		+ "Content-Length: %d\r\n" % body.size()
 		+ "Connection: close\r\n"
@@ -142,7 +142,7 @@ func _write_not_found(peer: StreamPeerTCP) -> void:
 
 
 func _build_pack(marker: String) -> void:
-	var source := FileAccess.open(SOURCE_PATH, FileAccess.WRITE)
+	var source: FileAccess = FileAccess.open(SOURCE_PATH, FileAccess.WRITE)
 	if source == null:
 		_fail("Could not write smoke source file (error %d)." % FileAccess.get_open_error())
 		return
@@ -150,18 +150,18 @@ func _build_pack(marker: String) -> void:
 	source.store_string(marker)
 	source = null
 
-	var packer := PCKPacker.new()
-	var start_error := packer.pck_start(PACK_PATH)
+	var packer: PCKPacker = PCKPacker.new()
+	var start_error: Error = packer.pck_start(PACK_PATH)
 	if start_error != OK:
 		_fail("Could not start PCK packer (error %d)." % start_error)
 		return
 
-	var add_error := packer.add_file(MOUNTED_MARKER, SOURCE_PATH)
+	var add_error: Error = packer.add_file(MOUNTED_MARKER, SOURCE_PATH)
 	if add_error != OK:
 		_fail("Could not add smoke marker to PCK (error %d)." % add_error)
 		return
 
-	var flush_error := packer.flush()
+	var flush_error: Error = packer.flush()
 	if flush_error != OK:
 		_fail("Could not flush smoke PCK (error %d)." % flush_error)
 		return
@@ -172,20 +172,20 @@ func _build_pack(marker: String) -> void:
 
 
 func _make_directory(path: String) -> void:
-	var error := DirAccess.make_dir_recursive_absolute(path)
+	var error: Error = DirAccess.make_dir_recursive_absolute(path)
 	if error != OK and error != ERR_ALREADY_EXISTS:
 		_fail("Could not create directory %s (error %d)." % [path, error])
 
 
 func _clear_directory(path: String) -> void:
-	var dir := DirAccess.open(path)
+	var dir: DirAccess = DirAccess.open(path)
 	if dir == null:
 		return
 
 	dir.list_dir_begin()
-	var child := dir.get_next()
+	var child: String = dir.get_next()
 	while not child.is_empty():
-		var child_path := path.path_join(child)
+		var child_path: String = path.path_join(child)
 		if dir.current_is_dir():
 			_clear_directory(child_path)
 		else:
