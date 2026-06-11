@@ -264,11 +264,17 @@ addons/pack_rat/
     pack_rat_request.gd    # progress/cancel/completed request handle
   cache/
     pack_rat_cache.gd
+    pack_rat_cache_files.gd
+    pack_rat_cache_paths.gd
     pack_rat_cache_record.gd
   request/
+    pack_rat_http_client.gd
     pack_rat_http_response.gd
     pack_rat_request_runner.gd
-  util/
+  resource_pack/
+    pack_rat_loader.gd
+    pack_rat_mount_registry.gd
+  filesystem/
     pack_rat_file_metadata.gd
 ```
 

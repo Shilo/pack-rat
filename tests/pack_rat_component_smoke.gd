@@ -3,13 +3,18 @@ extends Node
 const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/pack_rat.gd"),
 	preload("res://addons/pack_rat/cache/pack_rat_cache.gd"),
+	preload("res://addons/pack_rat/cache/pack_rat_cache_files.gd"),
+	preload("res://addons/pack_rat/cache/pack_rat_cache_paths.gd"),
 	preload("res://addons/pack_rat/cache/pack_rat_cache_record.gd"),
 	preload("res://addons/pack_rat/core/pack_rat_options.gd"),
 	preload("res://addons/pack_rat/core/pack_rat_request.gd"),
 	preload("res://addons/pack_rat/core/pack_rat_result.gd"),
+	preload("res://addons/pack_rat/filesystem/pack_rat_file_metadata.gd"),
+	preload("res://addons/pack_rat/request/pack_rat_http_client.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_response.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_request_runner.gd"),
-	preload("res://addons/pack_rat/util/pack_rat_file_metadata.gd"),
+	preload("res://addons/pack_rat/resource_pack/pack_rat_loader.gd"),
+	preload("res://addons/pack_rat/resource_pack/pack_rat_mount_registry.gd"),
 ]
 
 
