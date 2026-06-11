@@ -386,6 +386,11 @@ func _ready() -> void:
 		_fail("Expected async load to emit progress_changed at least once.")
 		return
 
+	await get_tree().process_frame
+	if _packrat_request_runner_count() != 0:
+		_fail("Expected PackRatRequestRunner to free itself after async completion.")
+		return
+
 	var cancel_options: PackRatOptions = PackRatOptions.new()
 	cancel_options.id = "cancel_smoke"
 	cancel_options.cache_dir = CACHE_DIR
@@ -412,6 +417,11 @@ func _ready() -> void:
 
 	if _has_part_files(CACHE_DIR):
 		_fail("Expected canceled async load to remove .part files.")
+		return
+
+	await get_tree().process_frame
+	if _packrat_request_runner_count() != 0:
+		_fail("Expected PackRatRequestRunner to free itself after async cancellation.")
 		return
 
 	var extensionless_options: PackRatOptions = PackRatOptions.new()
@@ -691,6 +701,15 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 func _collect_load(options: PackRatOptions, output: Array[PackRatResult]) -> void:
 	var result: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	output.append(result)
+
+
+func _packrat_request_runner_count() -> int:
+	var count: int = 0
+	for child in get_tree().root.get_children():
+		if child is PackRatRequestRunner:
+			count += 1
+
+	return count
 
 
 func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
