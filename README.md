@@ -144,17 +144,14 @@ and static host URLs.
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
 
-Create options from a generic server payload:
+Create options from server-provided file metadata:
 
 ```gdscript
-var pack: Dictionary = route["pack"]
-var options: PackRatOptions = PackRatOptions.from_pack_info(pack)
-var result: PackRatResult = await PackRat.load_resource_pack(str(pack["url"]), options)
+var options: PackRatOptions = PackRatOptions.from_expected_metadata(expected_modified_time, expected_size)
+var result: PackRatResult = await PackRat.load_resource_pack(url, options)
 ```
 
-`from_pack_info()` recognizes `id`, `size`, `expected_size`,
-`modified_time`, `expected_modified_time`, `entry_path`, and `offline_first`.
-It intentionally ignores `url`; pass the URL directly to `load_resource_pack()`.
+The argument order is `expected_modified_time`, then `expected_size`.
 
 ## Results
 
@@ -195,34 +192,60 @@ active `HTTPRequest` when a download is already running.
 
 ## Server Metadata Without Manifests
 
-Server-authoritative projects can pass file metadata instead of creating a
-manifest or sidecar file.
+Server-authoritative projects can pass expected file metadata instead of
+creating a manifest or sidecar file.
 
-On the server, read only file stats and build a generic payload:
+On the server, read only file stats and send the compact values your game needs:
 
 ```gdscript
 var metadata: PackRatFileMetadata = PackRat.file_metadata("user://world_packs/hub.pck")
 if not metadata.ok:
 	push_error(metadata.error)
-	return {}
+	return
 
-return metadata.to_pack_info(
-	PackRat.join_url("https://example.com/world_packs", "hub.pck"),
-	"hub",
-	"res://worlds/hub/main.tscn"
-)
+rpc_id(peer_id, "prepare_world_transfer", "hub", metadata.modified_time, metadata.size)
 ```
 
-On the client, copy those fields into options:
+On the client, derive URL and scene path by your own project convention:
 
 ```gdscript
-var options: PackRatOptions = PackRatOptions.from_pack_info(pack_info)
-var result: PackRatResult = await PackRat.load_resource_pack(str(pack_info["url"]), options)
+@rpc("authority", "reliable")
+func prepare_world_transfer(world_id: String, expected_modified_time: int, expected_size: int) -> void:
+	var url: String = PackRat.join_url(world_pack_base_url, "%s.pck" % world_id)
+	var scene_path: String = "res://server/worlds/%s/%s.tscn" % [world_id, world_id]
+	var options: PackRatOptions = PackRatOptions.from_expected_metadata(expected_modified_time, expected_size)
+
+	var result: PackRatResult = await PackRat.load_resource_pack(url, options)
+	if not result.ok:
+		push_error(result.error)
+		return
+
+	get_tree().change_scene_to_file(scene_path)
 ```
 
 When expected metadata is set, PackRat derives cache identity from the pack ID,
 size, and modified time. A matching cached file is used immediately. Otherwise
 the URL is downloaded and provided fields are checked independently.
+
+For canonical URLs, `id` is optional because PackRat derives it from the
+filename:
+
+```text
+https://cdn.example.com/worlds/hub.pck -> id "hub"
+```
+
+Set `options.id` for non-canonical URLs:
+
+```gdscript
+var options: PackRatOptions = PackRatOptions.from_expected_metadata(expected_modified_time, expected_size)
+options.id = "hub"
+var result: PackRatResult = await PackRat.load_resource_pack("https://cdn.example.com/download?id=hub", options)
+```
+
+```text
+https://cdn.example.com/download?id=hub
+https://cdn.example.com/latest.pck
+```
 
 Size is checked against the downloaded file bytes. Modified time is checked
 against the server's `Last-Modified` header when it is available. If

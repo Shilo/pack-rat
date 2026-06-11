@@ -59,6 +59,15 @@ func _ready() -> void:
 		_fail("Expected metadata.apply_to_options to copy modified time.")
 		return
 
+	var expected_options: PackRatOptions = PackRatOptions.from_expected_metadata(metadata.modified_time, metadata.size)
+	if expected_options.expected_modified_time != metadata.modified_time:
+		_fail("Expected from_expected_metadata to copy modified time.")
+		return
+
+	if expected_options.expected_size != metadata.size:
+		_fail("Expected from_expected_metadata to copy size.")
+		return
+
 	metadata_options.request_headers.append("X-PackRat-Test: one")
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
@@ -71,37 +80,9 @@ func _ready() -> void:
 		_fail("Expected PackRatOptions.copy to duplicate request headers.")
 		return
 
-	var pack_info: Dictionary = metadata.to_pack_info(
-		PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck"),
-		"hub",
-		"res://worlds/hub/main.tscn"
-	)
-	if str(pack_info.get("url", "")) != "https://cdn.example.com/worlds/hub.pck":
-		_fail("Expected join_url and to_pack_info to build a clean URL.")
-		return
-
-	var server_options: PackRatOptions = PackRatOptions.from_pack_info(pack_info)
-	if server_options.id != "hub":
-		_fail("Expected from_pack_info to copy id.")
-		return
-
-	if server_options.expected_size != metadata.size:
-		_fail("Expected from_pack_info to copy size.")
-		return
-
-	if server_options.expected_modified_time != metadata.modified_time:
-		_fail("Expected from_pack_info to copy modified_time.")
-		return
-
-	if server_options.entry_path != "res://worlds/hub/main.tscn":
-		_fail("Expected from_pack_info to copy entry_path.")
-		return
-
-	var existing_options: PackRatOptions = PackRatOptions.new()
-	existing_options.id = "before"
-	existing_options.apply_pack_info({"url": "https://ignored.example.com/hub.pck", "offline_first": true})
-	if existing_options.id != "before" or not existing_options.offline_first:
-		_fail("Expected apply_pack_info to ignore url and preserve missing id.")
+	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")
+	if joined_url != "https://cdn.example.com/worlds/hub.pck":
+		_fail("Expected join_url to build a clean URL.")
 		return
 
 	var metadata_dict: Dictionary = metadata.to_dictionary()
