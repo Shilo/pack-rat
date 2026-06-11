@@ -10,6 +10,7 @@ var result: PackRatResult = await PackRat.load_resource_pack("https://example.co
 The MVP is intentionally small:
 
 - `pack_rat.gd`: the static `PackRat.load_resource_pack()` API and runtime logic.
+- `pack_rat_file_metadata.gd`: a tiny file stat result for server-side metadata.
 - `pack_rat_request.gd`: progress, cancellation, and completion signals.
 - `pack_rat_options.gd`: a few optional knobs.
 - `pack_rat_result.gd`: a structured result object.
@@ -19,13 +20,15 @@ No editor plugin, manifest, SHA sidecar, provider system, descriptor object, or
 custom installer workflow is required.
 
 Downloaded packs are treated as authoritative content by default. Use trusted
-URLs, because mounted packs can replace existing `res://` paths.
+URLs, because mounted packs can replace existing `res://` paths. Set
+`replace_files=false` only when override behavior is unwanted.
 
 ## What It Does
 
 - Sends `HEAD` when a cached file exists.
 - Compares `ETag`, `Last-Modified`, then `Content-Length` when available.
 - Can reuse cache by expected file metadata without a `HEAD` request.
+- Can read local file size and modified time with `PackRat.file_metadata(path)`.
 - Can run offline-first, using matching cache immediately and downloading only
   on cache miss.
 - Downloads missing or stale packs to `user://pack_rat/tmp/*.part`.
@@ -76,21 +79,37 @@ if request.result.ok:
 ```
 
 Server-authoritative projects can pass file metadata instead of requiring a
-manifest:
+manifest. On the server, read only file stats:
+
+```gdscript
+var metadata = PackRat.file_metadata("user://world_packs/hub.pck")
+if not metadata.ok:
+	push_error(metadata.error)
+	return {}
+
+return {
+	"url": "https://example.com/world_packs/hub.pck",
+	"size": metadata.size,
+	"modified_time": metadata.modified_time,
+}
+```
+
+On the client, copy those fields into options:
 
 ```gdscript
 var options: PackRatOptions = PackRatOptions.new()
-options.expected_size = pack_info.size
-options.expected_modified_time = pack_info.modified_time
+options.expected_size = int(pack_info.size)
+options.expected_modified_time = int(pack_info.modified_time)
 
-var result: PackRatResult = await PackRat.load_resource_pack(pack_info.url, options)
+var result: PackRatResult = await PackRat.load_resource_pack(str(pack_info.url), options)
 ```
 
 When expected metadata is set, PackRat derives cache identity from the pack ID,
 size, and modified time. A matching cached file is used immediately; otherwise
 the URL is downloaded and provided fields are checked independently. Size is
 checked against the downloaded file bytes. Modified time is checked against the
-server's `Last-Modified` header.
+server's `Last-Modified` header when it is available. If `Last-Modified` is
+missing but expected size matches, the download is allowed with a warning.
 
 For PWA-style behavior:
 
@@ -99,8 +118,9 @@ var options: PackRatOptions = PackRatOptions.new()
 options.offline_first = true
 ```
 
-`offline_first` skips update checks when cache exists, but still downloads on
-cache miss.
+`offline_first` means a cache hit uses the cached file immediately and skips
+remote update checks. A cache miss still downloads. This is not the same as
+network-disabled mode.
 
 For GitHub Releases:
 
@@ -122,7 +142,7 @@ unloading a resource pack that is already mounted.
 ## Smoke Tests
 
 ```powershell
-godot --headless --path . "res://tests/pack_rat_component_smoke.tscn"
-godot --headless --path . "res://tests/pack_rat_http_pck_smoke.tscn"
-godot --headless --path . "res://tests/pack_rat_http_zip_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
 ```
