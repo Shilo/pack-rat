@@ -9,8 +9,7 @@ var result: PackRatResult = await PackRat.prepare("https://example.com/packs/hub
 
 The MVP is intentionally small:
 
-- `pack_rat.gd`: the static `PackRat.prepare()` API and hidden service node.
-- `pack_rat_service.gd`: the runtime worker node that owns `HTTPRequest`.
+- `pack_rat.gd`: the static `PackRat.prepare()` API and runtime logic.
 - `pack_rat_options.gd`: a few optional knobs.
 - `pack_rat_result.gd`: a structured result object.
 

@@ -2,7 +2,6 @@ extends Node
 
 const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/pack_rat.gd"),
-	preload("res://addons/pack_rat/pack_rat_service.gd"),
 	preload("res://addons/pack_rat/pack_rat_options.gd"),
 	preload("res://addons/pack_rat/pack_rat_result.gd"),
 ]
