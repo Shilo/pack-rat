@@ -2,6 +2,11 @@
 
 Date: 2026-06-10
 
+> Historical research note: this document predates the PackRat MVP decisions.
+> Manifest/SHA/catalog flows described here are research options, not current
+> PackRat requirements. The current PackRat contract is URL plus optional
+> expected size/modified-time metadata, documented in `README.md`.
+
 This research note covers dynamic, per-world content delivery for the current
 multi-server Godot spike:
 

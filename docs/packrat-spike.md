@@ -2,6 +2,12 @@
 
 Date: 2026-06-10
 
+> Historical spike note: this document captures early design exploration and
+> intentionally includes ideas rejected for the MVP, such as required SHA
+> validation, install/freshness enums, and in-flight request de-dupe. Treat
+> `README.md` and the live `addons/pack_rat/` API as the current product
+> contract.
+
 PackRat is a lightweight Godot addon for runtime downloadable content packs.
 Its first job is to make the common case feel almost boring:
 

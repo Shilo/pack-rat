@@ -154,6 +154,22 @@ func _ready() -> void:
 		_fail("Expected size-only metadata cache hit to skip HEAD and GET.")
 		return
 
+	var normalized_clear_options: PackRatOptions = size_options.copy()
+	normalized_clear_options.cache_dir = "%s/" % CACHE_DIR
+	var normalized_clear_error: Error = PackRat.clear_cached_resource_pack(size_options.id, normalized_clear_options)
+	if normalized_clear_error != OK:
+		_fail("Expected normalized clear_cached_resource_pack to succeed, got error %d." % normalized_clear_error)
+		return
+
+	var size_after_clear: PackRatResult = await PackRat.load_resource_pack(_url, size_options)
+	if not size_after_clear.ok or size_after_clear.from_cache:
+		_fail("Expected normalized clear to invalidate fast cache and force redownload. Result: %s" % JSON.stringify(size_after_clear.to_dictionary()))
+		return
+
+	if _get_count != metadata_get_count + 2:
+		_fail("Expected normalized clear to add one GET request.")
+		return
+
 	var fast_cancel_request: PackRatRequest = PackRat.load_resource_pack_async(_url, size_options)
 	fast_cancel_request.cancel()
 	await fast_cancel_request.completed
@@ -161,7 +177,7 @@ func _ready() -> void:
 		_fail("Expected fast cache async cancel to fail before completion.")
 		return
 
-	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
+	if _head_count != metadata_head_count or _get_count != metadata_get_count + 2:
 		_fail("Expected fast cache async cancel to avoid HEAD and GET.")
 		return
 
@@ -173,11 +189,11 @@ func _ready() -> void:
 			return
 
 	var repeated_cache_elapsed_usec: int = Time.get_ticks_usec() - repeated_cache_start_usec
-	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
+	if _head_count != metadata_head_count or _get_count != metadata_get_count + 2:
 		_fail("Expected repeated expected_size cache hits to avoid HEAD and GET.")
 		return
 
-	var corrupt_file: FileAccess = FileAccess.open(size_second.local_path, FileAccess.WRITE)
+	var corrupt_file: FileAccess = FileAccess.open(size_after_clear.local_path, FileAccess.WRITE)
 	if corrupt_file == null:
 		_fail("Could not corrupt cached pack for expected_size validation test.")
 		return
@@ -189,7 +205,7 @@ func _ready() -> void:
 		_fail("Expected corrupted expected_size cache hit to redownload. Result: %s" % JSON.stringify(size_third.to_dictionary()))
 		return
 
-	if _get_count != metadata_get_count + 2:
+	if _get_count != metadata_get_count + 3:
 		_fail("Expected corrupted expected_size cache hit to add one GET request.")
 		return
 
