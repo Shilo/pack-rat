@@ -1,4 +1,4 @@
-# PackRat MVP
+# PackRat
 
 PackRat is a tiny runtime helper for downloading, caching, and mounting remote
 Godot `.pck` and `.zip` resource packs.
@@ -10,9 +10,10 @@ var result: PackRatResult = await PackRat.load_resource_pack("https://example.co
 No editor plugin, autoload, manifest, SHA sidecar, provider system, descriptor
 object, or custom installer workflow is required.
 
-## Table Of Contents
+## Table of Contents
 
 - [Install](#install)
+- [Requirements](#requirements)
 - [Quick Start](#quick-start)
 - [What PackRat Does](#what-packrat-does)
 - [What PackRat Does Not Do](#what-packrat-does-not-do)
@@ -45,6 +46,15 @@ var result: PackRatResult = await PackRat.load_resource_pack("https://example.co
 
 You do not need to enable a plugin in Project Settings.
 
+## Requirements
+
+PackRat targets Godot 4 and is currently tested with Godot 4.6.x. It uses
+runtime `HTTPRequest` nodes and `ProjectSettings.load_resource_pack()`, so it
+must run from a live `SceneTree`.
+
+Build downloadable packs with the same Godot version family as your game. Godot
+may reject packs produced by a newer incompatible engine version.
+
 ## Quick Start
 
 ```gdscript
@@ -52,12 +62,10 @@ var result: PackRatResult = await PackRat.load_resource_pack("https://example.co
 if not result.ok:
 	push_error(result.error)
 	return
-
-var scene: PackedScene = load("res://worlds/hub/main.tscn")
-get_tree().change_scene_to_packed(scene)
 ```
 
-With options:
+PackRat mounts the pack; your game can then load resources from the paths inside
+that pack. If you know the pack's entry scene, keep that path in the options:
 
 ```gdscript
 var options: PackRatOptions = PackRatOptions.new()
@@ -104,29 +112,29 @@ if error != OK:
 ## API
 
 ```gdscript
-static func PackRat.load_resource_pack(url: String, options: PackRatOptions = PackRatOptions.new()) -> PackRatResult
+var result: PackRatResult = await PackRat.load_resource_pack(url, options)
 ```
 
 Downloads if needed, mounts the resource pack, and returns after completion.
 
 ```gdscript
-static func PackRat.load_resource_pack_async(url: String, options: PackRatOptions = PackRatOptions.new()) -> PackRatRequest
+var request: PackRatRequest = PackRat.load_resource_pack_async(url, options)
 ```
 
 Starts the same work but returns a request handle immediately for progress and
 cancellation.
 
 ```gdscript
-static func PackRat.clear_cached_resource_pack(value: String, options: PackRatOptions = PackRatOptions.new()) -> Error
-static func PackRat.clear_cache(options: PackRatOptions = PackRatOptions.new()) -> Error
+var item_error: Error = PackRat.clear_cached_resource_pack(value, options)
+var cache_error: Error = PackRat.clear_cache(options)
 ```
 
 Deletes one cached pack or all PackRat cache files from disk.
 
 ```gdscript
-static func PackRat.file_metadata(path: String) -> PackRatFileMetadata
-static func PackRat.github_release_url(owner: String, repo: String, filename: String, tag: String = "latest") -> String
-static func PackRat.join_url(base_url: String, path: String) -> String
+var metadata: PackRatFileMetadata = PackRat.file_metadata(path)
+var release_url: String = PackRat.github_release_url(owner, repo, filename, tag)
+var static_url: String = PackRat.join_url(base_url, path)
 ```
 
 Small helpers for server metadata workflows, direct GitHub Release asset URLs,
@@ -427,4 +435,5 @@ behavior.
 | Freshness is always unknown. | Server or browser CORS is hiding `ETag`, `Last-Modified`, or `Content-Length`. | Expose those headers or use expected metadata. |
 | `.zip` URL fails with nonzero offset. | Godot only supports offsets for PCK packs. | Keep `offset = 0` for ZIP packs. |
 | Cache cleanup returns `ERR_INVALID_PARAMETER`. | `cache_dir` is root `user://`, outside `user://`, or contains `..`. | Use a dedicated directory such as `user://pack_rat`. |
+| Godot cannot mount the downloaded pack. | The pack may be invalid or built with an incompatible Godot version. | Rebuild the pack with the same Godot version family as the client. |
 | Updated resources do not behave like a clean restart. | Godot cannot unload an already mounted pack. | Use versioned internal resource paths or restart between incompatible pack versions. |
