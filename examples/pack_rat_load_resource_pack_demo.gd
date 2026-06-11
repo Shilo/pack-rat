@@ -17,7 +17,10 @@ func _ready() -> void:
 	var options: PackRatOptions = PackRatOptions.new()
 	options.entry_path = entry_path
 
-	var result: PackRatResult = await PackRat.prepare(pack_url, options)
+	var request: PackRatRequest = PackRat.load_resource_pack_async(pack_url, options)
+	request.progress_changed.connect(_on_progress_changed)
+	await request.completed
+	var result: PackRatResult = request.result
 	print(JSON.stringify(result.to_dictionary(), "\t"))
 
 	if quit_when_done:
@@ -30,3 +33,10 @@ func _apply_user_args() -> void:
 			pack_url = argument.substr("--pack-url=".length())
 		elif argument.begins_with("--entry-path="):
 			entry_path = argument.substr("--entry-path=".length())
+
+
+func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:
+	if total_bytes > 0:
+		print("PackRat demo: downloaded %d / %d bytes" % [downloaded_bytes, total_bytes])
+	else:
+		print("PackRat demo: downloaded %d bytes" % downloaded_bytes)

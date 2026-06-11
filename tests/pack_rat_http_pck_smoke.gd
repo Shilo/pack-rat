@@ -40,18 +40,18 @@ func _ready() -> void:
 	options.entry_path = MOUNTED_MARKER
 	options.timeout_seconds = 10.0
 
-	var first: PackRatResult = await PackRat.prepare(_url, options)
+	var first: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not first.ok or not first.mounted or first.from_cache:
-		_fail("Expected first prepare to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
+		_fail("Expected first load to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
 		return
 
 	if FileAccess.get_file_as_string(MOUNTED_MARKER).strip_edges() != "mounted-from-packrat":
 		_fail("Mounted PCK marker was not readable from res://.")
 		return
 
-	var second: PackRatResult = await PackRat.prepare(_url, options)
+	var second: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not second.ok or not second.from_cache or not second.mounted:
-		_fail("Expected second prepare to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
+		_fail("Expected second load to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
 		return
 
 	if _get_count != 1:
@@ -67,7 +67,7 @@ func _ready() -> void:
 	_last_modified = "Wed, 10 Jun 2026 20:16:00 GMT"
 	_build_pack("mounted-from-packrat-version-two")
 
-	var third: PackRatResult = await PackRat.prepare(_url, options)
+	var third: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not third.ok or third.from_cache:
 		_fail("Expected changed ETag to redownload. Result: %s" % JSON.stringify(third.to_dictionary()))
 		return
@@ -89,22 +89,22 @@ func _ready() -> void:
 	size_options.timeout_seconds = 10.0
 	size_options.expected_size = _pack_bytes.size()
 
-	var size_first: PackRatResult = await PackRat.prepare(_url, size_options)
+	var size_first: PackRatResult = await PackRat.load_resource_pack(_url, size_options)
 	if not size_first.ok or size_first.from_cache:
-		_fail("Expected size-only metadata prepare to download. Result: %s" % JSON.stringify(size_first.to_dictionary()))
+		_fail("Expected size-only metadata load to download. Result: %s" % JSON.stringify(size_first.to_dictionary()))
 		return
 
 	if _head_count != metadata_head_count:
-		_fail("Expected size-only metadata prepare to skip HEAD, got %d new HEAD requests." % (_head_count - metadata_head_count))
+		_fail("Expected size-only metadata load to skip HEAD, got %d new HEAD requests." % (_head_count - metadata_head_count))
 		return
 
 	if _get_count != metadata_get_count + 1:
-		_fail("Expected size-only metadata prepare to download once, got %d new GET requests." % (_get_count - metadata_get_count))
+		_fail("Expected size-only metadata load to download once, got %d new GET requests." % (_get_count - metadata_get_count))
 		return
 
-	var size_second: PackRatResult = await PackRat.prepare(_url, size_options)
+	var size_second: PackRatResult = await PackRat.load_resource_pack(_url, size_options)
 	if not size_second.ok or not size_second.from_cache:
-		_fail("Expected size-only metadata prepare to reuse cache. Result: %s" % JSON.stringify(size_second.to_dictionary()))
+		_fail("Expected size-only metadata load to reuse cache. Result: %s" % JSON.stringify(size_second.to_dictionary()))
 		return
 
 	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
@@ -118,9 +118,9 @@ func _ready() -> void:
 	modified_options.timeout_seconds = 10.0
 	modified_options.expected_modified_time = MODIFIED_V2_UNIX
 
-	var modified_first: PackRatResult = await PackRat.prepare(_url, modified_options)
+	var modified_first: PackRatResult = await PackRat.load_resource_pack(_url, modified_options)
 	if not modified_first.ok or modified_first.from_cache:
-		_fail("Expected modified-time-only metadata prepare to download. Result: %s" % JSON.stringify(modified_first.to_dictionary()))
+		_fail("Expected modified-time-only metadata load to download. Result: %s" % JSON.stringify(modified_first.to_dictionary()))
 		return
 
 	var both_options: PackRatOptions = PackRatOptions.new()
@@ -131,7 +131,7 @@ func _ready() -> void:
 	both_options.expected_size = _pack_bytes.size()
 	both_options.expected_modified_time = MODIFIED_V2_UNIX
 
-	var both_first: PackRatResult = await PackRat.prepare(_url, both_options)
+	var both_first: PackRatResult = await PackRat.load_resource_pack(_url, both_options)
 	if not both_first.ok or both_first.from_cache:
 		_fail("Expected both metadata fields to validate together. Result: %s" % JSON.stringify(both_first.to_dictionary()))
 		return
@@ -141,7 +141,7 @@ func _ready() -> void:
 	_build_pack("metadata-version-two")
 	both_options.expected_size = _pack_bytes.size()
 	both_options.expected_modified_time = MODIFIED_V3_UNIX
-	var metadata_third: PackRatResult = await PackRat.prepare(_url, both_options)
+	var metadata_third: PackRatResult = await PackRat.load_resource_pack(_url, both_options)
 	if not metadata_third.ok or metadata_third.from_cache:
 		_fail("Expected changed expected metadata to download. Result: %s" % JSON.stringify(metadata_third.to_dictionary()))
 		return
@@ -155,7 +155,7 @@ func _ready() -> void:
 	bad_size_options.cache_dir = CACHE_DIR
 	bad_size_options.timeout_seconds = 10.0
 	bad_size_options.expected_size = _pack_bytes.size() + 1
-	var bad_size: PackRatResult = await PackRat.prepare(_url, bad_size_options)
+	var bad_size: PackRatResult = await PackRat.load_resource_pack(_url, bad_size_options)
 	if bad_size.ok:
 		_fail("Expected expected_size mismatch to fail.")
 		return
@@ -165,7 +165,7 @@ func _ready() -> void:
 	bad_modified_options.cache_dir = CACHE_DIR
 	bad_modified_options.timeout_seconds = 10.0
 	bad_modified_options.expected_modified_time = MODIFIED_V2_UNIX
-	var bad_modified: PackRatResult = await PackRat.prepare(_url, bad_modified_options)
+	var bad_modified: PackRatResult = await PackRat.load_resource_pack(_url, bad_modified_options)
 	if bad_modified.ok:
 		_fail("Expected expected_modified_time mismatch to fail.")
 		return
@@ -179,12 +179,12 @@ func _ready() -> void:
 	offline_options.timeout_seconds = 10.0
 	offline_options.offline_first = true
 
-	var offline_first: PackRatResult = await PackRat.prepare(_url, offline_options)
+	var offline_first: PackRatResult = await PackRat.load_resource_pack(_url, offline_options)
 	if not offline_first.ok or offline_first.from_cache:
 		_fail("Expected offline-first cache miss to download. Result: %s" % JSON.stringify(offline_first.to_dictionary()))
 		return
 
-	var offline_second: PackRatResult = await PackRat.prepare(_url, offline_options)
+	var offline_second: PackRatResult = await PackRat.load_resource_pack(_url, offline_options)
 	if not offline_second.ok or not offline_second.from_cache:
 		_fail("Expected offline-first cache hit to reuse cache. Result: %s" % JSON.stringify(offline_second.to_dictionary()))
 		return
@@ -203,25 +203,73 @@ func _ready() -> void:
 	concurrent_options.expected_size = _pack_bytes.size()
 	concurrent_options.expected_modified_time = MODIFIED_V3_UNIX
 	var concurrent_results: Array[PackRatResult] = []
-	_collect_prepare(concurrent_options, concurrent_results)
-	_collect_prepare(concurrent_options, concurrent_results)
+	_collect_load(concurrent_options, concurrent_results)
+	_collect_load(concurrent_options, concurrent_results)
 
 	var wait_until: int = Time.get_ticks_msec() + 3000
 	while concurrent_results.size() < 2 and Time.get_ticks_msec() < wait_until:
 		await get_tree().process_frame
 
 	if concurrent_results.size() != 2:
-		_fail("Timed out waiting for concurrent prepare results.")
+		_fail("Timed out waiting for concurrent load results.")
 		return
 
 	for index in range(concurrent_results.size()):
 		var concurrent_result: PackRatResult = concurrent_results[index]
 		if not concurrent_result.ok:
-			_fail("Expected concurrent prepare to succeed. Result: %s" % JSON.stringify(concurrent_result.to_dictionary()))
+			_fail("Expected concurrent load to succeed. Result: %s" % JSON.stringify(concurrent_result.to_dictionary()))
 			return
 
 	if _head_count != concurrent_head_count or _get_count != concurrent_get_count + 1:
-		_fail("Expected concurrent prepares to share one download.")
+		_fail("Expected concurrent loads to share one download.")
+		return
+
+	var progress_options: PackRatOptions = PackRatOptions.new()
+	progress_options.id = "progress_smoke"
+	progress_options.cache_dir = CACHE_DIR
+	progress_options.entry_path = MOUNTED_MARKER
+	progress_options.timeout_seconds = 10.0
+	var slow_url: String = "http://127.0.0.1:%d/slow.pck" % _server.get_local_port()
+	var progress_events: Array[int] = [0]
+	var progress_request: PackRatRequest = PackRat.load_resource_pack_async(slow_url, progress_options)
+	progress_request.progress_changed.connect(func(_downloaded_bytes: int, _total_bytes: int) -> void:
+		progress_events[0] += 1
+	)
+	await progress_request.completed
+	if progress_request.result == null:
+		_fail("Expected async load to produce a result.")
+		return
+
+	if not progress_request.result.ok:
+		_fail("Expected async load to succeed. Result: %s" % JSON.stringify(progress_request.result.to_dictionary()))
+		return
+
+	if progress_events[0] <= 0:
+		_fail("Expected async load to emit progress_changed at least once.")
+		return
+
+	var cancel_options: PackRatOptions = PackRatOptions.new()
+	cancel_options.id = "cancel_smoke"
+	cancel_options.cache_dir = CACHE_DIR
+	cancel_options.timeout_seconds = 10.0
+	var cancel_seen: Array[bool] = [false]
+	var cancel_request: PackRatRequest = PackRat.load_resource_pack_async(slow_url, cancel_options)
+	cancel_request.canceled.connect(func() -> void:
+		cancel_seen[0] = true
+	)
+	await get_tree().process_frame
+	cancel_request.cancel()
+	await cancel_request.completed
+	if cancel_request.result == null:
+		_fail("Expected canceled async load to produce a result.")
+		return
+
+	if cancel_request.result.ok:
+		_fail("Expected canceled async load to fail.")
+		return
+
+	if not cancel_seen[0]:
+		_fail("Expected canceled async load to emit canceled.")
 		return
 
 	var extensionless_options: PackRatOptions = PackRatOptions.new()
@@ -230,7 +278,7 @@ func _ready() -> void:
 	extensionless_options.entry_path = MOUNTED_MARKER
 	extensionless_options.timeout_seconds = 10.0
 	var extensionless_url: String = "http://127.0.0.1:%d/download?id=hub" % _server.get_local_port()
-	var extensionless: PackRatResult = await PackRat.prepare(extensionless_url, extensionless_options)
+	var extensionless: PackRatResult = await PackRat.load_resource_pack(extensionless_url, extensionless_options)
 	if not extensionless.ok or not extensionless.mounted:
 		_fail("Expected extensionless PCK URL to download and mount. Result: %s" % JSON.stringify(extensionless.to_dictionary()))
 		return
@@ -239,19 +287,43 @@ func _ready() -> void:
 		_fail("Expected extensionless PCK URL to receive a .pck cache path, got %s." % extensionless.local_path)
 		return
 
+	var clear_item_error: Error = PackRat.clear_cached_resource_pack(extensionless_options.id, extensionless_options)
+	if clear_item_error != OK:
+		_fail("Expected clear_cached_resource_pack by ID to succeed, got error %d." % clear_item_error)
+		return
+
+	if FileAccess.file_exists(extensionless.local_path):
+		_fail("Expected clear_cached_resource_pack to remove cached file %s." % extensionless.local_path)
+		return
+
+	var missing_clear_error: Error = PackRat.clear_cached_resource_pack("missing-pack", extensionless_options)
+	if missing_clear_error != ERR_DOES_NOT_EXIST:
+		_fail("Expected missing clear_cached_resource_pack to return ERR_DOES_NOT_EXIST, got %d." % missing_clear_error)
+		return
+
+	var github_latest_url: String = PackRat.github_release_url("owner", "repo", "hub.pck")
+	if github_latest_url != "https://github.com/owner/repo/releases/latest/download/hub.pck":
+		_fail("Unexpected latest GitHub release URL: %s" % github_latest_url)
+		return
+
+	var github_tag_url: String = PackRat.github_release_url("owner", "repo", "hub.pck", "v1.2.3")
+	if github_tag_url != "https://github.com/owner/repo/releases/download/v1.2.3/hub.pck":
+		_fail("Unexpected tagged GitHub release URL: %s" % github_tag_url)
+		return
+
 	var forced_options: PackRatOptions = PackRatOptions.new()
 	forced_options.id = "forced_download_smoke"
 	forced_options.cache_dir = CACHE_DIR
 	forced_options.entry_path = MOUNTED_MARKER
 	forced_options.timeout_seconds = 10.0
-	var forced_first: PackRatResult = await PackRat.prepare(_url, forced_options)
+	var forced_first: PackRatResult = await PackRat.load_resource_pack(_url, forced_options)
 	if not forced_first.ok:
-		_fail("Expected forced-download setup prepare to succeed. Result: %s" % JSON.stringify(forced_first.to_dictionary()))
+		_fail("Expected forced-download setup load to succeed. Result: %s" % JSON.stringify(forced_first.to_dictionary()))
 		return
 
 	_fail_get = true
 	forced_options.always_download = true
-	var forced_second: PackRatResult = await PackRat.prepare(_url, forced_options)
+	var forced_second: PackRatResult = await PackRat.load_resource_pack(_url, forced_options)
 	_fail_get = false
 	if forced_second.ok:
 		_fail("Expected always_download to fail when the fresh download fails.")
@@ -263,8 +335,8 @@ func _ready() -> void:
 	invalid_options.cache_dir = CACHE_DIR
 	invalid_options.timeout_seconds = 10.0
 	var invalid_get_count: int = _get_count
-	var invalid_first: PackRatResult = await PackRat.prepare(invalid_url, invalid_options)
-	var invalid_second: PackRatResult = await PackRat.prepare(invalid_url, invalid_options)
+	var invalid_first: PackRatResult = await PackRat.load_resource_pack(invalid_url, invalid_options)
+	var invalid_second: PackRatResult = await PackRat.load_resource_pack(invalid_url, invalid_options)
 	if invalid_first.ok or invalid_second.ok:
 		_fail("Expected invalid PCK downloads to fail mounting.")
 		return
@@ -305,6 +377,9 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 			_write_invalid_response(peer, true)
 		else:
 			_write_not_found(peer)
+	elif path == "/slow.pck" and method == "GET":
+		_get_count += 1
+		await _write_slow_response(peer)
 	elif _fail_get and method == "GET":
 		_get_count += 1
 		_write_not_found(peer)
@@ -320,8 +395,8 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 	peer.disconnect_from_host()
 
 
-func _collect_prepare(options: PackRatOptions, output: Array[PackRatResult]) -> void:
-	var result: PackRatResult = await PackRat.prepare(_url, options)
+func _collect_load(options: PackRatOptions, output: Array[PackRatResult]) -> void:
+	var result: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	output.append(result)
 
 
@@ -341,6 +416,22 @@ func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
 
 	if include_body:
 		peer.put_data(_pack_bytes)
+
+
+func _write_slow_response(peer: StreamPeerTCP) -> void:
+	var headers: String = (
+		"HTTP/1.1 200 OK\r\n"
+		+ "Content-Type: application/octet-stream\r\n"
+		+ "Content-Length: %d\r\n" % _pack_bytes.size()
+		+ "ETag: \"packrat-slow-smoke\"\r\n"
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+
+	for byte in _pack_bytes:
+		peer.put_u8(byte)
+		await get_tree().process_frame
 
 
 func _write_not_found(peer: StreamPeerTCP) -> void:

@@ -6,7 +6,7 @@ PackRat is a lightweight Godot addon for runtime downloadable content packs.
 Its first job is to make the common case feel almost boring:
 
 ```gdscript
-var result := await PackRat.prepare("https://example.com/packs/hub.pck")
+var result := await PackRat.load_resource_pack("https://example.com/packs/hub.pck")
 if result.ok:
 	var scene := load("res://server/worlds/hub/hub.tscn")
 ```
@@ -51,7 +51,7 @@ This is the main API. It should work without any project setup beyond adding the
 addon scripts:
 
 ```gdscript
-var result := await PackRat.prepare("https://cdn.example.com/world_packs/hub.pck")
+var result := await PackRat.load_resource_pack("https://cdn.example.com/world_packs/hub.pck")
 ```
 
 Default behavior:
@@ -78,7 +78,7 @@ var options := PackRatOptions.new()
 options.id = "hub"
 options.entry_path = "res://server/worlds/hub/hub.tscn"
 
-var result := await PackRat.prepare("https://cdn.example.com/world_packs/hub.pck", options)
+var result := await PackRat.load_resource_pack("https://cdn.example.com/world_packs/hub.pck", options)
 if result.ok:
 	var scene := load(result.entry_path)
 ```
@@ -122,28 +122,24 @@ PackRat can confirm freshness and mountability without a hash, but it cannot
 prove cryptographic integrity without a hash, signature, or trusted provider
 digest.
 
-### Server Descriptor
+### Server Payloads
 
-Server-driven games can pass a typed descriptor later, but this should not be
-required for the first API to feel good.
-
-```gdscript
-var descriptor := PackRatDescriptor.new()
-descriptor.id = "hub"
-descriptor.url = "https://cdn.example.com/world_packs/hub.pck"
-descriptor.entry_path = "res://server/worlds/hub/hub.tscn"
-descriptor.version = "2026.06.10.1"
-
-var result := await PackRat.prepare_descriptor(descriptor)
-```
-
-Dictionary descriptor mode can be added as an adapter for network payloads:
+Server-driven games should keep PackRat's public surface as URL plus options.
+The game can read whatever route/catalog payload it wants, then copy only the
+needed fields into [PackRatOptions].
 
 ```gdscript
-var result := await PackRat.prepare_descriptor(PackRatDescriptor.from_dict(route["pack"]))
+var options: PackRatOptions = PackRatOptions.new()
+options.id = route["pack"]["id"]
+options.entry_path = route["pack"]["entry_path"]
+options.expected_size = route["pack"].get("size", 0)
+options.expected_modified_time = route["pack"].get("modified_time", 0)
+
+var result := await PackRat.load_resource_pack(route["pack"]["url"], options)
 ```
 
-Do not make the dictionary path the primary public API.
+Do not add descriptor objects or dictionary adapters until a real caller proves
+that URL plus options is too clumsy.
 
 ## Freshness Without Extra Files
 
@@ -213,7 +209,7 @@ Rules:
 - Never download directly over the stable cached file.
 - Delete `.part` files after failed downloads or failed validation.
 - If the new download fails, keep the old cache entry untouched.
-- Deduplicate concurrent `prepare()` calls for the same cache key.
+- Deduplicate concurrent `load_resource_pack()` calls for the same cache key.
 - Treat `replace_files=false` as the default.
 - If `replace_files=true`, result/logs should make that obvious.
 
@@ -265,26 +261,28 @@ addons/pack_rat/
   pack_rat_service.gd      # Node, owns HTTPRequest nodes and cache state
   pack_rat_options.gd      # typed options
   pack_rat_result.gd       # result object
-  pack_rat_descriptor.gd   # optional typed descriptor
-  pack_rat_cache.gd        # cache.json read/write
-  pack_rat_http.gd         # HEAD/GET/download helpers
-  pack_rat_installer.gd    # resource pack/file install modes
+  pack_rat_request.gd      # progress/cancel/completed request handle
+  internal/
+    pack_rat_cache.gd
+    pack_rat_cache_record.gd
+    pack_rat_http_response.gd
+    pack_rat_request_runner.gd
 ```
 
-The static facade should auto-create a service node on first use:
+The static facade should not require a service node or autoload:
 
 ```gdscript
-class_name PackRat
-extends RefCounted
+class_name PackRat extends RefCounted
 
-static func prepare(url: String, options: PackRatOptions = null) -> PackRatResult:
-	var service := _get_or_create_service()
-	return await service.prepare(url, options)
+static func load_resource_pack(url: String, options: PackRatOptions = PackRatOptions.new()) -> PackRatResult:
+	var request: PackRatRequest = load_resource_pack_async(url, options)
+	await request.completed
+	return request.result
 ```
 
-An explicit autoload should remain possible for projects that want progress,
-cancellation, or dependency injection. The autoload should be optional, not the
-default install burden.
+Progress and cancellation use [PackRatRequest] from
+[method PackRat.load_resource_pack_async], without making users install an
+autoload.
 
 ## Web Export Constraints
 
@@ -304,10 +302,10 @@ Recommended first Web test:
 
 ```text
 same-origin Web client + same-origin /packs/hub.pck
-PackRat.prepare(url)
+PackRat.load_resource_pack(url)
 download -> mount -> load scene
 refresh browser
-PackRat.prepare(url)
+PackRat.load_resource_pack(url)
 cache hit -> mount -> load scene
 replace remote pck
 freshness check sees stale -> redownload
@@ -347,7 +345,7 @@ Releases should wait until browser redirect/CORS behavior is tested.
 
 Build first:
 
-- `PackRat.prepare(url: String, options: PackRatOptions = null)`;
+- `PackRat.load_resource_pack(url: String, options: PackRatOptions = null)`;
 - typed `PackRatOptions`;
 - typed `PackRatResult`;
 - `user://pack_rat/cache.json`;
@@ -357,7 +355,7 @@ Build first:
 - file mode only if it falls out naturally;
 - in-flight dedupe per cache key;
 - logs for download/cache hit/stale/mount/failure;
-- minimal demo scene that calls `PackRat.prepare(url)`.
+- minimal demo scene that calls `PackRat.load_resource_pack(url)`.
 
 Defer:
 
@@ -375,7 +373,7 @@ Defer:
 
 - Should the default no-hash mode be named `allow_unverified_remote=true`, or
   should that warning live only in docs/logs?
-- Should `PackRat.prepare(url)` always send `HEAD`, or should it use
+- Should `PackRat.load_resource_pack(url)` always send `HEAD`, or should it use
   cache-first with a max-age option to avoid one request per launch?
 - Should `PackRatOptions` use plain properties only, or also builder helpers
   such as `PackRatOptions.resource_pack("hub")`?

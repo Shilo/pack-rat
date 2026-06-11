@@ -11,7 +11,7 @@ load resources from that content.
 The motivating call shape is:
 
 ```gdscript
-var content := await DLC.prepare("hub")
+var content := await DLC.load_resource_pack("hub")
 if content.ok:
 	var scene := load("res://server/worlds/hub/hub.tscn")
 ```
@@ -34,18 +34,18 @@ scene references without enabling a plugin.
 The addon should expose:
 
 - A static facade, probably `class_name DLC`, for simple calls.
-- A hidden or autoloadable `DLCService` node for `HTTPRequest`, queues, progress,
-  cancellation, and test injection.
+- A small request handle for progress, cancellation, and completion.
+- Temporary internal `HTTPRequest` nodes created only while network work is active.
 - Optional editor tooling later for autoload registration, config editing, pack
   export, and upload scripts.
 
 The high-level method should be:
 
 ```gdscript
-var result := await DLC.prepare("content_id")
+var result := await DLC.load_resource_pack("content_id")
 ```
 
-`prepare()` means: resolve source, check cache, check freshness when possible,
+`load_resource_pack()` means: resolve source, check cache, check freshness when possible,
 download when stale or missing, validate, install or mount, and return a result
 that tells the caller what happened. It does not mean "load the scene" because a
 generic DLC addon should not know whether the caller wants a scene, texture,
@@ -60,7 +60,7 @@ Treat these as hard runtime requirements, not preferences:
   stable cache path. Failed HTTP responses, partial downloads, and hash
   mismatches must not poison the cache.
 - Concurrent calls for the same content ID/cache key must share one in-flight
-  prepare operation instead of starting duplicate downloads or mounts.
+  load operation instead of starting duplicate downloads or mounts.
 - Resource-pack installs must default to `replace_files=false`. Overriding
   bundled resources is patch behavior and should require explicit opt-in.
 
@@ -86,41 +86,38 @@ const DLC := preload("res://addons/godot_dlc/dlc.gd")
 
 func _ready() -> void:
 	DLC.configure(preload("res://dlc_config.tres"))
-	var content := await DLC.prepare("hub")
+	var content := await DLC.load_resource_pack("hub")
 ```
 
 or, if the addon uses `class_name DLC`, simply:
 
 ```gdscript
 func _ready() -> void:
-	var content := await DLC.prepare("hub")
+	var content := await DLC.load_resource_pack("hub")
 ```
 
 GDScript supports static functions for helper libraries. The caveat is that
 network downloads need nodes: `HTTPRequest` is a `Node`, and Godot's docs warn
-not to run simultaneous requests through a single `HTTPRequest` node. A pure
-static implementation would quickly become awkward.
+not to run simultaneous requests through a single `HTTPRequest` node. The static
+facade can still stay simple by creating temporary request nodes internally.
 
 The practical compromise is:
 
 ```gdscript
-class_name DLC
-extends RefCounted
+class_name DLC extends RefCounted
 
-static var _service: DLCService
-
-static func prepare(content: Variant, options: Dictionary = {}) -> DLCResult:
-	var service := _get_or_create_service()
-	return await service.prepare(content, options)
+static func load_resource_pack(content: Variant, options: Dictionary = {}) -> DLCResult:
+	var request := load_resource_pack_async(content, options)
+	await request.completed
+	return request.result
 ```
 
-`_get_or_create_service()` can attach one internal service node to the current
-`SceneTree` root on first use. Projects that prefer explicit setup can add the
-service as an autoload or call `DLC.use_service(custom_service)`.
+`load_resource_pack_async()` can return a small request handle that exposes
+progress, cancellation, and completion while the facade owns temporary
+`HTTPRequest` nodes internally.
 
 An optional editor plugin is still useful later, but only as sugar:
 
-- Register `DLCService` as an autoload.
 - Add project settings under `addons/godot_dlc/*`.
 - Provide an editor UI for content item definitions.
 - Export selected folders to PCK files.
@@ -137,13 +134,13 @@ calls.
 Recommended primary API for configured content:
 
 ```gdscript
-var result := await DLC.prepare("hub")
+var result := await DLC.load_resource_pack("hub")
 ```
 
 Recommended primary API for server-provided descriptors:
 
 ```gdscript
-var result := await DLC.prepare({
+var result := await DLC.load_resource_pack({
 	"id": "hub",
 	"url": "https://example.com/dlc/hub.pck",
 	"sha256": "39882095cc2b59579a7c2d2179fc881808848a25febd1d8beffce8812ef35186",
@@ -166,7 +163,7 @@ server-authoritative routing.
 Recommended direct URL shorthand:
 
 ```gdscript
-var result := await DLC.prepare("https://example.com/dlc/hub.pck", {
+var result := await DLC.load_resource_pack("https://example.com/dlc/hub.pck", {
 	"sha256_url": "https://example.com/dlc/hub.pck.sha256",
 	"cache_key": "hub",
 	"install": "resource_pack"
@@ -190,7 +187,7 @@ DLC.configure({
 	}
 })
 
-var result := await DLC.prepare("hub")
+var result := await DLC.load_resource_pack("hub")
 if result.ok:
 	var scene := load(result.entry_path)
 ```
@@ -402,7 +399,7 @@ That API response can replace a custom manifest for public release assets.
 Recommended addon provider:
 
 ```gdscript
-var result := await DLC.prepare({
+var result := await DLC.load_resource_pack({
 	"provider": "github_release",
 	"owner": "owner",
 	"repo": "repo",
@@ -498,12 +495,12 @@ callers can assert cache behavior directly.
 The service should keep an in-flight map keyed by content ID or cache key:
 
 ```gdscript
-var existing := await DLC.prepare("hub")
-var also_existing := await DLC.prepare("hub")
+var existing := await DLC.load_resource_pack("hub")
+var also_existing := await DLC.load_resource_pack("hub")
 ```
 
 Only one network download should happen. Later calls should await the first
-prepare operation and receive the same ready/failure state.
+load operation and receive the same ready/failure state.
 
 For Web exports, `user://` persistence depends on browser IndexedDB/cookie
 settings. Godot documents that incognito/private browsing and some iframe cookie
@@ -635,7 +632,7 @@ folder can be excluded from exports.
 
 ## Implementation Flow
 
-`await DLC.prepare("hub")` should do this:
+`await DLC.load_resource_pack("hub")` should do this:
 
 1. Resolve `"hub"` against configured content items or providers.
 2. Compute a stable `cache_key`.
@@ -703,7 +700,7 @@ HTTP source
 sha256 or sha256_url integrity
 user:// cache
 temporary .part downloads
-in-flight prepare dedupe
+in-flight load dedupe
 ProjectSettings.load_resource_pack(..., replace_files=false)
 ```
 
@@ -712,11 +709,11 @@ repository raw-file providers, ZIP extraction, catalog discovery, and editor UI
 until the HTTP PCK path is proven in a Web export.
 
 1. Create `addons/godot_dlc/` runtime files only.
-2. Add `DLC.prepare()` with ID, descriptor dictionary, and direct URL support.
+2. Add `DLC.load_resource_pack()` with ID, descriptor dictionary, and direct URL support.
 3. Support plain HTTP `.pck` plus `.sha256` sidecar.
 4. Download to `.part`, validate SHA-256, then rename into cache.
 5. Store cache state in `user://dlc/cache.json`.
-6. Deduplicate concurrent prepare calls for the same ID/cache key.
+6. Deduplicate concurrent load_resource_pack calls for the same ID/cache key.
 7. Mount with `replace_files=false` by default, with per-item override.
 8. Replace `client/world_pack_manager.gd` call site with a server-provided
    descriptor for `hub`; use a configured item only where it avoids duplication.
@@ -734,12 +731,11 @@ until the HTTP PCK path is proven in a Web export.
 
 ## Open Questions
 
-- Should the one-call method be `prepare()` or `install()`? This spike recommends
-  `prepare()` because it covers cached, freshly downloaded, and mounted states
+- Should the one-call method be `load_resource_pack()` or `install()`? This spike recommends
+  `load_resource_pack()` because it covers cached, freshly downloaded, and mounted states
   without implying that all future runs are permanently installed.
-- Should the static facade auto-create the service node, or should projects
-  explicitly autoload `DLCService`? Auto-create gives the easiest one-call API;
-  autoload gives clearer progress/cancel integration.
+- Should progress/cancel stay on a small request handle, or eventually grow into
+  a richer operation object? The MVP should keep the handle small.
 - Should the addon include a tiny in-pack descriptor convention, such as
   `res://dlc/<id>/dlc.json`? This would help generic discovery after mount, but
   should not be required.

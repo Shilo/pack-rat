@@ -50,13 +50,13 @@ PackRat should expose a simple API that hides cache paths, download paths, valid
 Preferred API shape:
 
 ```gdscript
-var result := await PackRat.prepare("hub")
+var result := await PackRat.load_resource_pack("hub")
 ```
 
 Descriptor mode should also be first-class:
 
 ```gdscript
-var result := await PackRat.prepare({
+var result := await PackRat.load_resource_pack({
 	"id": "hub",
 	"url": "https://example.com/world_packs/hub.pck",
 	"sha256": "...",
@@ -71,7 +71,7 @@ var result := await PackRat.prepare({
 Direct URL mode can exist for demos/tests:
 
 ```gdscript
-var result := await PackRat.prepare("https://example.com/dlc/hub.pck", {
+var result := await PackRat.load_resource_pack("https://example.com/dlc/hub.pck", {
 	"id": "hub",
 	"sha256_url": "https://example.com/dlc/hub.pck.sha256",
 	"install": "resource_pack"
@@ -86,13 +86,13 @@ The public mental model should be:
 source -> cache -> validate -> install/mount -> result
 ```
 
-Use `prepare()` as the primary verb.
+Use `load_resource_pack()` as the primary verb.
 
 Avoid names like `ensure_*` because they hide what may happen internally: cache lookup, freshness check, download, validation, install, pack mount, or failure.
 
 ## Runtime Behavior
 
-`PackRat.prepare()` should:
+`PackRat.load_resource_pack()` should:
 
 1. Resolve the source:
 
@@ -200,20 +200,20 @@ Use a static facade plus a service node.
 Suggested structure:
 
 ```gdscript
-class_name PackRat
-extends RefCounted
+class_name PackRat extends RefCounted
 
-static func prepare(content: Variant, options: Dictionary = {}) -> PackRatResult:
-	var service := _get_or_create_service()
-	return await service.prepare(content, options)
+static func load_resource_pack(content: Variant, options: Dictionary = {}) -> PackRatResult:
+	var request := load_resource_pack_async(content, options)
+	await request.completed
+	return request.result
 ```
 
-A `PackRatService` node should own:
+A `PackRatRequest` handle should expose:
 
-* `HTTPRequest` nodes
-* download queue
-* progress events
-* cancellation
+* `progress_changed`
+* `completed`
+* `canceled`
+* `cancel()`
 * in-flight deduplication
 * test injection
 
@@ -270,7 +270,7 @@ Recommended flow:
    - pack SHA-256
    - pack size
    - pack version
-5. Client calls PackRat.prepare(route.pack).
+5. Client calls PackRat.load_resource_pack(route.pack).
 6. Client reports assets ready.
 7. Master issues fresh short-lived join ticket.
 8. Client loads the scene and connects to the world server.
@@ -333,20 +333,20 @@ Start with:
 ```text
 Addon:
   res://addons/pack_rat/
-  PackRat.prepare()
+  PackRat.load_resource_pack()
   HTTP source only
   .pck resource-pack installer
   sha256 / sha256_url / hash-in-filename
   user://pack_rat cache
   temporary .part downloads
-  in-flight prepare dedupe
+  in-flight load dedupe
   replace_files=false by default
 
 VirtuCade:
   master sends pack descriptor
   CI exports hub.pck first
   VPS serves /world_packs/hub-<sha>.pck
-  client calls PackRat.prepare(route.pack)
+  client calls PackRat.load_resource_pack(route.pack)
   client loads route.scene
 ```
 
@@ -522,7 +522,7 @@ pack_rat_icon_monochrome.svg
 PackRat is a universal Godot runtime content-pack addon. It should make downloading and mounting DLC/content packs feel like one simple operation:
 
 ```gdscript
-var result := await PackRat.prepare("hub")
+var result := await PackRat.load_resource_pack("hub")
 ```
 
 The mascot/icon should be a simple cute mouse-package hybrid: a helpful little pack rat that fetches, stashes, and mounts content for the game.

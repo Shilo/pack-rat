@@ -35,9 +35,9 @@ func _ready() -> void:
 	options.entry_path = MOUNTED_MARKER
 	options.timeout_seconds = 10.0
 
-	var first: PackRatResult = await PackRat.prepare(_url, options)
+	var first: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not first.ok or not first.mounted or first.from_cache:
-		_fail("Expected ZIP prepare to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
+		_fail("Expected ZIP load to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
 		return
 
 	if first.local_path.get_extension().to_lower() != "zip":
@@ -48,9 +48,9 @@ func _ready() -> void:
 		_fail("Mounted ZIP marker was not readable from res://.")
 		return
 
-	var second: PackRatResult = await PackRat.prepare(_url, options)
+	var second: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not second.ok or not second.from_cache or not second.mounted:
-		_fail("Expected second ZIP prepare to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
+		_fail("Expected second ZIP load to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
 		return
 
 	if _get_count != 1:
@@ -59,6 +59,16 @@ func _ready() -> void:
 
 	if _head_count != 1:
 		_fail("Expected ZIP cache hit to check freshness once, got %d HEAD requests." % _head_count)
+		return
+
+	var offset_options: PackRatOptions = PackRatOptions.new()
+	offset_options.id = "http_zip_smoke"
+	offset_options.cache_dir = CACHE_DIR
+	offset_options.timeout_seconds = 10.0
+	offset_options.offset = 1
+	var offset_result: PackRatResult = await PackRat.load_resource_pack(_url, offset_options)
+	if offset_result.ok:
+		_fail("Expected ZIP load with nonzero offset to fail.")
 		return
 
 	print("PackRat HTTP ZIP smoke passed. HEAD=%d GET=%d cache=%s" % [_head_count, _get_count, second.local_path])

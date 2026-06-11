@@ -367,7 +367,7 @@ Recommended two-phase transfer:
 ```text
 1. Client asks current world to use portal.
 2. Current world validates portal/player proximity.
-3. Current world asks master to prepare transfer.
+3. Current world asks master to stage transfer.
 4. Master starts target world if needed.
 5. Master replies with target endpoint plus pack metadata, but no final join
    ticket yet, or with a long-lived asset-prep reservation.
