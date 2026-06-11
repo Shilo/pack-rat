@@ -68,6 +68,8 @@ func _ready() -> void:
 		return
 	if not _assert_progress_complete(warehouse_card):
 		return
+	if not _assert_card_text_fits(demo, warehouse_card):
+		return
 	if not _assert_preview_contains_icon(demo, "MascotWatermark"):
 		return
 
@@ -97,6 +99,8 @@ func _ready() -> void:
 	if not _assert_loaded(gallery_card, gallery_first):
 		return
 	if not _assert_progress_complete(gallery_card):
+		return
+	if not _assert_card_text_fits(demo, gallery_card):
 		return
 	if not _assert_preview_contains_icon(demo, "Icon"):
 		return
@@ -443,6 +447,24 @@ func _assert_progress_complete(card: PackRatDemoCard) -> bool:
 		return false
 	if progress_bar.value != 100.0:
 		_fail("Expected loaded card progress to finish at 100.")
+		return false
+
+	return true
+
+
+func _assert_card_text_fits(demo: Node, card: PackRatDemoCard) -> bool:
+	var card_scroll_node: Node = demo.find_child("CardScroll", true, false)
+	if card_scroll_node is ScrollContainer:
+		var card_scroll: ScrollContainer = card_scroll_node
+		if card_scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			_fail("Expected card list horizontal scrolling to be disabled.")
+			return false
+
+	var bytes_label: Label = _label(card, "BytesLabel")
+	if bytes_label == null:
+		return false
+	if bytes_label.text.contains("user://"):
+		_fail("Expected card cache label to hide internal user:// path.")
 		return false
 
 	return true

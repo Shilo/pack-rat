@@ -137,7 +137,7 @@ func _on_completed(result: PackRatResult) -> void:
 			PackRatDemoCatalog.source_label(_source),
 			"cache" if result.from_cache else "remote",
 		]
-		_bytes_label.text = "%s cached at %s" % [_format_bytes(result.content_length), result.local_path]
+		_bytes_label.text = "%s cached as %s" % [_format_bytes(result.content_length), result.local_path.get_file()]
 		message_requested.emit(
 			"Mounted %s from %s." % [_pack.title, "cache" if result.from_cache else "remote"],
 			false

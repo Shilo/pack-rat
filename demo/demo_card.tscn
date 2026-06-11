@@ -26,7 +26,8 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [node name="PackRatDemoCard" type="PanelContainer"]
-custom_minimum_size = Vector2(360, 0)
+custom_minimum_size = Vector2(0, 0)
+size_flags_horizontal = 3
 theme_override_styles/panel = SubResource("CardPanel")
 script = ExtResource("1_card")
 
@@ -58,20 +59,25 @@ size_flags_horizontal = 3
 [node name="TitleLabel" type="Label" parent="Margin/Stack/Header/TitleStack"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
 theme_override_font_sizes/font_size = 20
 text = "Pack"
+autowrap_mode = 3
 
 [node name="FormatLabel" type="Label" parent="Margin/Stack/Header/TitleStack"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.541176, 0.341176, 0.160784, 1)
 theme_override_font_sizes/font_size = 12
 text = "PCK resource pack"
+autowrap_mode = 3
 
 [node name="SummaryLabel" type="Label" parent="Margin/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
 text = "Summary"
 autowrap_mode = 3
@@ -79,13 +85,16 @@ autowrap_mode = 3
 [node name="StatusLabel" type="Label" parent="Margin/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
 theme_override_font_sizes/font_size = 14
 text = "Ready"
+autowrap_mode = 3
 
 [node name="DetailLabel" type="Label" parent="Margin/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
 theme_override_font_sizes/font_size = 12
 text = "Source"
@@ -95,6 +104,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 12)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_styles/fill = SubResource("ProgressFill")
 max_value = 100.0
 show_percentage = false
@@ -102,12 +112,15 @@ show_percentage = false
 [node name="BytesLabel" type="Label" parent="Margin/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
 theme_override_font_sizes/font_size = 12
 text = "Expected size"
+autowrap_mode = 3
 
 [node name="Buttons" type="HFlowContainer" parent="Margin/Stack"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 
