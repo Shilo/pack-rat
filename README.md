@@ -14,6 +14,7 @@ object, or custom installer workflow is required.
 
 - [Install](#install)
 - [Requirements](#requirements)
+- [Build and Host Packs](#build-and-host-packs)
 - [Quick Start](#quick-start)
 - [What PackRat Does](#what-packrat-does)
 - [What PackRat Does Not Do](#what-packrat-does-not-do)
@@ -54,6 +55,26 @@ must run from a live `SceneTree`.
 
 Build downloadable packs with the same Godot version family as your game. Godot
 may reject packs produced by a newer incompatible engine version.
+
+## Build and Host Packs
+
+Create downloadable packs with Godot's pack export flow. The official docs cover
+exporting `.pck` files and choosing between `.pck` and `.zip` pack formats:
+
+- [Exporting packs, patches, and mods](https://docs.godotengine.org/en/stable/tutorials/export/exporting_pcks.html)
+- [PCK versus ZIP pack file formats](https://docs.godotengine.org/en/stable/tutorials/export/exporting_projects.html#pck-versus-zip-pack-file-formats)
+
+Host the exported files as ordinary static files on your VPS, CDN, GitHub
+Release, or GitHub Pages site:
+
+```text
+https://cdn.example.com/world_packs/hub.pck
+https://cdn.example.com/world_packs/arena.zip
+```
+
+For Web exports, keep downloadable packs out of the initial game export when
+they are meant to be fetched later. PackRat should download those packs from
+your static host at runtime, not from files already bundled into the Web export.
 
 ## Quick Start
 
@@ -220,15 +241,18 @@ active `HTTPRequest` when a download is already running.
 Server-authoritative projects can pass expected file metadata instead of
 creating a manifest or sidecar file.
 
-On the server, read only file stats and send the compact values your game needs:
+On the server, read only file stats and send the compact values your game needs.
+For a VPS or dedicated server, this is usually a real filesystem path:
 
 ```gdscript
-var metadata: PackRatFileMetadata = PackRat.file_metadata("user://world_packs/hub.pck")
+var world_id: String = "hub"
+var pack_path: String = "/srv/virtucade/world_packs/%s.pck" % world_id
+var metadata: PackRatFileMetadata = PackRat.file_metadata(pack_path)
 if not metadata.ok:
 	push_error(metadata.error)
 	return
 
-rpc_id(peer_id, "prepare_world_transfer", "hub", metadata.modified_time, metadata.size)
+rpc_id(peer_id, "prepare_world_transfer", world_id, metadata.modified_time, metadata.size)
 ```
 
 On the client, derive URL and scene path by your own project convention:
@@ -248,6 +272,12 @@ func prepare_world_transfer(world_id: String, expected_modified_time: int, expec
 	var error: Error = result.change_scene_to_entry()
 	if error != OK:
 		push_error("World scene was not found after mounting pack: %s" % result.entry_path)
+```
+
+For example, your game can define this convention:
+
+```text
+world_id "hub" -> https://cdn.example.com/world_packs/hub.pck
 ```
 
 When expected metadata is set, PackRat derives cache identity from the pack ID,
@@ -277,7 +307,9 @@ https://cdn.example.com/latest.pck
 Size is checked against the downloaded file bytes. Modified time is checked
 against the server's `Last-Modified` header when it is available. If
 `Last-Modified` is missing but expected size matches, the download is allowed
-with a warning.
+with a warning. If you only provide `expected_modified_time`, the server must
+return a comparable `Last-Modified` header or PackRat cannot validate the
+download.
 
 ## Offline-First Loads
 
@@ -318,6 +350,10 @@ If the browser cannot read `ETag`, `Last-Modified`, or `Content-Length`, PackRat
 may treat freshness as unknown and reuse the cached pack with a warning. The
 server metadata flow avoids that by passing `expected_size` and/or
 `expected_modified_time`.
+
+In Web exports, `user://` cache lives in browser-managed storage. Browsers can
+evict it, so treat PackRat's cache as a performance cache, not durable game
+state. Your server or master-server metadata should remain the source of truth.
 
 ## GitHub Release URLs
 
@@ -431,7 +467,7 @@ behavior.
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| `PackRat MVP only accepts HTTP(S) URLs.` | Local file paths are not supported by the load API. | Serve the pack over HTTP(S), or use `file_metadata()` only for metadata collection. |
+| `PackRat only accepts HTTP(S) URLs.` | Local file paths are not supported by the load API. | Serve the pack over HTTP(S), or use `file_metadata()` only for metadata collection. |
 | Freshness is always unknown. | Server or browser CORS is hiding `ETag`, `Last-Modified`, or `Content-Length`. | Expose those headers or use expected metadata. |
 | `.zip` URL fails with nonzero offset. | Godot only supports offsets for PCK packs. | Keep `offset = 0` for ZIP packs. |
 | Cache cleanup returns `ERR_INVALID_PARAMETER`. | `cache_dir` is root `user://`, outside `user://`, or contains `..`. | Use a dedicated directory such as `user://pack_rat`. |
