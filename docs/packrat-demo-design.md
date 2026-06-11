@@ -52,6 +52,16 @@ override the base UI by accident.
 No dedicated artwork is required. Use simple Godot UI, generated shapes,
 generated placeholder textures, and the existing PackRat icon palette.
 
+Target payload sizes should be big enough to avoid instant-loading theater:
+
+- Warehouse PCK: roughly 8-12 MiB.
+- Gallery ZIP: roughly 12-20 MiB.
+
+Generate bulky placeholder assets during CI instead of committing large
+binaries. Do not pad files with meaningless junk in source control. The UI
+should also keep the loading state readable with a brief completion transition,
+because very fast connections can still download these sizes quickly.
+
 ## User Experience
 
 The demo should open directly to the portal.
@@ -77,6 +87,11 @@ When a pack finishes:
 The first load should feel like a real download. A repeated load should be
 noticeably fast, proving cache behavior.
 
+The clear-cache button should be labeled honestly, for example
+`Clear disk cache`. Already mounted packs remain mounted until the process exits
+because Godot does not expose per-pack unload. In WebGL, a true fresh-load demo
+after clearing cache should be demonstrated by reloading the page.
+
 ## PackRat API Surface To Showcase
 
 The demo should intentionally exercise the public API:
@@ -86,6 +101,7 @@ var options: PackRatOptions = PackRatOptions.new()
 options.id = "warehouse"
 options.entry_path = "res://packrat_demo/warehouse/main.tscn"
 options.replace_files = false
+options.expected_size = 12582912
 
 var request: PackRatRequest = PackRat.load_resource_pack_async(url, options)
 request.progress_changed.connect(_on_pack_progress_changed)
@@ -103,6 +119,12 @@ Also include small, visible usage of:
 - `PackRatResult.load_entry_scene()`;
 - `PackRatResult.change_scene_to_entry()`, possibly as an alternate "Open full
   scene" path.
+
+For the WebGL default path, bake `expected_size` into the demo catalog after CI
+builds each pack. If the build can also provide a stable modified time, bake
+`expected_modified_time` too. Expected metadata lets PackRat avoid a HEAD
+freshness request and keeps the Web path less dependent on host-specific exposed
+headers.
 
 Do not add new PackRat runtime APIs just for the demo unless implementation
 proves the existing public API is awkward.
@@ -131,13 +153,24 @@ Recommended first release shape:
 This keeps the demo honest: GitHub Releases are used, but WebGL users get the
 most reliable browser path.
 
+Decision: the WebGL demo should default to same-origin GitHub Pages pack URLs.
+The UI can still show the GitHub Release asset as the canonical artifact/source
+link, and native/editor examples can exercise `PackRat.github_release_url()`.
+Do not default browser users to GitHub Release asset URLs unless a real browser
+smoke test proves they work reliably.
+
 ## WebGL Constraints
 
 Godot Web builds use browser networking rules. Cross-origin pack downloads need
 CORS headers. Browser storage can also evict `user://`, so the demo must treat
 PackRat cache as a performance cache, not durable truth.
 
-Useful static host headers:
+For GitHub Pages same-origin hosting, CORS is less painful because the Web demo
+and packs can live under the same site origin. GitHub Pages also does not let
+this repository set custom response headers, so the default demo path should not
+depend on custom CORS or cache headers.
+
+Useful custom CDN/static-host headers:
 
 ```http
 Access-Control-Allow-Origin: *
@@ -151,9 +184,6 @@ For immutable versioned packs, a CDN/static host can use:
 ```http
 Cache-Control: public, max-age=31536000, immutable
 ```
-
-For GitHub Pages same-origin hosting, CORS is less painful because the Web demo
-and packs can live under the same site origin.
 
 References:
 
@@ -214,15 +244,18 @@ GitHub Actions workflow outline:
 2. Install pinned Godot 4.6.x and matching export templates.
 3. Import project assets headlessly.
 4. Run PackRat smoke tests.
-5. Export the base Web demo.
-6. Export/build the two packs.
-7. Upload build artifacts for debugging.
-8. Create or update a GitHub Release.
-9. Upload release assets:
+5. Export/build the two packs.
+6. Compute pack sizes, and stable modified times if practical.
+7. Write the generated demo catalog with URLs, entry paths, IDs, and expected
+   metadata.
+8. Export the base Web demo after the catalog is generated.
+9. Upload build artifacts for debugging.
+10. Create or update a GitHub Release.
+11. Upload release assets:
    - `packrat-demo-web.zip`
    - `packrat-demo-warehouse.pck`
    - `packrat-demo-gallery.zip`
-10. Deploy the Web demo and mirrored packs to GitHub Pages.
+12. Deploy the Web demo and mirrored packs to GitHub Pages.
 
 The workflow needs `permissions: contents: write` for release uploads and Pages
 permissions for deployment.
@@ -259,24 +292,21 @@ Do not add these to the demo:
 
 These would make the showcase look like a different product than PackRat's MVP.
 
-## Open Questions For Implementation
-
-- Should the Web demo default to GitHub Pages mirror URLs while showing GitHub
-  Release URLs in a "source" panel, or should it try Releases first and fall back
-  to Pages?
-- Should the preview area instance `result.load_entry_scene()` inside the portal,
-  or should each pack use `result.change_scene_to_entry()` for a more obvious
-  scene transition?
-- How large should the generated demo payloads be so progress and cancellation
-  are visible without making the demo annoying?
-- Should the pack source folders live inside this repository, or should CI
-  generate the heavy placeholder files on demand so the repo stays lightweight?
-
-Recommended defaults:
+## Implementation Decisions
 
 - default to GitHub Pages mirror URLs for WebGL reliability;
+- show GitHub Release URLs as canonical artifact/source links rather than the
+  browser default URL;
 - use in-portal preview for the main path and one "Open full scene" button to
   demonstrate `change_scene_to_entry()`;
-- generate enough placeholder payload to make progress visible, but keep each
-  pack well under 10 MB;
+- target roughly 8-12 MiB for the PCK and 12-20 MiB for the ZIP so first loads
+  are visibly remote content, while keeping the demo tolerable;
 - generate bulky placeholder assets in CI rather than committing large binaries.
+
+## Open Questions For Implementation
+
+- Should pack source scenes live in this repository while only bulky generated
+  payload files are created in CI?
+- Should CI include a real browser Web smoke immediately, or should the first
+  implementation ship with a documented manual browser checklist and add CI
+  browser automation next?
