@@ -16,6 +16,7 @@ var source_url: String = ""
 var final_url: String = ""
 var local_path: String = ""
 var entry_path: String = ""
+var version_token: String = ""
 var etag: String = ""
 var last_modified: String = ""
 var content_length: int = 0
@@ -60,6 +61,7 @@ func to_dictionary() -> Dictionary:
 		"final_url": final_url,
 		"local_path": local_path,
 		"entry_path": entry_path,
+		"version_token": version_token,
 		"etag": etag,
 		"last_modified": last_modified,
 		"content_length": content_length,

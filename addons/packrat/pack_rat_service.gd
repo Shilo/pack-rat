@@ -60,6 +60,7 @@ func _install_cached(
 	result.from_cache = true
 	result.local_path = str(record.get("local_path", ""))
 	result.final_url = str(record.get("final_url", descriptor.final_url))
+	result.version_token = str(record.get("version_token", ""))
 	result.etag = str(record.get("etag", ""))
 	result.last_modified = str(record.get("last_modified", ""))
 	result.content_length = int(record.get("content_length", 0))
@@ -114,7 +115,8 @@ func _download_and_commit(
 		DirAccess.remove_absolute(part_path)
 		return PackRatResult.failed(validation.error, descriptor.source_url)
 
-	var stable_path := descriptor.stable_path(validation.sha256)
+	var version_token := validation.sha256 if not validation.sha256.is_empty() else _version_token(descriptor, metadata)
+	var stable_path := descriptor.stable_path(version_token)
 	var move_error := DirAccess.rename_absolute(part_path, stable_path)
 	if move_error != OK:
 		DirAccess.remove_absolute(part_path)
@@ -126,8 +128,14 @@ func _download_and_commit(
 	result.from_cache = false
 	result.local_path = stable_path
 	result.sha256 = validation.sha256
+	result.version_token = version_token
 	result.apply_http_metadata(metadata)
 	result.content_length = FileAccess.get_size(stable_path)
+
+	if freshness.status == PackRatResult.STATUS_STALE and descriptor.install_mode == PackRatOptions.InstallMode.RESOURCE_PACK and not descriptor.replace_files:
+		result.add_warning(
+			"PackRat downloaded a newer pack. Godot mounts are process-lifetime; replace_files=false will not override resources that were already mounted at the same res:// paths."
+		)
 
 	for warning in validation.warnings:
 		result.add_warning(warning)
@@ -210,6 +218,7 @@ func _record_from_result(descriptor: PackRatDescriptor, result: PackRatResult) -
 		"last_modified": result.last_modified,
 		"content_length": result.content_length,
 		"local_path": result.local_path,
+		"version_token": result.version_token,
 		"sha256": result.sha256,
 		"mounted": result.mounted,
 		"updated_at_unix": int(Time.get_unix_time_from_system()),
@@ -220,3 +229,16 @@ func _ensure_directory(path: String) -> void:
 	var error := DirAccess.make_dir_recursive_absolute(path)
 	if error != OK and error != ERR_ALREADY_EXISTS:
 		push_warning("PackRat could not create directory %s (error %d)." % [path, error])
+
+
+func _version_token(descriptor: PackRatDescriptor, metadata: Dictionary) -> String:
+	var etag := str(metadata.get("etag", ""))
+	if not etag.is_empty():
+		return etag.sha256_text().substr(0, 16)
+
+	var last_modified := str(metadata.get("last_modified", ""))
+	var content_length := int(metadata.get("content_length", 0))
+	if not last_modified.is_empty() or content_length > 0:
+		return ("%s:%d" % [last_modified, content_length]).sha256_text().substr(0, 16)
+
+	return descriptor.source_url.sha256_text().substr(0, 16)

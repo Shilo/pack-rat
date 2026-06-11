@@ -99,12 +99,19 @@ func stable_dir() -> String:
 	return cache_dir.path_join(id)
 
 
-func stable_path(sha256_value: String = "") -> String:
+func stable_path(version_token: String = "") -> String:
 	var extension := local_filename.get_extension()
 	var filename := local_filename
 
-	if not sha256_value.is_empty() and (extension == "pck" or extension == "zip"):
-		filename = "%s.%s" % [sha256_value, extension]
+	if not version_token.is_empty() and (extension == "pck" or extension == "zip"):
+		if _is_hex_sha256(version_token):
+			filename = "%s.%s" % [version_token, extension]
+		else:
+			filename = "%s-%s.%s" % [
+				_sanitize(local_filename.get_basename()),
+				_sanitize(version_token).substr(0, 16),
+				extension,
+			]
 
 	return stable_dir().path_join(filename)
 
@@ -180,6 +187,18 @@ static func _sanitize(value: String) -> String:
 
 	output = output.strip_edges()
 	return output if not output.is_empty() else "pack"
+
+
+static func _is_hex_sha256(value: String) -> bool:
+	if value.length() != 64:
+		return false
+
+	for index in range(value.length()):
+		var character := value.substr(index, 1).to_lower()
+		if not (character in "0123456789abcdef"):
+			return false
+
+	return true
 
 
 static func _install_mode_from_variant(value: Variant) -> PackRatOptions.InstallMode:

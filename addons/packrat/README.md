@@ -41,6 +41,18 @@ but they are not cryptographic integrity. Set `expected_sha256` or
 `allow_unverified_remote = false` when PackRat should reject unverified remote
 content.
 
+Downloaded resource packs use versioned cache filenames. PackRat prefers the
+expected SHA-256 when present; otherwise it derives a short token from exposed
+HTTP freshness metadata or, as a last resort, the source URL. This avoids
+overwriting a PCK file that Godot may already have mounted for the life of the
+process.
+
+Godot does not expose a public unload operation for resource packs. If a newer
+pack contains the same internal `res://` paths as an already mounted pack,
+`replace_files=false` keeps the original mapping active. PackRat still downloads
+and caches the newer pack, but the game should restart or opt into
+`replace_files=true` when same-path replacement is intentional.
+
 ## Extension Points
 
 The public API stays simple, but the internals are subclassable:
@@ -53,3 +65,10 @@ The public API stays simple, but the internals are subclassable:
 
 Assign custom instances on `PackRatOptions` for one call, or configure a custom
 `PackRatService` and pass it to `PackRat.use_service(service)`.
+
+## Smoke Tests
+
+```powershell
+godot --headless --path . "res://tests/packrat_component_smoke.tscn"
+godot --headless --path . "res://tests/packrat_http_pck_smoke.tscn"
+```

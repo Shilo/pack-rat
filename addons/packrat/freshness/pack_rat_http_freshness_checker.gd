@@ -100,19 +100,29 @@ func _attach_head_metadata(
 func _compare_metadata(record: Dictionary, metadata: Dictionary) -> Dictionary:
 	var comparable := false
 
-	for key in ["etag", "last_modified", "content_length"]:
-		var remote_value := metadata.get(key, "")
-		var cached_value := record.get(key, "")
-
-		if remote_value == "" or remote_value == 0 or cached_value == "" or cached_value == 0:
+	for key in ["etag", "last_modified"]:
+		var remote_text := str(metadata.get(key, ""))
+		var cached_text := str(record.get(key, ""))
+		if remote_text.is_empty() or cached_text.is_empty():
 			continue
 
 		comparable = true
-		if remote_value != cached_value:
+		if remote_text != cached_text:
 			return {
 				"comparable": true,
 				"changed": true,
 				"reason": "%s changed" % key,
+			}
+
+	var remote_length := int(metadata.get("content_length", 0))
+	var cached_length := int(record.get("content_length", 0))
+	if remote_length > 0 and cached_length > 0:
+		comparable = true
+		if remote_length != cached_length:
+			return {
+				"comparable": true,
+				"changed": true,
+				"reason": "content_length changed",
 			}
 
 	return {
