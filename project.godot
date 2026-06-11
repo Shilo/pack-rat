@@ -16,6 +16,13 @@ run/main_scene="res://demo/demo.tscn"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://addons/pack_rat/icon.svg"
 
+[display]
+
+window/size/viewport_width=960
+window/size/viewport_height=540
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
 [physics]
 
 3d/physics_engine="Jolt Physics"

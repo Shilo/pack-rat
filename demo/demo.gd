@@ -5,6 +5,7 @@ const _SOURCE_ARG: String = "--source="
 const _PACK_BASE_ARG: String = "--pack-base-url="
 const _RELEASE_TAG_ARG: String = "--release-tag="
 const _AUTO_LOAD_ARG: String = "--auto-load="
+const _NARROW_WIDTH: float = 900.0
 
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
 var _pack_base_arg_applied: bool = false
@@ -15,18 +16,26 @@ var _auto_load_ids: PackedStringArray = []
 var _pending_auto_loads: int = 0
 var _auto_load_failed: bool = false
 
+@onready var _page: MarginContainer = %Page
+@onready var _header: BoxContainer = %Header
+@onready var _body: BoxContainer = %Body
+@onready var _cards_panel: PanelContainer = %CardsPanel
 @onready var _source_selector: OptionButton = %SourceSelector
 @onready var _mounted_scene_host: Control = %MountedSceneHost
 @onready var _preview_placeholder: Control = %PreviewPlaceholder
 @onready var _preview_title: Label = %PreviewTitle
 @onready var _preview_status: Label = %PreviewStatus
 @onready var _open_full_scene_button: Button = %OpenFullSceneButton
+@onready var _preview_host: Control = %PreviewHost
+@onready var _toast_panel: PanelContainer = %ToastPanel
+@onready var _toast_label: Label = %ToastLabel
 @onready var _warehouse_card: PackRatDemoCard = %WarehouseCard
 @onready var _gallery_card: PackRatDemoCard = %GalleryCard
 
 
 func _ready() -> void:
 	_apply_user_args()
+	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_cards = [_warehouse_card, _gallery_card]
 	_source_selector.select(1 if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE else 0)
 	_source_selector.item_selected.connect(_on_source_selected)
@@ -37,8 +46,11 @@ func _ready() -> void:
 		card.set_source(_source)
 		card.preview_requested.connect(_on_preview_requested)
 		card.load_finished.connect(_on_load_finished)
+		card.message_requested.connect(_show_toast)
 
+	_apply_responsive_layout()
 	_show_placeholder()
+	_show_toast("Ready")
 	_start_auto_loads()
 
 
@@ -49,16 +61,48 @@ func _show_placeholder() -> void:
 	_open_full_scene_button.disabled = true
 
 
+func _apply_responsive_layout() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	var narrow: bool = viewport_size.x < _NARROW_WIDTH or viewport_size.x < viewport_size.y
+	_header.vertical = narrow
+	_body.vertical = narrow
+
+	var margin: int = 14 if narrow else 28
+	_page.add_theme_constant_override("margin_left", margin)
+	_page.add_theme_constant_override("margin_top", 14 if narrow else 24)
+	_page.add_theme_constant_override("margin_right", margin)
+	_page.add_theme_constant_override("margin_bottom", 14 if narrow else 24)
+
+	_cards_panel.custom_minimum_size = Vector2(0.0 if narrow else 360.0, 0.0)
+	_preview_host.custom_minimum_size = Vector2(0.0 if narrow else 420.0, 260.0 if narrow else 320.0)
+	_toast_panel.custom_minimum_size = Vector2(0.0 if narrow else 184.0, 42.0 if narrow else 48.0)
+
+
+func _show_toast(message: String, is_error: bool = false) -> void:
+	if message.is_empty():
+		return
+
+	_toast_label.text = message
+	if is_error:
+		_toast_label.add_theme_color_override("font_color", Color.html("#FFECE6"))
+		printerr("PackRat demo error: %s" % message)
+	else:
+		_toast_label.add_theme_color_override("font_color", Color.html("#F6ECD9"))
+		print("PackRat demo: %s" % message)
+
+
 func _on_source_selected(index: int) -> void:
 	_source = PackRatDemoCatalog.SOURCE_GITHUB_RELEASE if index == 1 else PackRatDemoCatalog.SOURCE_PAGES
 	for card in _cards:
 		card.set_source(_source)
+	_show_toast("Source set to %s." % PackRatDemoCatalog.source_label(_source))
 
 
 func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void:
 	var scene: PackedScene = result.load_entry_scene()
 	if scene == null:
 		_preview_status.text = "Entry scene was not found after mount."
+		_show_toast("Entry scene was not found after mount.", true)
 		return
 
 	_clear_preview()
@@ -73,6 +117,7 @@ func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void
 	_preview_title.text = pack.title
 	_preview_status.text = "%s from %s" % [result.status, "cache" if result.from_cache else "remote"]
 	_open_full_scene_button.disabled = false
+	_show_toast("Previewing %s." % pack.title)
 
 
 func _on_open_full_scene_pressed() -> void:
@@ -82,6 +127,7 @@ func _on_open_full_scene_pressed() -> void:
 	var error: Error = _selected_result.change_scene_to_entry(get_tree())
 	if error != OK:
 		_preview_status.text = "Could not open full scene (error %d)." % error
+		_show_toast("Could not open full scene (error %d)." % error, true)
 
 
 func _on_clear_all_pressed() -> void:
@@ -90,8 +136,10 @@ func _on_clear_all_pressed() -> void:
 	var error: Error = PackRat.clear_cache(options)
 	if error == OK:
 		_preview_status.text = "Disk cache cleared. Mounted rooms persist until reload."
+		_show_toast("Disk cache cleared.")
 	else:
 		_preview_status.text = "Could not clear disk cache (error %d)." % error
+		_show_toast("Could not clear disk cache (error %d)." % error, true)
 
 
 func _on_load_finished(_pack: PackRatDemoPack, result: PackRatResult) -> void:
@@ -103,6 +151,10 @@ func _on_load_finished(_pack: PackRatDemoPack, result: PackRatResult) -> void:
 		_auto_load_failed = true
 
 	if _pending_auto_loads == 0 and _quit_when_done:
+		if _auto_load_failed:
+			_show_toast("Auto-load finished with errors.", true)
+		else:
+			_show_toast("Auto-load finished.")
 		get_tree().quit(1 if _auto_load_failed else 0)
 
 
@@ -114,6 +166,7 @@ func _clear_preview() -> void:
 func _start_auto_loads() -> void:
 	if _auto_load_ids.is_empty():
 		if _quit_when_done:
+			_show_toast("No auto-load packs requested.")
 			get_tree().quit()
 		return
 
@@ -124,6 +177,7 @@ func _start_auto_loads() -> void:
 			card.load_pack()
 
 	if _pending_auto_loads == 0 and _quit_when_done:
+		_show_toast("No matching auto-load packs were found.", true)
 		get_tree().quit(1)
 
 

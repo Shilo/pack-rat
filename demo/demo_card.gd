@@ -7,6 +7,9 @@ signal preview_requested(pack: PackRatDemoPack, result: PackRatResult)
 ## Emitted when a pack load finishes.
 signal load_finished(pack: PackRatDemoPack, result: PackRatResult)
 
+## Emitted when the card has a status message for the demo toast or console.
+signal message_requested(message: String, is_error: bool)
+
 ## Catalog pack ID this card displays.
 @export var pack_id: String = ""
 
@@ -74,6 +77,7 @@ func load_pack() -> void:
 	_request = PackRat.load_resource_pack_async(_pack.url_for_source(_source), options)
 	_request.progress_changed.connect(_on_progress_changed)
 	_request.completed.connect(_on_completed, CONNECT_ONE_SHOT)
+	message_requested.emit("Loading %s..." % _pack.title, false)
 
 	_status_label.text = "Downloading"
 	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
@@ -134,15 +138,21 @@ func _on_completed(result: PackRatResult) -> void:
 			"cache" if result.from_cache else "remote",
 		]
 		_bytes_label.text = "%s cached at %s" % [_format_bytes(result.content_length), result.local_path]
+		message_requested.emit(
+			"Mounted %s from %s." % [_pack.title, "cache" if result.from_cache else "remote"],
+			false
+		)
 		preview_requested.emit(_pack, result)
-	elif result.error == "PackRat request was canceled.":
+	elif result.was_canceled():
 		_status_label.text = "Canceled"
 		_detail_label.text = "The download was canceled before mounting."
 		_bytes_label.text = "No content mounted."
+		message_requested.emit("Canceled %s." % _pack.title, false)
 	else:
 		_status_label.text = "Failed"
 		_detail_label.text = result.error
 		_bytes_label.text = "No content mounted."
+		message_requested.emit("%s failed: %s" % [_pack.title, result.error], true)
 
 	load_finished.emit(_pack, result)
 
@@ -151,6 +161,7 @@ func _on_cancel_pressed() -> void:
 	if _request != null:
 		_request.cancel()
 		_status_label.text = "Canceling"
+		message_requested.emit("Canceling %s..." % _pack.title, false)
 
 
 func _on_preview_pressed() -> void:
@@ -168,12 +179,15 @@ func _on_clear_pressed() -> void:
 	if error == OK:
 		_status_label.text = "Disk cache cleared"
 		_detail_label.text = "Mounted content remains available until reload."
+		message_requested.emit("Cleared %s disk cache." % _pack.title, false)
 	elif error == ERR_DOES_NOT_EXIST:
 		_status_label.text = "No disk cache"
 		_detail_label.text = "This pack has no removable cached file right now."
+		message_requested.emit("%s has no removable disk cache." % _pack.title, false)
 	else:
 		_status_label.text = "Clear failed"
 		_detail_label.text = "Error %d" % error
+		message_requested.emit("Could not clear %s disk cache (error %d)." % [_pack.title, error], true)
 
 
 func _format_bytes(value: int) -> String:

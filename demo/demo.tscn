@@ -40,7 +40,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="HeaderAccent"]
+[sub_resource type="StyleBoxFlat" id="ToastPanel"]
 bg_color = Color(0.152941, 0.501961, 0.423529, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
@@ -66,6 +66,7 @@ grow_vertical = 2
 color = Color(0.952941, 0.941176, 0.917647, 1)
 
 [node name="Page" type="MarginContainer" parent="."]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -81,7 +82,8 @@ theme_override_constants/margin_bottom = 24
 layout_mode = 2
 theme_override_constants/separation = 22
 
-[node name="Header" type="HBoxContainer" parent="Page/Root"]
+[node name="Header" type="BoxContainer" parent="Page/Root"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 16
 
@@ -109,18 +111,31 @@ theme_override_font_sizes/font_size = 15
 text = "A tiny shell that fetches, caches, and mounts remote Godot rooms."
 autowrap_mode = 3
 
-[node name="Accent" type="PanelContainer" parent="Page/Root/Header"]
-custom_minimum_size = Vector2(160, 12)
+[node name="ToastPanel" type="PanelContainer" parent="Page/Root/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(184, 48)
 layout_mode = 2
-theme_override_styles/panel = SubResource("HeaderAccent")
+theme_override_styles/panel = SubResource("ToastPanel")
 
-[node name="Body" type="HBoxContainer" parent="Page/Root"]
+[node name="ToastLabel" type="Label" parent="Page/Root/Header/ToastPanel"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.964706, 0.92549, 0.870588, 1)
+theme_override_font_sizes/font_size = 13
+text = "Ready"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Body" type="BoxContainer" parent="Page/Root"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 22
 
 [node name="CardsPanel" type="PanelContainer" parent="Page/Root/Body"]
-custom_minimum_size = Vector2(420, 0)
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("SidebarPanel")
@@ -232,7 +247,7 @@ theme_override_styles/panel = SubResource("PreviewPanel")
 [node name="PreviewHost" type="Control" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame"]
 unique_name_in_owner = true
 clip_contents = true
-custom_minimum_size = Vector2(520, 420)
+custom_minimum_size = Vector2(420, 320)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -246,7 +261,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="PreviewPlaceholder" type="VBoxContainer" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost"]
+[node name="PreviewPlaceholder" type="CenterContainer" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost"]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -254,17 +269,27 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="PlaceholderStack" type="VBoxContainer" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder"]
+layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 8
 
-[node name="PlaceholderTitle" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder"]
+[node name="PlaceholderIcon" type="TextureRect" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder/PlaceholderStack"]
+custom_minimum_size = Vector2(78, 78)
+layout_mode = 2
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PlaceholderTitle" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder/PlaceholderStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
 theme_override_font_sizes/font_size = 24
 text = "No pack mounted"
 horizontal_alignment = 1
 
-[node name="PlaceholderCopy" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder"]
+[node name="PlaceholderCopy" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder/PlaceholderStack"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.478431, 0.439216, 0.4, 1)
 text = "Choose a card and start a remote load."

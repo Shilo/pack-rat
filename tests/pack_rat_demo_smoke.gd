@@ -29,6 +29,9 @@ func _ready() -> void:
 			return
 		_pack_bytes["/packs/%s" % pack.file_name] = bytes
 
+	if not await _assert_public_api_helpers(BUILD_DIR):
+		return
+
 	_server = TCPServer.new()
 	var listen_error: Error = _server.listen(PORT, "127.0.0.1")
 	if listen_error != OK:
@@ -64,6 +67,22 @@ func _ready() -> void:
 	if not _assert_loaded(warehouse_card, warehouse_first):
 		return
 	if not _assert_progress_complete(warehouse_card):
+		return
+
+	var valid_pack_base_url: String = PackRatDemoCatalog.pages_pack_base_url
+	PackRatDemoCatalog.pages_pack_base_url = "ftp://invalid"
+	var gallery_invalid: PackRatResult = await _press_load(gallery_card)
+	PackRatDemoCatalog.pages_pack_base_url = valid_pack_base_url
+	if gallery_invalid == null:
+		return
+	if gallery_invalid.ok:
+		_fail("Expected invalid demo URL to fail.")
+		return
+	var toast_label: Label = _label(demo, "ToastLabel")
+	if toast_label == null:
+		return
+	if not toast_label.text.contains("failed"):
+		_fail("Expected invalid demo URL to surface an error toast.")
 		return
 
 	var gallery_canceled: PackRatResult = await _press_cancel(gallery_card)
@@ -128,6 +147,87 @@ func _ready() -> void:
 
 	print("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
 	get_tree().quit()
+
+
+func _assert_public_api_helpers(build_dir: String) -> bool:
+	var joined_url: String = PackRat.join_url("https://example.com/packs/", "/hub.pck")
+	if joined_url != "https://example.com/packs/hub.pck":
+		_fail("PackRat.join_url returned %s." % joined_url)
+		return false
+
+	var release_url: String = PackRat.github_release_url("owner", "repo", "hub.pck")
+	if release_url != "https://github.com/owner/repo/releases/latest/download/hub.pck":
+		_fail("PackRat.github_release_url returned %s." % release_url)
+		return false
+
+	var metadata: PackRatFileMetadata = PackRat.file_metadata(build_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME))
+	if not metadata.ok:
+		_fail("PackRat.file_metadata failed: %s" % metadata.error)
+		return false
+	if metadata.size != PackRatDemoCatalog.WAREHOUSE_EXPECTED_SIZE:
+		_fail("PackRat.file_metadata returned stale size %d." % metadata.size)
+		return false
+
+	var metadata_dictionary: Dictionary = metadata.to_dictionary()
+	if int(metadata_dictionary.get("size", 0)) != metadata.size:
+		_fail("PackRatFileMetadata.to_dictionary did not preserve size.")
+		return false
+
+	var expected_options: PackRatOptions = PackRatOptions.from_expected_metadata(metadata.modified_time, metadata.size)
+	if not expected_options.has_expected_metadata() or not expected_options.has_expected_size():
+		_fail("PackRatOptions.from_expected_metadata did not enable expected metadata.")
+		return false
+
+	var applied_options: PackRatOptions = PackRatOptions.new()
+	metadata.apply_to_options(applied_options)
+	if applied_options.expected_size != metadata.size or applied_options.expected_modified_time != metadata.modified_time:
+		_fail("PackRatFileMetadata.apply_to_options did not copy metadata.")
+		return false
+
+	applied_options.request_headers = PackedStringArray(["X-PackRat-Smoke: yes"])
+	var copied_options: PackRatOptions = applied_options.copy()
+	applied_options.request_headers.append("X-PackRat-Smoke: mutated")
+	if copied_options.request_headers.size() != 1:
+		_fail("PackRatOptions.copy did not snapshot request headers.")
+		return false
+
+	var invalid_result: PackRatResult = await PackRat.load_resource_pack("res://not_remote.pck")
+	if invalid_result.ok or invalid_result.status != PackRatResult.STATUS_FAILED:
+		_fail("PackRat.load_resource_pack accepted an invalid URL.")
+		return false
+	if invalid_result.entry_scene_exists() or invalid_result.load_entry_scene() != null:
+		_fail("Failed PackRatResult reported an entry scene.")
+		return false
+	if invalid_result.change_scene_to_entry(get_tree()) != ERR_FILE_NOT_FOUND:
+		_fail("Failed PackRatResult changed scenes unexpectedly.")
+		return false
+	if not bool(invalid_result.to_dictionary().has("error")):
+		_fail("PackRatResult.to_dictionary did not include error.")
+		return false
+
+	var invalid_request: PackRatRequest = PackRat.load_resource_pack_async("not-a-url")
+	var canceled_events: Array[bool] = []
+	invalid_request.canceled.connect(func() -> void:
+		canceled_events.append(true)
+	)
+	invalid_request.cancel()
+	await invalid_request.completed
+	var invalid_async_result: PackRatResult = invalid_request.result
+	if canceled_events.is_empty() or not invalid_request.is_canceled():
+		_fail("PackRatRequest.cancel did not emit canceled.")
+		return false
+	if invalid_async_result.ok or not invalid_request.is_completed():
+		_fail("PackRat.load_resource_pack_async invalid request did not complete as failed.")
+		return false
+
+	var clear_options: PackRatOptions = PackRatOptions.new()
+	clear_options.cache_dir = CACHE_DIR.path_join("missing")
+	PackRat.clear_cache(clear_options)
+	if PackRat.clear_cached_resource_pack("missing", clear_options) != ERR_DOES_NOT_EXIST:
+		_fail("PackRat.clear_cached_resource_pack did not report a missing cache item.")
+		return false
+
+	return true
 
 
 func _process(_delta: float) -> void:
@@ -300,7 +400,7 @@ func _press_cancel(card: PackRatDemoCard) -> PackRatResult:
 	if result.ok:
 		_fail("Expected canceled card load to fail before mounting.")
 		return null
-	if result.error != "PackRat request was canceled.":
+	if not result.was_canceled():
 		_fail("Expected canceled card load to return the PackRat cancel error, got: %s" % result.error)
 		return null
 

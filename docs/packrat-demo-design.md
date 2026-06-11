@@ -220,6 +220,10 @@ of committed as source scenes. The generated mounted scenes contain baked nodes;
 their scripts only animate existing nodes. The priority is one good demo, not a
 mini framework.
 
+Local generated packs go in `build/packs/`. Temporary source files are written
+under `user://pack_rat_demo_pack_builder` and removed after successful builds so
+Godot's project dock does not show generated pack internals.
+
 ## Export And CI Plan
 
 Add a committed `export_presets.cfg` with:

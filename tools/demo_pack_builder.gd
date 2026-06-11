@@ -2,7 +2,7 @@ class_name PackRatDemoPackBuilder extends SceneTree
 ## Builds the generated PCK and ZIP packs used by the PackRat Portal demo.
 
 ## Default output directory for generated demo packs.
-const DEFAULT_OUTPUT_DIR: String = "build/demo/packs"
+const DEFAULT_OUTPUT_DIR: String = "build/packs"
 
 ## Warehouse PCK payload target.
 const WAREHOUSE_PAYLOAD_BYTES: int = 10 * 1024 * 1024
@@ -17,6 +17,7 @@ const _GALLERY_SCRIPT: String = "res://packrat_demo/gallery/gallery_scene.gd"
 const _GALLERY_PAYLOAD: String = "res://packrat_demo/gallery/payload.bin"
 const _OUTPUT_ARG: String = "--output-dir="
 const _NO_CATALOG_ARG: String = "--no-catalog"
+const _TEMP_DIR: String = "user://pack_rat_demo_pack_builder"
 
 
 func _init() -> void:
@@ -56,8 +57,9 @@ static func build_all(output_dir: String = DEFAULT_OUTPUT_DIR, write_catalog: bo
 
 	var warehouse_path: String = output_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME)
 	var gallery_path: String = output_dir.path_join(PackRatDemoCatalog.GALLERY_FILE_NAME)
+	_clear_directory(_TEMP_DIR)
 
-	var warehouse_error: Error = _build_warehouse_pck(warehouse_path)
+	var warehouse_error: Error = _build_warehouse_pck(warehouse_path, _TEMP_DIR.path_join("warehouse"))
 	if warehouse_error != OK:
 		result.error = "Could not build warehouse PCK (error %d)." % warehouse_error
 		return result
@@ -84,14 +86,14 @@ static func build_all(output_dir: String = DEFAULT_OUTPUT_DIR, write_catalog: bo
 	result.gallery_path = gallery_path
 	result.warehouse_size = warehouse_size
 	result.gallery_size = gallery_size
+	_clear_directory(_TEMP_DIR)
 	return result
 
 
-static func _build_warehouse_pck(path: String) -> Error:
+static func _build_warehouse_pck(path: String, temp_dir: String) -> Error:
 	if FileAccess.file_exists(path):
 		DirAccess.remove_absolute(path)
 
-	var temp_dir: String = path.get_base_dir().path_join("tmp").path_join("warehouse")
 	var make_error: Error = DirAccess.make_dir_recursive_absolute(temp_dir)
 	if make_error != OK and make_error != ERR_ALREADY_EXISTS:
 		return make_error
@@ -185,6 +187,25 @@ static func _write_binary_file(path: String, data: PackedByteArray) -> Error:
 
 	file.store_buffer(data)
 	return OK
+
+
+static func _clear_directory(path: String) -> void:
+	var dir: DirAccess = DirAccess.open(path)
+	if dir == null:
+		return
+
+	dir.list_dir_begin()
+	var child: String = dir.get_next()
+	while not child.is_empty():
+		var child_path: String = path.path_join(child)
+		if dir.current_is_dir():
+			_clear_directory(child_path)
+			DirAccess.remove_absolute(child_path)
+		else:
+			DirAccess.remove_absolute(child_path)
+		child = dir.get_next()
+	dir.list_dir_end()
+	DirAccess.remove_absolute(path)
 
 
 static func _payload_bytes(size: int, seed: int) -> PackedByteArray:

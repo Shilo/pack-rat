@@ -244,6 +244,8 @@ request.progress_changed.connect(func(downloaded_bytes: int, total_bytes: int) -
 await request.completed
 if request.result.ok:
 	print("Mounted: %s" % request.result.local_path)
+elif request.result.was_canceled():
+	print("Canceled")
 ```
 
 Canceling a request completes it with a failed result. It also cancels the
@@ -456,6 +458,9 @@ Build the demo packs locally:
 ```powershell
 godot --headless --path . --script "tools/demo_pack_builder.gd"
 ```
+
+This writes local demo packs to `build/packs/`. Generated build outputs are
+ignored by Git and hidden from the Godot editor.
 
 When exported for Web, the demo resolves pack URLs against the current page's
 same-origin `packs/` folder. Native/editor runs default to the canonical GitHub
