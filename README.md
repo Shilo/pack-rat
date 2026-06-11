@@ -12,6 +12,7 @@ The MVP is intentionally small:
 - `pack_rat.gd`: the static `PackRat.prepare()` API and runtime logic.
 - `pack_rat_options.gd`: a few optional knobs.
 - `pack_rat_result.gd`: a structured result object.
+- `internal/`: small typed helpers for cache records and HTTP responses.
 
 No editor plugin, manifest, SHA sidecar, provider system, descriptor object, or
 custom installer workflow is required.
