@@ -13,6 +13,7 @@ var _head_count: int = 0
 var _get_count: int = 0
 var _etag: String = "\"packrat-smoke-v1\""
 var _last_modified: String = "Wed, 10 Jun 2026 20:15:00 GMT"
+var _fail_get: bool = false
 
 
 func _ready() -> void:
@@ -180,6 +181,55 @@ func _ready() -> void:
 		_fail("Expected concurrent prepares to share one download.")
 		return
 
+	var extensionless_options: PackRatOptions = PackRatOptions.new()
+	extensionless_options.id = "extensionless_smoke"
+	extensionless_options.cache_dir = CACHE_DIR
+	extensionless_options.entry_path = MOUNTED_MARKER
+	extensionless_options.timeout_seconds = 10.0
+	var extensionless_url: String = "http://127.0.0.1:%d/download?id=hub" % _server.get_local_port()
+	var extensionless: PackRatResult = await PackRat.prepare(extensionless_url, extensionless_options)
+	if not extensionless.ok or not extensionless.mounted:
+		_fail("Expected extensionless PCK URL to download and mount. Result: %s" % JSON.stringify(extensionless.to_dictionary()))
+		return
+
+	if extensionless.local_path.get_extension().to_lower() != "pck":
+		_fail("Expected extensionless PCK URL to receive a .pck cache path, got %s." % extensionless.local_path)
+		return
+
+	var forced_options: PackRatOptions = PackRatOptions.new()
+	forced_options.id = "forced_download_smoke"
+	forced_options.cache_dir = CACHE_DIR
+	forced_options.entry_path = MOUNTED_MARKER
+	forced_options.timeout_seconds = 10.0
+	var forced_first: PackRatResult = await PackRat.prepare(_url, forced_options)
+	if not forced_first.ok:
+		_fail("Expected forced-download setup prepare to succeed. Result: %s" % JSON.stringify(forced_first.to_dictionary()))
+		return
+
+	_fail_get = true
+	forced_options.always_download = true
+	var forced_second: PackRatResult = await PackRat.prepare(_url, forced_options)
+	_fail_get = false
+	if forced_second.ok:
+		_fail("Expected always_download to fail when the fresh download fails.")
+		return
+
+	var invalid_url: String = "http://127.0.0.1:%d/invalid.pck" % _server.get_local_port()
+	var invalid_options: PackRatOptions = PackRatOptions.new()
+	invalid_options.id = "invalid_mount_smoke"
+	invalid_options.cache_dir = CACHE_DIR
+	invalid_options.timeout_seconds = 10.0
+	var invalid_get_count: int = _get_count
+	var invalid_first: PackRatResult = await PackRat.prepare(invalid_url, invalid_options)
+	var invalid_second: PackRatResult = await PackRat.prepare(invalid_url, invalid_options)
+	if invalid_first.ok or invalid_second.ok:
+		_fail("Expected invalid PCK downloads to fail mounting.")
+		return
+
+	if _get_count != invalid_get_count + 2:
+		_fail("Expected failed mounts to avoid cache reuse and download twice.")
+		return
+
 	print("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s" % [_head_count, _get_count, third.local_path])
 	_server.stop()
 	get_tree().quit()
@@ -202,7 +252,20 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 			await get_tree().process_frame
 
 	var method: String = request.get_slice(" ", 0)
-	if method == "HEAD":
+	var path: String = request.get_slice(" ", 1)
+	if path == "/invalid.pck":
+		if method == "HEAD":
+			_head_count += 1
+			_write_invalid_response(peer, false)
+		elif method == "GET":
+			_get_count += 1
+			_write_invalid_response(peer, true)
+		else:
+			_write_not_found(peer)
+	elif _fail_get and method == "GET":
+		_get_count += 1
+		_write_not_found(peer)
+	elif method == "HEAD":
 		_head_count += 1
 		_write_response(peer, false)
 	elif method == "GET":
@@ -247,6 +310,22 @@ func _write_not_found(peer: StreamPeerTCP) -> void:
 	)
 	peer.put_data(headers.to_utf8_buffer())
 	peer.put_data(body)
+
+
+func _write_invalid_response(peer: StreamPeerTCP, include_body: bool) -> void:
+	var body: PackedByteArray = "not a valid pack".to_utf8_buffer()
+	var headers: String = (
+		"HTTP/1.1 200 OK\r\n"
+		+ "Content-Type: application/octet-stream\r\n"
+		+ "Content-Length: %d\r\n" % body.size()
+		+ "ETag: \"invalid-pack\"\r\n"
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+
+	if include_body:
+		peer.put_data(body)
 
 
 func _build_pack(marker: String) -> void:
