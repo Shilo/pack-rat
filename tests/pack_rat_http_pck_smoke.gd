@@ -402,6 +402,31 @@ func _ready() -> void:
 		_fail("Expected async load to emit progress_changed at least once.")
 		return
 
+	var expected_progress_options: PackRatOptions = PackRatOptions.new()
+	expected_progress_options.id = "expected_progress_smoke"
+	expected_progress_options.cache_dir = CACHE_DIR
+	expected_progress_options.entry_path = MOUNTED_MARKER
+	expected_progress_options.timeout_seconds = 10.0
+	expected_progress_options.expected_size = _pack_bytes.size()
+	var expected_progress_url: String = "http://127.0.0.1:%d/slow-no-length.pck" % _server.get_local_port()
+	var expected_progress_totals: Array[int] = []
+	var expected_progress_request: PackRatRequest = PackRat.load_resource_pack_async(expected_progress_url, expected_progress_options)
+	expected_progress_request.progress_changed.connect(func(_downloaded_bytes: int, total_bytes: int) -> void:
+		expected_progress_totals.append(total_bytes)
+	)
+	await expected_progress_request.completed
+	if expected_progress_request.result == null:
+		_fail("Expected expected-size progress load to produce a result.")
+		return
+
+	if not expected_progress_request.result.ok:
+		_fail("Expected expected-size progress load to succeed. Result: %s" % JSON.stringify(expected_progress_request.result.to_dictionary()))
+		return
+
+	if expected_progress_totals.is_empty() or expected_progress_totals[0] != _pack_bytes.size():
+		_fail("Expected progress to use expected_size when Content-Length is unavailable.")
+		return
+
 	await get_tree().process_frame
 	if _packrat_request_runner_count() != 0:
 		_fail("Expected PackRatRequestRunner to free itself after async completion.")
@@ -691,6 +716,9 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 	elif path == "/slow.pck" and method == "GET":
 		_get_count += 1
 		await _write_slow_response(peer)
+	elif path == "/slow-no-length.pck" and method == "GET":
+		_get_count += 1
+		await _write_slow_chunked_response(peer)
 	elif _fail_get and method == "GET":
 		_get_count += 1
 		_write_not_found(peer)
@@ -750,8 +778,26 @@ func _write_slow_response(peer: StreamPeerTCP) -> void:
 	var headers: String = (
 		"HTTP/1.1 200 OK\r\n"
 		+ "Content-Type: application/octet-stream\r\n"
-		+ "Content-Length: %d\r\n" % _pack_bytes.size()
 		+ "ETag: \"packrat-slow-smoke\"\r\n"
+		+ "Connection: close\r\n"
+	)
+	headers += "Content-Length: %d\r\n" % _pack_bytes.size()
+	headers += "\r\n"
+	peer.put_data(headers.to_utf8_buffer())
+
+	for byte in _pack_bytes:
+		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+			return
+		peer.put_u8(byte)
+		await get_tree().process_frame
+
+
+func _write_slow_chunked_response(peer: StreamPeerTCP) -> void:
+	var headers: String = (
+		"HTTP/1.1 200 OK\r\n"
+		+ "Content-Type: application/octet-stream\r\n"
+		+ "Transfer-Encoding: chunked\r\n"
+		+ "ETag: \"packrat-slow-chunked-smoke\"\r\n"
 		+ "Connection: close\r\n"
 		+ "\r\n"
 	)
@@ -760,8 +806,12 @@ func _write_slow_response(peer: StreamPeerTCP) -> void:
 	for byte in _pack_bytes:
 		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 			return
+		peer.put_data("1\r\n".to_utf8_buffer())
 		peer.put_u8(byte)
+		peer.put_data("\r\n".to_utf8_buffer())
 		await get_tree().process_frame
+
+	peer.put_data("0\r\n\r\n".to_utf8_buffer())
 
 
 func _write_delayed_response(peer: StreamPeerTCP) -> void:
