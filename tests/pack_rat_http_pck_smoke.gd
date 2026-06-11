@@ -44,6 +44,7 @@ func _ready() -> void:
 	options.cache_dir = CACHE_DIR
 	options.entry_path = MOUNTED_MARKER
 	options.timeout_seconds = 10.0
+	options.capture_timings = true
 
 	var first: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not first.ok or not first.mounted or first.from_cache:

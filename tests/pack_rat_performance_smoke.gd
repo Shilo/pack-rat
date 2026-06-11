@@ -5,12 +5,11 @@ const SERVER_DIR: String = "user://pack_rat_performance_smoke_server"
 const PACK_PATH: String = "user://pack_rat_performance_smoke_server/perf.pck"
 const MARKER_SOURCE_PATH: String = "user://pack_rat_performance_smoke_server/marker.txt"
 const PAYLOAD_SOURCE_PATH: String = "user://pack_rat_performance_smoke_server/payload.bin"
-const MOUNTED_MARKER: String = "res://pack_rat_performance_smoke/marker.txt"
-const MOUNTED_PAYLOAD: String = "res://pack_rat_performance_smoke/payload.bin"
 const LEGACY_CHUNK_SIZE: int = 64 * 1024
 const OPTIMIZED_CHUNK_SIZE: int = 4 * 1024 * 1024
 const PAYLOAD_BYTES: int = 10 * 1024 * 1024
 const SERVER_CHUNK_SIZE: int = 4 * 1024 * 1024
+const OVERHEAD_LIMIT_MSEC: int = 1000
 
 var _server: TCPServer = TCPServer.new()
 var _pack_bytes: PackedByteArray = []
@@ -23,8 +22,8 @@ func _ready() -> void:
 	set_process(false)
 	_clear_directory(CACHE_DIR)
 	_clear_directory(SERVER_DIR)
+	_make_directory(CACHE_DIR)
 	_make_directory(SERVER_DIR)
-	_build_pack()
 
 	var listen_error: Error = _server.listen(0, "127.0.0.1")
 	if listen_error != OK:
@@ -35,23 +34,55 @@ func _ready() -> void:
 	set_process(true)
 	await get_tree().process_frame
 
-	var legacy: PackRatResult = await _load_case("legacy_64k", LEGACY_CHUNK_SIZE)
+	var raw_legacy: Dictionary = await _raw_case("raw_64k", LEGACY_CHUNK_SIZE)
+	if raw_legacy.is_empty():
+		return
+
+	var raw_optimized: Dictionary = await _raw_case("raw_4m", OPTIMIZED_CHUNK_SIZE)
+	if raw_optimized.is_empty():
+		return
+
+	if int(raw_legacy.get("progress_frames", 0)) <= int(raw_optimized.get("progress_frames", 0)):
+		_fail("Expected raw 64 KiB HTTP chunks to need more frames than raw 4 MiB chunks. legacy=%s optimized=%s" % [
+			JSON.stringify(raw_legacy),
+			JSON.stringify(raw_optimized),
+		])
+		return
+
+	var lean: PackRatResult = await _packrat_case("packrat_lean_4m", OPTIMIZED_CHUNK_SIZE, false)
+	if not lean.ok:
+		return
+
+	var profiled: PackRatResult = await _packrat_case("packrat_profiled_4m", OPTIMIZED_CHUNK_SIZE, true)
+	if not profiled.ok:
+		return
+
+	var legacy: PackRatResult = await _packrat_case("packrat_profiled_64k", LEGACY_CHUNK_SIZE, true)
 	if not legacy.ok:
 		return
 
-	var optimized: PackRatResult = await _load_case("optimized_4m", OPTIMIZED_CHUNK_SIZE)
-	if not optimized.ok:
-		return
-
 	var legacy_frames: int = int(legacy.timings_msec.get("download_http_progress_frames", 0))
-	var optimized_frames: int = int(optimized.timings_msec.get("download_http_progress_frames", 0))
+	var optimized_frames: int = int(profiled.timings_msec.get("download_http_progress_frames", 0))
 	if legacy_frames <= optimized_frames:
 		_fail("Expected 64 KiB HTTP chunks to need more progress frames than 4 MiB chunks. legacy=%d optimized=%d" % [legacy_frames, optimized_frames])
 		return
 
-	await _finish_success("PackRat performance smoke passed. legacy=%s optimized=%s" % [
+	var raw_total_msec: int = int(raw_optimized.get("total_msec", 0))
+	var lean_total_msec: int = int(lean.timings_msec.get("external_total_msec", 0))
+	if lean_total_msec > raw_total_msec + OVERHEAD_LIMIT_MSEC:
+		_fail("Expected lean PackRat overhead to stay below %d ms. raw=%s packrat=%s" % [
+			OVERHEAD_LIMIT_MSEC,
+			JSON.stringify(raw_optimized),
+			JSON.stringify(lean.timings_msec),
+		])
+		return
+
+	await _finish_success("PackRat performance smoke passed. raw_64k=%s raw_4m=%s lean=%s profiled=%s legacy=%s" % [
+		JSON.stringify(raw_legacy),
+		JSON.stringify(raw_optimized),
+		JSON.stringify(lean.timings_msec),
+		JSON.stringify(profiled.timings_msec),
 		JSON.stringify(legacy.timings_msec),
-		JSON.stringify(optimized.timings_msec),
 	])
 
 
@@ -61,28 +92,38 @@ func _process(_delta: float) -> void:
 		_serve_peer(peer)
 
 
-func _load_case(id: String, download_chunk_size: int) -> PackRatResult:
+func _packrat_case(id: String, download_chunk_size: int, capture_timings: bool) -> PackRatResult:
+	_build_pack(id)
 	var options: PackRatOptions = PackRatOptions.new()
 	options.id = id
 	options.cache_dir = CACHE_DIR
-	options.entry_path = MOUNTED_MARKER
+	options.entry_path = _mounted_marker(id)
 	options.expected_size = _pack_bytes.size()
 	options.timeout_seconds = 30.0
 	options.download_chunk_size = download_chunk_size
+	options.capture_timings = capture_timings
 
 	var progress_events: Array[int] = [0]
+	var total_start_msec: int = Time.get_ticks_msec()
 	var request: PackRatRequest = PackRat.load_resource_pack_async(_url, options)
 	request.progress_changed.connect(func(_downloaded_bytes: int, _total_bytes: int) -> void:
 		progress_events[0] += 1
 	)
 	await request.completed
+	var external_total_msec: int = Time.get_ticks_msec() - total_start_msec
 	var result: PackRatResult = request.result
 	if result == null:
 		_fail("Expected performance case %s to produce a result." % id)
 		return PackRatResult.failed(_url, "Missing result.")
 
+	if not capture_timings and not result.timings_msec.is_empty():
+		_fail("Expected lean performance case %s to skip internal timings." % id)
+		return result
+
+	result.timings_msec["external_total_msec"] = external_total_msec
 	result.timings_msec["signal_progress_events"] = progress_events[0]
 	result.timings_msec["configured_download_chunk_size"] = download_chunk_size
+	result.timings_msec["capture_timings"] = capture_timings
 	if not result.ok:
 		_fail("Expected performance case %s to load. Result: %s" % [id, JSON.stringify(result.to_dictionary())])
 		return result
@@ -91,20 +132,92 @@ func _load_case(id: String, download_chunk_size: int) -> PackRatResult:
 		_fail("Expected performance case %s to emit progress_changed at least once." % id)
 		return result
 
-	for key in [
-		"download_msec",
-		"download_http_progress_frames",
-		"download_http_transfer_msec",
-		"cache_finalize_msec",
-		"mount_msec",
-		"total_msec",
-	]:
-		if not result.timings_msec.has(key):
-			_fail("Expected performance case %s timings to include %s. Result: %s" % [id, key, JSON.stringify(result.to_dictionary())])
-			return result
+	if capture_timings:
+		for key in [
+			"download_msec",
+			"download_http_progress_frames",
+			"download_http_transfer_msec",
+			"cache_finalize_msec",
+			"mount_msec",
+			"total_msec",
+		]:
+			if not result.timings_msec.has(key):
+				_fail("Expected performance case %s timings to include %s. Result: %s" % [id, key, JSON.stringify(result.to_dictionary())])
+				return result
 
 	print("PackRat performance smoke %s timings %s" % [id, JSON.stringify(result.timings_msec)])
 	return result
+
+
+func _raw_case(id: String, download_chunk_size: int) -> Dictionary:
+	_build_pack(id)
+	var download_path: String = CACHE_DIR.path_join("%s.pck" % id)
+	DirAccess.remove_absolute(download_path)
+
+	var timings: Dictionary = {
+		"configured_download_chunk_size": download_chunk_size,
+		"raw_godot_api": true,
+	}
+	var total_start_msec: int = Time.get_ticks_msec()
+	var request: HTTPRequest = HTTPRequest.new()
+	request.accept_gzip = false
+	request.download_file = download_path
+	request.download_chunk_size = download_chunk_size
+	request.timeout = 30.0
+	add_child(request)
+
+	var completed: Array = []
+	request.request_completed.connect(func(result_code: HTTPRequest.Result, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+		completed.append(result_code)
+		completed.append(response_code)
+	, CONNECT_ONE_SHOT)
+
+	var start_request_msec: int = Time.get_ticks_msec()
+	var start_error: Error = request.request(_url)
+	timings["request_start_msec"] = Time.get_ticks_msec() - start_request_msec
+	if start_error != OK:
+		request.queue_free()
+		_fail("Raw case %s failed to start HTTPRequest (error %d)." % [id, start_error])
+		return {}
+
+	var transfer_start_msec: int = Time.get_ticks_msec()
+	var progress_frames: int = 0
+	while completed.is_empty():
+		progress_frames += 1
+		await get_tree().process_frame
+
+	timings["http_transfer_msec"] = Time.get_ticks_msec() - transfer_start_msec
+	timings["progress_frames"] = progress_frames
+	request.queue_free()
+
+	var result_code: HTTPRequest.Result = completed[0]
+	var response_code: int = completed[1]
+	if result_code != HTTPRequest.RESULT_SUCCESS or response_code < 200 or response_code >= 300:
+		_fail("Raw case %s HTTP failed: result=%d response=%d." % [id, result_code, response_code])
+		return timings
+
+	var size_start_msec: int = Time.get_ticks_msec()
+	var downloaded_size: int = FileAccess.get_size(download_path)
+	timings["file_size_msec"] = Time.get_ticks_msec() - size_start_msec
+	if downloaded_size != _pack_bytes.size():
+		_fail("Raw case %s size mismatch: expected %d, got %d." % [id, _pack_bytes.size(), downloaded_size])
+		return timings
+
+	var mount_start_msec: int = Time.get_ticks_msec()
+	var mounted: bool = ProjectSettings.load_resource_pack(download_path)
+	timings["mount_msec"] = Time.get_ticks_msec() - mount_start_msec
+	timings["total_msec"] = Time.get_ticks_msec() - total_start_msec
+	timings["downloaded_size"] = downloaded_size
+	if not mounted:
+		_fail("Raw case %s failed ProjectSettings.load_resource_pack()." % id)
+		return timings
+
+	if not FileAccess.file_exists(_mounted_marker(id)):
+		_fail("Raw case %s did not expose mounted marker %s." % [id, _mounted_marker(id)])
+		return timings
+
+	print("PackRat performance smoke %s timings %s" % [id, JSON.stringify(timings)])
+	return timings
 
 
 func _serve_peer(peer: StreamPeerTCP) -> void:
@@ -181,13 +294,21 @@ func _write_not_found(peer: StreamPeerTCP) -> void:
 	peer.put_data(body)
 
 
-func _build_pack() -> void:
+func _mounted_marker(id: String) -> String:
+	return "res://pack_rat_performance_smoke/%s/marker.txt" % id
+
+
+func _mounted_payload(id: String) -> String:
+	return "res://pack_rat_performance_smoke/%s/payload.bin" % id
+
+
+func _build_pack(id: String) -> void:
 	var marker: FileAccess = FileAccess.open(MARKER_SOURCE_PATH, FileAccess.WRITE)
 	if marker == null:
 		_fail("Could not write performance marker source (error %d)." % FileAccess.get_open_error())
 		return
 
-	marker.store_string("performance-smoke")
+	marker.store_string("performance-smoke-%s" % id)
 	marker = null
 
 	var payload: FileAccess = FileAccess.open(PAYLOAD_SOURCE_PATH, FileAccess.WRITE)
@@ -210,12 +331,12 @@ func _build_pack() -> void:
 		_fail("Could not start performance PCK packer (error %d)." % start_error)
 		return
 
-	var add_error: Error = packer.add_file(MOUNTED_MARKER, MARKER_SOURCE_PATH)
+	var add_error: Error = packer.add_file(_mounted_marker(id), MARKER_SOURCE_PATH)
 	if add_error != OK:
 		_fail("Could not add performance marker to PCK (error %d)." % add_error)
 		return
 
-	add_error = packer.add_file(MOUNTED_PAYLOAD, PAYLOAD_SOURCE_PATH)
+	add_error = packer.add_file(_mounted_payload(id), PAYLOAD_SOURCE_PATH)
 	if add_error != OK:
 		_fail("Could not add performance payload to PCK (error %d)." % add_error)
 		return

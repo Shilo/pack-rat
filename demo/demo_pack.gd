@@ -90,6 +90,7 @@ func options() -> PackRatOptions:
 	pack_options.replace_files = false
 	pack_options.expected_size = expected_size
 	pack_options.expected_modified_time = expected_modified_time
+	pack_options.capture_timings = true
 	return pack_options
 
 

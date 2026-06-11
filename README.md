@@ -189,6 +189,7 @@ and static host URLs.
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
 | `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. |
+| `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
 
@@ -436,6 +437,8 @@ rules before using it.
 - Progress polling happens once per frame while a GET is active.
 - PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
   Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
+- `capture_timings` is opt-in so normal loads avoid profiling dictionary and
+  timestamp overhead.
 - `timeout_seconds` is finite by default so stalled downloads fail.
 - If a fresh download would target an already-mounted cache path, PackRat keeps
   the mounted file and stores the new download at a unique cache path. It warns
@@ -508,8 +511,9 @@ redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, fast-cache cancellation,
 request headers, redirects, timeouts, `replace_files=false`, cache clearing,
 PCK mounting, ZIP mounting, generated demo packs, extensionless PCK URLs, MMO-style scene existence,
-repeated cache-hit performance, cold-load timing instrumentation, HTTP chunk-size
-behavior, and Godot's same-path hot-update/resource-cache behavior.
+repeated cache-hit performance, raw Godot download/mount baselines, PackRat
+cold-load overhead, HTTP chunk-size behavior, and Godot's same-path
+hot-update/resource-cache behavior.
 
 ## Troubleshooting
 

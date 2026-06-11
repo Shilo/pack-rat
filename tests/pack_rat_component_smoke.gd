@@ -30,6 +30,10 @@ func _ready() -> void:
 		_fail("Expected PackRatOptions to default to a large resource-pack download chunk.")
 		return
 
+	if options.capture_timings:
+		_fail("Expected PackRatOptions to disable capture_timings by default.")
+		return
+
 	var invalid: PackRatResult = await PackRat.load_resource_pack("not-a-url", options)
 	if invalid.ok or invalid.status != PackRatResult.STATUS_FAILED:
 		_fail("Expected invalid URL to return a failed result.")
@@ -78,10 +82,12 @@ func _ready() -> void:
 
 	metadata_options.request_headers.append("X-PackRat-Test: one")
 	metadata_options.download_chunk_size = 2 * 1024 * 1024
+	metadata_options.capture_timings = true
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
 	metadata_options.download_chunk_size = 1024
+	metadata_options.capture_timings = false
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
@@ -92,6 +98,10 @@ func _ready() -> void:
 
 	if copied_options.download_chunk_size != 2 * 1024 * 1024:
 		_fail("Expected PackRatOptions.copy to snapshot download_chunk_size.")
+		return
+
+	if not copied_options.capture_timings:
+		_fail("Expected PackRatOptions.copy to snapshot capture_timings.")
 		return
 
 	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")
