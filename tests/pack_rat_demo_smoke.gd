@@ -302,7 +302,7 @@ func _write_response(peer: StreamPeerTCP, path: String, include_body: bool) -> v
 
 func _write_body(peer: StreamPeerTCP, body: PackedByteArray) -> void:
 	var offset: int = 0
-	var chunk_size: int = 64 * 1024
+	var chunk_size: int = 4 * 1024 * 1024
 	while offset < body.size():
 		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 			return

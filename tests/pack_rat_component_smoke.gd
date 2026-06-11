@@ -26,6 +26,9 @@ func _ready() -> void:
 	var options: PackRatOptions = PackRatOptions.new()
 	options.id = "Hub Pack"
 	options.entry_path = "res://dlc/hub/main.tscn"
+	if options.download_chunk_size != 4 * 1024 * 1024:
+		_fail("Expected PackRatOptions to default to a large resource-pack download chunk.")
+		return
 
 	var invalid: PackRatResult = await PackRat.load_resource_pack("not-a-url", options)
 	if invalid.ok or invalid.status != PackRatResult.STATUS_FAILED:
@@ -74,15 +77,21 @@ func _ready() -> void:
 		return
 
 	metadata_options.request_headers.append("X-PackRat-Test: one")
+	metadata_options.download_chunk_size = 2 * 1024 * 1024
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
+	metadata_options.download_chunk_size = 1024
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
 
 	if copied_options.request_headers.size() != 1:
 		_fail("Expected PackRatOptions.copy to duplicate request headers.")
+		return
+
+	if copied_options.download_chunk_size != 2 * 1024 * 1024:
+		_fail("Expected PackRatOptions.copy to snapshot download_chunk_size.")
 		return
 
 	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")

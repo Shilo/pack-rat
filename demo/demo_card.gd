@@ -126,6 +126,7 @@ func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:
 func _on_completed(result: PackRatResult) -> void:
 	_last_result = result
 	_request = null
+	_log_result_timings(result)
 	_cancel_button.disabled = true
 	_load_button.disabled = false
 	_preview_button.disabled = not result.entry_scene_exists()
@@ -155,6 +156,13 @@ func _on_completed(result: PackRatResult) -> void:
 		message_requested.emit("%s failed: %s" % [_pack.title, result.error], true)
 
 	load_finished.emit(_pack, result)
+
+
+func _log_result_timings(result: PackRatResult) -> void:
+	if result.timings_msec.is_empty():
+		return
+
+	print("PackRat demo: %s timings %s" % [_pack.title, JSON.stringify(result.timings_msec)])
 
 
 func _on_cancel_pressed() -> void:

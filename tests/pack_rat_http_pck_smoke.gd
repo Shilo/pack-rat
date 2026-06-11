@@ -49,6 +49,8 @@ func _ready() -> void:
 	if not first.ok or not first.mounted or first.from_cache:
 		_fail("Expected first load to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
 		return
+	if not _assert_download_timings(first):
+		return
 
 	if first.local_path.get_base_dir() != CACHE_DIR:
 		_fail("Expected flat cache path under %s, got %s." % [CACHE_DIR, first.local_path])
@@ -65,6 +67,8 @@ func _ready() -> void:
 	var second: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not second.ok or not second.from_cache or not second.mounted:
 		_fail("Expected second load to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
+		return
+	if not _assert_mount_timings(second):
 		return
 
 	if _get_count != 1:
@@ -745,6 +749,36 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 func _collect_load(options: PackRatOptions, output: Array[PackRatResult]) -> void:
 	var result: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	output.append(result)
+
+
+func _assert_download_timings(result: PackRatResult) -> bool:
+	for key in [
+		"download_msec",
+		"download_http_transfer_msec",
+		"download_http_total_msec",
+		"download_http_progress_frames",
+		"cache_finalize_msec",
+		"mount_msec",
+		"total_msec",
+	]:
+		if not result.timings_msec.has(key):
+			_fail("Expected downloaded result timings to include %s. Result: %s" % [key, JSON.stringify(result.to_dictionary())])
+			return false
+
+	return true
+
+
+func _assert_mount_timings(result: PackRatResult) -> bool:
+	for key in ["mount_msec", "total_msec"]:
+		if not result.timings_msec.has(key):
+			_fail("Expected mounted cache-hit timings to include %s. Result: %s" % [key, JSON.stringify(result.to_dictionary())])
+			return false
+
+	if result.timings_msec.has("download_msec"):
+		_fail("Expected cache-hit timings to skip download_msec. Result: %s" % JSON.stringify(result.to_dictionary()))
+		return false
+
+	return true
 
 
 func _packrat_request_runner_count() -> int:

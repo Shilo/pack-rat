@@ -188,6 +188,7 @@ and static host URLs.
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
+| `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
 
@@ -433,6 +434,8 @@ rules before using it.
 - Concurrent calls are independent by design. If two identical calls start at
   the same time, both may download.
 - Progress polling happens once per frame while a GET is active.
+- PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
+  Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
 - `timeout_seconds` is finite by default so stalled downloads fail.
 - If a fresh download would target an already-mounted cache path, PackRat keeps
   the mounted file and stores the new download at a unique cache path. It warns
@@ -493,6 +496,7 @@ Useful demo CLI args:
 ```powershell
 godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_performance_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_pck_hot_update_probe.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_demo_smoke.tscn"
@@ -504,8 +508,8 @@ redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, fast-cache cancellation,
 request headers, redirects, timeouts, `replace_files=false`, cache clearing,
 PCK mounting, ZIP mounting, generated demo packs, extensionless PCK URLs, MMO-style scene existence,
-repeated cache-hit performance, and Godot's same-path hot-update/resource-cache
-behavior.
+repeated cache-hit performance, cold-load timing instrumentation, HTTP chunk-size
+behavior, and Godot's same-path hot-update/resource-cache behavior.
 
 ## Troubleshooting
 
