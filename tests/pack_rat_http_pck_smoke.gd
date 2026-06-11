@@ -560,6 +560,7 @@ func _ready() -> void:
 	var world_id: String = "mmo_world"
 	var mmo_url: String = "http://127.0.0.1:%d/%s.pck" % [_server.get_local_port(), world_id]
 	var mmo_options: PackRatOptions = PackRatOptions.from_expected_metadata(MODIFIED_V3_UNIX + 60, _pack_bytes.size())
+	mmo_options.entry_path = MMO_SCENE_PATH
 	var mmo_result: PackRatResult = await PackRat.load_resource_pack(mmo_url, mmo_options)
 	if not mmo_result.ok:
 		_fail("Expected MMO-style metadata flow to load. Result: %s" % JSON.stringify(mmo_result.to_dictionary()))
@@ -569,7 +570,7 @@ func _ready() -> void:
 		_fail("Expected canonical MMO URL to derive id '%s', got '%s'." % [world_id, mmo_result.id])
 		return
 
-	if not ResourceLoader.exists(MMO_SCENE_PATH, "PackedScene"):
+	if not mmo_result.entry_scene_exists():
 		_fail("Expected MMO-style loaded pack to expose scene %s." % MMO_SCENE_PATH)
 		return
 

@@ -173,7 +173,7 @@ Useful fields:
 Entry-scene helpers:
 
 ```gdscript
-if result.has_entry_scene():
+if result.entry_scene_exists():
 	var scene: PackedScene = result.load_entry_scene()
 
 var error: Error = result.change_scene_to_entry()
@@ -225,19 +225,17 @@ On the client, derive URL and scene path by your own project convention:
 @rpc("authority", "reliable")
 func prepare_world_transfer(world_id: String, expected_modified_time: int, expected_size: int) -> void:
 	var url: String = PackRat.join_url(world_pack_base_url, "%s.pck" % world_id)
-	var scene_path: String = "res://server/worlds/%s/%s.tscn" % [world_id, world_id]
 	var options: PackRatOptions = PackRatOptions.from_expected_metadata(expected_modified_time, expected_size)
+	options.entry_path = "res://server/worlds/%s/%s.tscn" % [world_id, world_id]
 
 	var result: PackRatResult = await PackRat.load_resource_pack(url, options)
 	if not result.ok:
 		push_error(result.error)
 		return
 
-	if not ResourceLoader.exists(scene_path, "PackedScene"):
-		push_error("World scene was not found after mounting pack: %s" % scene_path)
-		return
-
-	get_tree().change_scene_to_file(scene_path)
+	var error: Error = result.change_scene_to_entry()
+	if error != OK:
+		push_error("World scene was not found after mounting pack: %s" % result.entry_path)
 ```
 
 When expected metadata is set, PackRat derives cache identity from the pack ID,

@@ -98,8 +98,8 @@ func _ready() -> void:
 	var scene_result: PackRatResult = PackRatResult.new()
 	scene_result.ok = true
 	scene_result.entry_path = "res://tests/pack_rat_component_smoke.tscn"
-	if not scene_result.has_entry_scene():
-		_fail("Expected has_entry_scene to find the component smoke scene.")
+	if not scene_result.entry_scene_exists():
+		_fail("Expected entry_scene_exists to find the component smoke scene.")
 		return
 
 	if scene_result.load_entry_scene() == null:
@@ -107,8 +107,8 @@ func _ready() -> void:
 		return
 
 	scene_result.entry_path = "res://tests/missing_pack_rat_scene.tscn"
-	if scene_result.has_entry_scene():
-		_fail("Expected has_entry_scene to reject a missing scene.")
+	if scene_result.entry_scene_exists():
+		_fail("Expected entry_scene_exists to reject a missing scene.")
 		return
 
 	if scene_result.change_scene_to_entry() != ERR_FILE_NOT_FOUND:
