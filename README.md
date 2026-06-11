@@ -1,7 +1,10 @@
 # PackRat
 
-PackRat is a tiny runtime helper for downloading, caching, and mounting remote
-Godot `.pck` and `.zip` resource packs.
+Your helpful little companion to fetch, stash, and mount your cheesy content.
+
+PackRat is a lightweight Godot addon that downloads, verifies, caches, and
+mounts DLC/content packs at runtime. Use it for worlds, mods, patches, skins,
+episodes, asset bundles, or standalone downloadable files.
 
 ```gdscript
 var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck")
@@ -79,14 +82,22 @@ your static host at runtime, not from files already bundled into the Web export.
 ## Quick Start
 
 ```gdscript
-var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck")
+var options: PackRatOptions = PackRatOptions.new()
+options.entry_path = "res://worlds/hub/main.tscn"
+
+var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck", options)
 if not result.ok:
 	push_error(result.error)
 	return
+
+var error: Error = result.change_scene_to_entry()
+if error != OK:
+	push_error("Could not change to pack scene: %d" % error)
 ```
 
 PackRat mounts the pack; your game can then load resources from the paths inside
-that pack. If you know the pack's entry scene, keep that path in the options:
+that pack. Set an ID when the URL filename is not stable enough to be your cache
+identity:
 
 ```gdscript
 var options: PackRatOptions = PackRatOptions.new()
