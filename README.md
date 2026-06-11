@@ -476,7 +476,7 @@ Useful demo CLI args:
 | --- | --- |
 | `--pack-base-url=...` | Static URL base for mirrored demo packs. |
 | `--source=pages` | Use same-origin/static-host URLs. |
-| `--source=github_release` | Use GitHub Release asset URLs. |
+| `--source=github_release` | Use GitHub Release asset URLs for native/editor testing. Browser Web exports should use `pages` because GitHub release redirects do not provide game-friendly CORS headers. |
 | `--release-tag=...` | GitHub Release tag for demo packs. |
 | `--auto-load=warehouse,gallery` | Load one or more packs after startup. |
 | `--quit-when-done` | Exit after auto-load finishes. |

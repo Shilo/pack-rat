@@ -35,6 +35,7 @@ var _auto_load_failed: bool = false
 
 func _ready() -> void:
 	_apply_user_args()
+	_apply_web_source_limits()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_cards = [_warehouse_card, _gallery_card]
 	_source_selector.select(1 if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE else 0)
@@ -92,6 +93,12 @@ func _show_toast(message: String, is_error: bool = false) -> void:
 
 
 func _on_source_selected(index: int) -> void:
+	if index == 1 and _github_release_blocked_in_browser():
+		_source_selector.select(0)
+		_source = PackRatDemoCatalog.SOURCE_PAGES
+		_show_toast("GitHub Release assets are blocked by browser CORS; using GitHub Pages.", true)
+		return
+
 	_source = PackRatDemoCatalog.SOURCE_GITHUB_RELEASE if index == 1 else PackRatDemoCatalog.SOURCE_PAGES
 	for card in _cards:
 		card.set_source(_source)
@@ -199,3 +206,18 @@ func _apply_user_args() -> void:
 
 	if not _pack_base_arg_applied:
 		PackRatDemoCatalog.use_web_same_origin_pack_base()
+
+
+func _apply_web_source_limits() -> void:
+	if not _github_release_blocked_in_browser():
+		return
+
+	if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE:
+		_source = PackRatDemoCatalog.SOURCE_PAGES
+
+	_source_selector.set_item_disabled(1, true)
+	_source_selector.set_item_text(1, "GitHub Release asset (native only)")
+
+
+func _github_release_blocked_in_browser() -> bool:
+	return OS.has_feature("web")

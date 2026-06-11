@@ -68,6 +68,8 @@ func _ready() -> void:
 		return
 	if not _assert_progress_complete(warehouse_card):
 		return
+	if not _assert_preview_contains_icon(demo, "MascotWatermark"):
+		return
 
 	var valid_pack_base_url: String = PackRatDemoCatalog.pages_pack_base_url
 	PackRatDemoCatalog.pages_pack_base_url = "ftp://invalid"
@@ -95,6 +97,8 @@ func _ready() -> void:
 	if not _assert_loaded(gallery_card, gallery_first):
 		return
 	if not _assert_progress_complete(gallery_card):
+		return
+	if not _assert_preview_contains_icon(demo, "Icon"):
 		return
 
 	var mounted_host: Control = _control(demo, "MountedSceneHost")
@@ -442,6 +446,21 @@ func _assert_progress_complete(card: PackRatDemoCard) -> bool:
 		return false
 
 	return true
+
+
+func _assert_preview_contains_icon(demo: Node, icon_name: String) -> bool:
+	var mounted_host: Control = _control(demo, "MountedSceneHost")
+	if mounted_host == null:
+		return false
+
+	var node: Node = mounted_host.find_child(icon_name, true, false)
+	if node is TextureRect:
+		var icon: TextureRect = node
+		if icon.texture != null:
+			return true
+
+	_fail("Expected mounted demo scene icon %s to have a texture." % icon_name)
+	return false
 
 
 func _card(root: Node, name: String) -> PackRatDemoCard:

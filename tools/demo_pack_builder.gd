@@ -15,6 +15,7 @@ const _WAREHOUSE_SCRIPT: String = "res://packrat_demo/warehouse/warehouse_scene.
 const _WAREHOUSE_PAYLOAD: String = "res://packrat_demo/warehouse/payload.bin"
 const _GALLERY_SCRIPT: String = "res://packrat_demo/gallery/gallery_scene.gd"
 const _GALLERY_PAYLOAD: String = "res://packrat_demo/gallery/payload.bin"
+const _PACK_ICON: String = "res://addons/pack_rat/icon.svg"
 const _OUTPUT_ARG: String = "--output-dir="
 const _NO_CATALOG_ARG: String = "--no-catalog"
 const _TEMP_DIR: String = "user://pack_rat_demo_pack_builder"
@@ -230,9 +231,10 @@ static func _payload_bytes(size: int, seed: int) -> PackedByteArray:
 
 static func _warehouse_scene() -> String:
 	var lines: PackedStringArray = PackedStringArray([
-		"[gd_scene load_steps=2 format=3]",
+		"[gd_scene load_steps=3 format=3]",
 		"",
 		"[ext_resource type=\"Script\" path=\"%s\" id=\"1_scene\"]" % _WAREHOUSE_SCRIPT,
+		"[ext_resource type=\"Texture2D\" path=\"%s\" id=\"2_icon\"]" % _PACK_ICON,
 		"",
 		"[node name=\"Warehouse\" type=\"Control\"]",
 		"layout_mode = 3",
@@ -251,6 +253,21 @@ static func _warehouse_scene() -> String:
 		"grow_horizontal = 2",
 		"grow_vertical = 2",
 		"color = Color(0.141176, 0.121569, 0.101961, 1)",
+		"",
+		"[node name=\"MascotWatermark\" type=\"TextureRect\" parent=\".\"]",
+		"layout_mode = 1",
+		"anchors_preset = 3",
+		"anchor_left = 1.0",
+		"anchor_right = 1.0",
+		"offset_left = -210.0",
+		"offset_top = 18.0",
+		"offset_right = -34.0",
+		"offset_bottom = 194.0",
+		"grow_horizontal = 0",
+		"texture = ExtResource(\"2_icon\")",
+		"expand_mode = 1",
+		"stretch_mode = 5",
+		"modulate = Color(1, 0.82, 0.58, 0.88)",
 		"",
 		"[node name=\"Title\" type=\"Label\" parent=\".\"]",
 		"layout_mode = 0",
@@ -350,9 +367,10 @@ static func _warehouse_script() -> String:
 
 static func _gallery_scene() -> String:
 	var lines: PackedStringArray = PackedStringArray([
-		"[gd_scene load_steps=3 format=3]",
+		"[gd_scene load_steps=4 format=3]",
 		"",
 		"[ext_resource type=\"Script\" path=\"%s\" id=\"1_scene\"]" % _GALLERY_SCRIPT,
+		"[ext_resource type=\"Texture2D\" path=\"%s\" id=\"2_icon\"]" % _PACK_ICON,
 		"",
 		"[sub_resource type=\"StyleBoxFlat\" id=\"TilePanel\"]",
 		"bg_color = Color(1, 1, 1, 1)",
@@ -430,9 +448,19 @@ static func _gallery_scene() -> String:
 		lines.append("offset_bottom = 40.0")
 		lines.append("color = %s" % swatch)
 		lines.append("")
+		lines.append("[node name=\"Icon\" type=\"TextureRect\" parent=\"Tile%02d\"]" % index)
+		lines.append("layout_mode = 0")
+		lines.append("offset_left = 22.0")
+		lines.append("offset_top = 46.0")
+		lines.append("offset_right = 74.0")
+		lines.append("offset_bottom = 98.0")
+		lines.append("texture = ExtResource(\"2_icon\")")
+		lines.append("expand_mode = 1")
+		lines.append("stretch_mode = 5")
+		lines.append("")
 		lines.append("[node name=\"Label\" type=\"Label\" parent=\"Tile%02d\"]" % index)
 		lines.append("layout_mode = 0")
-		lines.append("offset_left = 14.0")
+		lines.append("offset_left = 82.0")
 		lines.append("offset_top = 52.0")
 		lines.append("offset_right = 166.0")
 		lines.append("offset_bottom = 78.0")

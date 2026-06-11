@@ -26,10 +26,10 @@ const WAREHOUSE_ENTRY_PATH: String = "res://packrat_demo/warehouse/main.tscn"
 const GALLERY_ENTRY_PATH: String = "res://packrat_demo/gallery/main.tscn"
 
 ## Generated expected byte size for the warehouse PCK.
-const WAREHOUSE_EXPECTED_SIZE: int = 10494636
+const WAREHOUSE_EXPECTED_SIZE: int = 10495052
 
 ## Generated expected byte size for the gallery ZIP.
-const GALLERY_EXPECTED_SIZE: int = 16788722
+const GALLERY_EXPECTED_SIZE: int = 16791372
 
 ## Generated expected modified time for the warehouse PCK, when available.
 const WAREHOUSE_EXPECTED_MODIFIED_TIME: int = 0
