@@ -17,6 +17,7 @@ var _etag: String = "\"packrat-smoke-v1\""
 var _last_modified: String = "Wed, 10 Jun 2026 20:15:00 GMT"
 var _fail_get: bool = false
 var _omit_last_modified: bool = false
+var _active_peers: int = 0
 
 
 func _ready() -> void:
@@ -63,6 +64,25 @@ func _ready() -> void:
 		_fail("Expected one freshness HEAD request for cache hit, got %d." % _head_count)
 		return
 
+	var corrupt_cache_file: FileAccess = FileAccess.open(second.local_path, FileAccess.WRITE)
+	if corrupt_cache_file == null:
+		_fail("Could not corrupt cached pack for mount recovery test.")
+		return
+	corrupt_cache_file.store_string("not a pack")
+	corrupt_cache_file = null
+
+	var corrupt_rejected: PackRatResult = await PackRat.load_resource_pack(_url, options)
+	if corrupt_rejected.ok:
+		_fail("Expected corrupted cache mount to fail before recovery.")
+		return
+
+	var recovered: PackRatResult = await PackRat.load_resource_pack(_url, options)
+	if not recovered.ok or recovered.from_cache:
+		_fail("Expected corrupted cache to recover with a fresh download. Result: %s" % JSON.stringify(recovered.to_dictionary()))
+		return
+
+	var stale_get_count: int = _get_count
+
 	var first_cache_path: String = first.local_path
 	_etag = "\"packrat-smoke-v2\""
 	_last_modified = "Wed, 10 Jun 2026 20:16:00 GMT"
@@ -77,7 +97,7 @@ func _ready() -> void:
 		_fail("Expected stale redownload to use a new cache path, got %s." % third.local_path)
 		return
 
-	if _get_count != 2:
+	if _get_count != stale_get_count + 1:
 		_fail("Expected stale redownload to perform a second GET, got %d." % _get_count)
 		return
 
@@ -110,6 +130,22 @@ func _ready() -> void:
 
 	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
 		_fail("Expected size-only metadata cache hit to skip HEAD and GET.")
+		return
+
+	var corrupt_file: FileAccess = FileAccess.open(size_second.local_path, FileAccess.WRITE)
+	if corrupt_file == null:
+		_fail("Could not corrupt cached pack for expected_size validation test.")
+		return
+	corrupt_file.store_string("bad-cache")
+	corrupt_file = null
+
+	var size_third: PackRatResult = await PackRat.load_resource_pack(_url, size_options)
+	if not size_third.ok or size_third.from_cache:
+		_fail("Expected corrupted expected_size cache hit to redownload. Result: %s" % JSON.stringify(size_third.to_dictionary()))
+		return
+
+	if _get_count != metadata_get_count + 2:
+		_fail("Expected corrupted expected_size cache hit to add one GET request.")
 		return
 
 	var modified_options: PackRatOptions = PackRatOptions.new()
@@ -172,7 +208,7 @@ func _ready() -> void:
 		return
 
 	_omit_last_modified = true
-	var stat_metadata: RefCounted = PackRat.file_metadata(PACK_PATH)
+	var stat_metadata: PackRatFileMetadata = PackRat.file_metadata(PACK_PATH)
 	if not stat_metadata.ok:
 		_fail("Expected file_metadata for local PCK to succeed: %s" % stat_metadata.error)
 		return
@@ -256,8 +292,8 @@ func _ready() -> void:
 			_fail("Expected concurrent load to succeed. Result: %s" % JSON.stringify(concurrent_result.to_dictionary()))
 			return
 
-	if _head_count != concurrent_head_count or _get_count != concurrent_get_count + 1:
-		_fail("Expected concurrent loads to share one download.")
+	if _head_count != concurrent_head_count or _get_count != concurrent_get_count + 2:
+		_fail("Expected concurrent loads to use independent downloads without HEAD requests.")
 		return
 
 	var progress_options: PackRatOptions = PackRatOptions.new()
@@ -381,9 +417,7 @@ func _ready() -> void:
 		_fail("Expected failed mounts to avoid cache reuse and download twice.")
 		return
 
-	print("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s" % [_head_count, _get_count, third.local_path])
-	_server.stop()
-	get_tree().quit()
+	await _finish_success("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s" % [_head_count, _get_count, third.local_path])
 
 
 func _process(_delta: float) -> void:
@@ -393,6 +427,7 @@ func _process(_delta: float) -> void:
 
 
 func _serve_peer(peer: StreamPeerTCP) -> void:
+	_active_peers += 1
 	var request: String = ""
 	var wait_until: int = Time.get_ticks_msec() + 1000
 
@@ -429,6 +464,8 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 		_write_not_found(peer)
 
 	peer.disconnect_from_host()
+	peer = null
+	_active_peers -= 1
 
 
 func _collect_load(options: PackRatOptions, output: Array[PackRatResult]) -> void:
@@ -466,6 +503,8 @@ func _write_slow_response(peer: StreamPeerTCP) -> void:
 	peer.put_data(headers.to_utf8_buffer())
 
 	for byte in _pack_bytes:
+		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+			return
 		peer.put_u8(byte)
 		await get_tree().process_frame
 
@@ -564,3 +603,14 @@ func _fail(message: String) -> void:
 	_server.stop()
 	push_error(message)
 	get_tree().quit(1)
+
+
+func _finish_success(message: String) -> void:
+	set_process(false)
+	var wait_until: int = Time.get_ticks_msec() + 3000
+	while _active_peers > 0 and Time.get_ticks_msec() < wait_until:
+		await get_tree().process_frame
+
+	print(message)
+	_server.stop()
+	get_tree().quit()

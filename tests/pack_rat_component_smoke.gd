@@ -36,7 +36,7 @@ func _ready() -> void:
 	file.store_buffer("packrat".to_utf8_buffer())
 	file = null
 
-	var metadata: RefCounted = PackRat.file_metadata(metadata_path)
+	var metadata: PackRatFileMetadata = PackRat.file_metadata(metadata_path)
 	if not metadata.ok:
 		_fail("Expected file_metadata to succeed: %s" % metadata.error)
 		return
@@ -59,9 +59,20 @@ func _ready() -> void:
 		_fail("Expected metadata.apply_to_options to copy modified time.")
 		return
 
-	var missing_metadata: RefCounted = PackRat.file_metadata("user://pack_rat_missing_metadata_smoke.bin")
+	var metadata_dict: Dictionary = metadata.to_dictionary()
+	if int(metadata_dict.get("size", 0)) != metadata.size:
+		_fail("Expected file_metadata dictionary to include size.")
+		return
+
+	var missing_metadata: PackRatFileMetadata = PackRat.file_metadata("user://pack_rat_missing_metadata_smoke.bin")
 	if missing_metadata.ok or missing_metadata.error.is_empty():
 		_fail("Expected missing file_metadata to fail with an error.")
+		return
+
+	var unsafe_clear_options: PackRatOptions = PackRatOptions.new()
+	unsafe_clear_options.cache_dir = "user://"
+	if PackRat.clear_cache(unsafe_clear_options) != ERR_INVALID_PARAMETER:
+		_fail("Expected clear_cache to reject root user:// cache dir.")
 		return
 
 	print("PackRat component smoke passed.")

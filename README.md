@@ -38,7 +38,7 @@ URLs, because mounted packs can replace existing `res://` paths. Set
 - Supports progress and cancellation through `PackRatRequest`.
 - Can clear one cached pack or the full cache.
 - Builds direct GitHub Releases URLs without calling the GitHub API.
-- De-dupes concurrent loads for the same cache identity.
+- Keeps concurrent loads independent; duplicate simultaneous calls may each download.
 
 ## What It Does Not Do Yet
 
@@ -104,6 +104,12 @@ options.expected_modified_time = int(pack_info.modified_time)
 var result: PackRatResult = await PackRat.load_resource_pack(str(pack_info.url), options)
 ```
 
+The example scene can exercise the same flow from CLI:
+
+```powershell
+godot --path . --scene "res://examples/pack_rat_load_resource_pack_demo.tscn" -- --id=hub --local-pack-path=user://world_packs/hub.pck --pack-url=https://example.com/world_packs/hub.pck --entry-path=res://worlds/hub/main.tscn
+```
+
 When expected metadata is set, PackRat derives cache identity from the pack ID,
 size, and modified time. A matching cached file is used immediately; otherwise
 the URL is downloaded and provided fields are checked independently. Size is
@@ -146,3 +152,10 @@ godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
 ```
+
+These smokes cover the server-authoritative metadata path needed by projects
+that keep PCKs beside a server process: local file metadata reads,
+`expected_size`/`expected_modified_time`, cache hits without `HEAD`/`GET`,
+changed metadata redownloads, missing `Last-Modified` warnings,
+offline-first cache reuse, concurrent loads, progress/cancel signals, cache
+clearing, PCK mounting, ZIP mounting, and extensionless PCK URLs.
