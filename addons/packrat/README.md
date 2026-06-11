@@ -28,6 +28,14 @@ options.expected_sha256 = "..."
 var result := await PackRat.prepare("https://example.com/packs/hub.pck", options)
 ```
 
+Server-provided descriptors can go through the same one-call path or the explicit
+descriptor helper:
+
+```gdscript
+var descriptor := PackRatDescriptor.from_dict(route["pack"])
+var result := await PackRat.prepare_descriptor(descriptor)
+```
+
 Important defaults:
 
 - `cache_dir = "user://packrat"`

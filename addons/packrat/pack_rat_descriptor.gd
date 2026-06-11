@@ -61,8 +61,8 @@ static func from_dictionary(data: Dictionary, options: PackRatOptions) -> PackRa
 	descriptor.id = str(data.get("id", data.get("key", descriptor.id)))
 	descriptor.cache_key = str(data.get("cache_key", descriptor.cache_key))
 	descriptor.entry_path = str(data.get("entry_path", data.get("entry", data.get("scene", descriptor.entry_path))))
-	descriptor.expected_sha256 = str(data.get("sha256", data.get("expected_sha256", descriptor.expected_sha256))).to_lower()
-	descriptor.expected_size = int(data.get("size", data.get("expected_size", descriptor.expected_size)))
+	descriptor.expected_sha256 = str(data.get("sha256", data.get("pack_sha256", data.get("expected_sha256", descriptor.expected_sha256)))).to_lower()
+	descriptor.expected_size = int(data.get("size", data.get("pack_size", data.get("expected_size", descriptor.expected_size))))
 	descriptor.replace_files = bool(data.get("replace_files", descriptor.replace_files))
 
 	if data.has("install_mode") or data.has("install"):
@@ -86,6 +86,10 @@ static func from_dictionary(data: Dictionary, options: PackRatOptions) -> PackRa
 	completed.freshness_mode = descriptor.freshness_mode
 	completed._infer_install_mode()
 	return completed
+
+
+static func from_dict(data: Dictionary, options: PackRatOptions = null) -> PackRatDescriptor:
+	return from_dictionary(data, options)
 
 
 static func invalid(message: String) -> PackRatDescriptor:

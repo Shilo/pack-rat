@@ -48,6 +48,16 @@ func _ready() -> void:
 		_fail("Expected .pck URL to infer resource-pack install mode.")
 		return
 
+	var route_descriptor := PackRatDescriptor.from_dict({
+		"id": "route-pack",
+		"pack_url": "https://example.com/packs/route.pck",
+		"pack_sha256": "abc123",
+		"pack_size": 123,
+	})
+	if route_descriptor.expected_sha256 != "abc123" or route_descriptor.expected_size != 123:
+		_fail("PackRatDescriptor.from_dict() did not accept route-style pack metadata.")
+		return
+
 	var failed := PackRatResult.failed("intentional")
 	if failed.ok or failed.status != PackRatResult.STATUS_FAILED:
 		_fail("PackRatResult.failed() did not produce a failed result.")

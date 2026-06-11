@@ -14,6 +14,10 @@ static func prepare(source: Variant, options: PackRatOptions = null) -> PackRatR
 	return await service.prepare(source, options)
 
 
+static func prepare_descriptor(descriptor: PackRatDescriptor, options: PackRatOptions = null) -> PackRatResult:
+	return await prepare(descriptor, options)
+
+
 static func use_service(service: PackRatService) -> void:
 	_service = service
 
