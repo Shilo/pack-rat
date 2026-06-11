@@ -11,6 +11,7 @@ config_version=5
 [application]
 
 config/name="PackRat"
+config/description="Your helpful little companion to fetch, stash, and mount your cheesy content. PackRat is a lightweight Godot addon that downloads, verifies, caches, and mounts DLC/content packs at runtime. Use it for worlds, mods, patches, skins, episodes, asset bundles, or standalone downloadable files."
 config/features=PackedStringArray("4.6", "GL Compatibility")
 config/icon="res://icon.svg"
 
