@@ -36,12 +36,12 @@ jobs:
       - name: Prepare export directories
         run: |
           apt-get update
-          apt-get install -y zip
+          apt-get install -y libfontconfig1 zip
           mkdir -p "$EXPORT_ROOT/web/packs"
 
       - name: Import project
         run: |
-          godot --headless --path . --quit
+          godot --headless --editor --path . --quit
 
       - name: Run PackRat smokes
         run: |
