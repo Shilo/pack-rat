@@ -175,7 +175,7 @@ func _on_clear_pressed() -> void:
 
 	var options: PackRatOptions = _pack.options()
 	options.cache_dir = PackRatDemoCatalog.cache_dir
-	var error: Error = PackRat.clear_cached_resource_pack(_pack.id, options)
+	var error: Error = PackRat.clear_cached_resource_pack(options.id, options)
 	if error == OK:
 		_status_label.text = "Disk cache cleared"
 		_detail_label.text = "Mounted content remains available until reload."

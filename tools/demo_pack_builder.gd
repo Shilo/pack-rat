@@ -77,7 +77,12 @@ static func build_all(output_dir: String = DEFAULT_OUTPUT_DIR, write_catalog: bo
 		return result
 
 	if write_catalog:
-		var catalog_error: Error = _write_catalog_sizes(warehouse_size, gallery_size)
+		var catalog_error: Error = _write_catalog_metadata(
+			warehouse_size,
+			gallery_size,
+			_file_version_token(warehouse_path),
+			_file_version_token(gallery_path)
+		)
 		if catalog_error != OK:
 			result.error = "Could not update demo catalog sizes (error %d)." % catalog_error
 			return result
@@ -492,16 +497,25 @@ static func _gallery_script() -> String:
 	]))
 
 
-static func _write_catalog_sizes(warehouse_size: int, gallery_size: int) -> Error:
+static func _write_catalog_metadata(
+	warehouse_size: int,
+	gallery_size: int,
+	warehouse_version_token: String,
+	gallery_version_token: String
+) -> Error:
 	var text: String = FileAccess.get_file_as_string(_CATALOG_PATH)
 	if text.is_empty():
 		return FAILED
 
 	if not _has_int_const(text, "WAREHOUSE_EXPECTED_SIZE") or not _has_int_const(text, "GALLERY_EXPECTED_SIZE"):
 		return FAILED
+	if not _has_string_const(text, "WAREHOUSE_VERSION_TOKEN") or not _has_string_const(text, "GALLERY_VERSION_TOKEN"):
+		return FAILED
 
 	text = _replace_int_const(text, "WAREHOUSE_EXPECTED_SIZE", warehouse_size)
 	text = _replace_int_const(text, "GALLERY_EXPECTED_SIZE", gallery_size)
+	text = _replace_string_const(text, "WAREHOUSE_VERSION_TOKEN", warehouse_version_token)
+	text = _replace_string_const(text, "GALLERY_VERSION_TOKEN", gallery_version_token)
 
 	var file: FileAccess = FileAccess.open(_CATALOG_PATH, FileAccess.WRITE)
 	if file == null:
@@ -513,6 +527,11 @@ static func _write_catalog_sizes(warehouse_size: int, gallery_size: int) -> Erro
 
 static func _has_int_const(text: String, name: String) -> bool:
 	var marker: String = "const %s: int = " % name
+	return text.find(marker) >= 0
+
+
+static func _has_string_const(text: String, name: String) -> bool:
+	var marker: String = "const %s: String = " % name
 	return text.find(marker) >= 0
 
 
@@ -528,3 +547,28 @@ static func _replace_int_const(text: String, name: String, value: int) -> String
 		line_end = text.length()
 
 	return text.substr(0, value_start) + str(value) + text.substr(line_end)
+
+
+static func _replace_string_const(text: String, name: String, value: String) -> String:
+	var marker: String = "const %s: String = " % name
+	var start: int = text.find(marker)
+	if start < 0:
+		return text
+
+	var value_start: int = start + marker.length()
+	var line_end: int = text.find("\n", value_start)
+	if line_end < 0:
+		line_end = text.length()
+
+	return text.substr(0, value_start) + "\"%s\"" % value.c_escape() + text.substr(line_end)
+
+
+static func _file_version_token(path: String) -> String:
+	var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+	if bytes.is_empty():
+		return str(FileAccess.get_size(path))
+
+	var context: HashingContext = HashingContext.new()
+	context.start(HashingContext.HASH_SHA256)
+	context.update(bytes)
+	return "%d-%s" % [bytes.size(), context.finish().hex_encode().substr(0, 12)]

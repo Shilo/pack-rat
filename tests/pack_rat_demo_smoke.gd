@@ -128,8 +128,10 @@ func _ready() -> void:
 	var clear_button: Button = _button(warehouse_card, "ClearButton")
 	if clear_button == null:
 		return
+	warehouse_card.set_source(PackRatDemoCatalog.SOURCE_GITHUB_RELEASE)
 	clear_button.pressed.emit()
 	await get_tree().process_frame
+	warehouse_card.set_source(PackRatDemoCatalog.SOURCE_PAGES)
 	var warehouse_after_clear: PackRatResult = await _press_load(warehouse_card)
 	if warehouse_after_clear == null:
 		return
@@ -171,8 +173,11 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 		return false
 
 	var demo_pack: PackRatDemoPack = PackRatDemoCatalog.packs()[0]
-	if not demo_pack.pages_url().ends_with("?v=%d" % demo_pack.expected_size):
+	if not demo_pack.pages_url().ends_with("?v=%s" % demo_pack.version_token.uri_encode()):
 		_fail("Expected demo pack URLs to include a version query.")
+		return false
+	if demo_pack.options().id == demo_pack.id:
+		_fail("Expected demo pack cache ID to include the generated content version.")
 		return false
 
 	var metadata: PackRatFileMetadata = PackRat.file_metadata(build_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME))

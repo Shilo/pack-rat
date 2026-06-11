@@ -120,11 +120,14 @@ Also include small, visible usage of:
 - `PackRatResult.change_scene_to_entry()`, possibly as an alternate "Open full
   scene" path.
 
-For the WebGL default path, bake `expected_size` into the demo catalog after CI
-builds each pack. If the build can also provide a stable modified time, bake
-`expected_modified_time` too. Expected metadata lets PackRat avoid a HEAD
-freshness request and keeps the Web path less dependent on host-specific exposed
-headers.
+For the WebGL default path, bake `expected_size` and a generated content version
+token into the demo catalog after CI builds each pack. Expected size lets PackRat
+avoid a HEAD freshness request and keeps the Web path less dependent on
+host-specific exposed headers. The content version token must be included in
+both the demo URL query and demo cache ID so same-size pack updates cannot reuse
+stale browser HTTP cache entries or stale PackRat cache records. If the build can
+also provide a host-comparable stable modified time, bake `expected_modified_time`
+too.
 
 Do not add new PackRat runtime APIs just for the demo unless implementation
 proves the existing public API is awkward.

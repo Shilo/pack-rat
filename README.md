@@ -464,7 +464,14 @@ ignored by Git and hidden from the Godot editor.
 
 When exported for Web, the demo resolves pack URLs against the current page's
 same-origin `packs/` folder. Native/editor runs default to the canonical GitHub
-Pages mirror. For local smoke testing, pass a pack base URL:
+Pages mirror. For local manual testing against freshly built packs, start a
+static server:
+
+```powershell
+python -m http.server 18924 --directory build
+```
+
+Then pass a pack base URL:
 
 ```powershell
 godot --path . --scene "res://demo/demo.tscn" -- --pack-base-url=http://127.0.0.1:18924/packs --auto-load=warehouse,gallery --quit-when-done

@@ -37,6 +37,12 @@ const WAREHOUSE_EXPECTED_MODIFIED_TIME: int = 0
 ## Generated expected modified time for the gallery ZIP, when available.
 const GALLERY_EXPECTED_MODIFIED_TIME: int = 0
 
+## Generated content version for the warehouse PCK.
+const WAREHOUSE_VERSION_TOKEN: String = "10495564-9037a406cb33"
+
+## Generated content version for the gallery ZIP.
+const GALLERY_VERSION_TOKEN: String = "16791372-b204b1645f42"
+
 ## Canonical Pages pack mirror used outside Web exports.
 static var pages_pack_base_url: String = "https://shilo.github.io/pack-rat/packs"
 
@@ -73,6 +79,7 @@ static func packs() -> Array[PackRatDemoPack]:
 		WAREHOUSE_ENTRY_PATH,
 		WAREHOUSE_EXPECTED_SIZE,
 		WAREHOUSE_EXPECTED_MODIFIED_TIME,
+		WAREHOUSE_VERSION_TOKEN,
 		Color.html("#8A5729")
 	))
 	result.append(PackRatDemoPack.create(
@@ -84,6 +91,7 @@ static func packs() -> Array[PackRatDemoPack]:
 		GALLERY_ENTRY_PATH,
 		GALLERY_EXPECTED_SIZE,
 		GALLERY_EXPECTED_MODIFIED_TIME,
+		GALLERY_VERSION_TOKEN,
 		Color.html("#27806C")
 	))
 	return result
