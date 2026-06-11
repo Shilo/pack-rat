@@ -16,6 +16,7 @@ var _get_count: int = 0
 var _etag: String = "\"packrat-smoke-v1\""
 var _last_modified: String = "Wed, 10 Jun 2026 20:15:00 GMT"
 var _fail_get: bool = false
+var _omit_last_modified: bool = false
 
 
 func _ready() -> void:
@@ -169,6 +170,41 @@ func _ready() -> void:
 	if bad_modified.ok:
 		_fail("Expected expected_modified_time mismatch to fail.")
 		return
+
+	_omit_last_modified = true
+	var stat_metadata: RefCounted = PackRat.file_metadata(PACK_PATH)
+	if not stat_metadata.ok:
+		_fail("Expected file_metadata for local PCK to succeed: %s" % stat_metadata.error)
+		return
+
+	var stat_head_count: int = _head_count
+	var stat_get_count: int = _get_count
+	var stat_options: PackRatOptions = PackRatOptions.new()
+	stat_options.id = "stat_metadata_smoke"
+	stat_options.cache_dir = CACHE_DIR
+	stat_options.entry_path = MOUNTED_MARKER
+	stat_options.timeout_seconds = 10.0
+	stat_metadata.apply_to_options(stat_options)
+
+	var stat_first: PackRatResult = await PackRat.load_resource_pack(_url, stat_options)
+	if not stat_first.ok or stat_first.from_cache:
+		_fail("Expected local stat metadata load to download. Result: %s" % JSON.stringify(stat_first.to_dictionary()))
+		return
+
+	if not _has_warning(stat_first, "Last-Modified"):
+		_fail("Expected local stat metadata load without Last-Modified to warn. Result: %s" % JSON.stringify(stat_first.to_dictionary()))
+		return
+
+	var stat_second: PackRatResult = await PackRat.load_resource_pack(_url, stat_options)
+	if not stat_second.ok or not stat_second.from_cache:
+		_fail("Expected local stat metadata load to reuse cache. Result: %s" % JSON.stringify(stat_second.to_dictionary()))
+		return
+
+	if _head_count != stat_head_count or _get_count != stat_get_count + 1:
+		_fail("Expected local stat metadata cache hit to skip HEAD and GET.")
+		return
+
+	_omit_last_modified = false
 
 	var offline_head_count: int = _head_count
 	var offline_get_count: int = _get_count
@@ -406,12 +442,12 @@ func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
 		+ "Content-Type: application/octet-stream\r\n"
 		+ "Content-Length: %d\r\n" % _pack_bytes.size()
 		+ "ETag: %s\r\n" % _etag
-		+ "Last-Modified: %s\r\n" % _last_modified
 		+ "Access-Control-Allow-Origin: *\r\n"
 		+ "Access-Control-Expose-Headers: ETag, Content-Length, Last-Modified\r\n"
-		+ "Connection: close\r\n"
-		+ "\r\n"
 	)
+	if not _omit_last_modified:
+		headers += "Last-Modified: %s\r\n" % _last_modified
+	headers += "Connection: close\r\n\r\n"
 	peer.put_data(headers.to_utf8_buffer())
 
 	if include_body:
@@ -514,6 +550,14 @@ func _clear_directory(path: String) -> void:
 		child = dir.get_next()
 
 	dir.list_dir_end()
+
+
+func _has_warning(result: PackRatResult, text: String) -> bool:
+	for warning in result.warnings:
+		if warning.contains(text):
+			return true
+
+	return false
 
 
 func _fail(message: String) -> void:
