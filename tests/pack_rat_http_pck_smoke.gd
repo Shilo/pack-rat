@@ -64,6 +64,13 @@ func _ready() -> void:
 		_fail("Expected one freshness HEAD request for cache hit, got %d." % _head_count)
 		return
 
+	var cached_cancel_request: PackRatRequest = PackRat.load_resource_pack_async(_url, options)
+	cached_cancel_request.cancel()
+	await cached_cancel_request.completed
+	if cached_cancel_request.result == null or cached_cancel_request.result.ok:
+		_fail("Expected cancel before cached load to fail without mounting.")
+		return
+
 	var corrupt_cache_file: FileAccess = FileAccess.open(second.local_path, FileAccess.WRITE)
 	if corrupt_cache_file == null:
 		_fail("Could not corrupt cached pack for mount recovery test.")
