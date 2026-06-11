@@ -70,6 +70,8 @@ func _ready() -> void:
 		return
 	if not _assert_card_text_fits(demo, warehouse_card):
 		return
+	if not _assert_preview_contains_icon(demo, "Box00"):
+		return
 	if not _assert_preview_contains_icon(demo, "MascotWatermark"):
 		return
 

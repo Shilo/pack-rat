@@ -304,22 +304,20 @@ static func _warehouse_scene() -> String:
 	for index in range(26):
 		var column: int = index % 9
 		var row: int = int(index / 9)
-		var width: float = 38.0 + float(index % 4) * 7.0
-		var height: float = 38.0 + float(index % 3) * 5.0
+		var size: float = 44.0 + float(index % 4) * 8.0
 		var left: float = 60.0 + float(column) * 76.0
 		var top: float = 110.0 + float(row) * 42.0
-		var color: String = "Color(0.964706, 0.788235, 0.552941, 1)"
-		if index % 3 == 0:
-			color = "Color(0.152941, 0.501961, 0.423529, 1)"
 
-		lines.append("[node name=\"Box%02d\" type=\"ColorRect\" parent=\".\"]" % index)
+		lines.append("[node name=\"Box%02d\" type=\"TextureRect\" parent=\".\"]" % index)
 		lines.append("layout_mode = 0")
 		lines.append("offset_left = %.1f" % left)
 		lines.append("offset_top = %.1f" % top)
-		lines.append("offset_right = %.1f" % (left + width))
-		lines.append("offset_bottom = %.1f" % (top + height))
-		lines.append("pivot_offset = Vector2(%.1f, %.1f)" % [width * 0.5, height * 0.5])
-		lines.append("color = %s" % color)
+		lines.append("offset_right = %.1f" % (left + size))
+		lines.append("offset_bottom = %.1f" % (top + size))
+		lines.append("pivot_offset = Vector2(%.1f, %.1f)" % [size * 0.5, size * 0.5])
+		lines.append("texture = ExtResource(\"2_icon\")")
+		lines.append("expand_mode = 1")
+		lines.append("stretch_mode = 5")
 		lines.append("")
 
 	return "\n".join(lines)
@@ -329,7 +327,7 @@ static func _warehouse_script() -> String:
 	return "\n".join(PackedStringArray([
 		"extends Control",
 		"",
-		"var _boxes: Array[ColorRect] = []",
+		"var _boxes: Array[TextureRect] = []",
 		"var _velocities: Array[Vector2] = []",
 		"var _spins: Array[float] = []",
 		"",
@@ -337,8 +335,8 @@ static func _warehouse_script() -> String:
 		"\tclip_contents = true",
 		"\tfor index in range(26):",
 		"\t\tvar node: Node = get_node(\"Box%02d\" % index)",
-		"\t\tif node is ColorRect:",
-		"\t\t\tvar box: ColorRect = node",
+		"\t\tif node is TextureRect:",
+		"\t\t\tvar box: TextureRect = node",
 		"\t\t\t_boxes.append(box)",
 		"\t\t\t_velocities.append(Vector2(-120.0 + float((index * 37) % 240), -40.0 - float((index * 19) % 170)))",
 		"\t\t\t_spins.append(-2.1 + float((index * 11) % 42) / 10.0)",
@@ -348,7 +346,7 @@ static func _warehouse_script() -> String:
 		"\tif bounds.x <= 0.0 or bounds.y <= 0.0:",
 		"\t\tbounds = Vector2(900.0, 520.0)",
 		"\tfor index in range(_boxes.size()):",
-		"\t\tvar box: ColorRect = _boxes[index]",
+		"\t\tvar box: TextureRect = _boxes[index]",
 		"\t\tvar velocity: Vector2 = _velocities[index]",
 		"\t\tvelocity.y += 520.0 * delta",
 		"\t\tbox.position += velocity * delta",
