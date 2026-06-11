@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://packratpckhotprobe"]
+
+[ext_resource type="Script" path="res://tests/pack_rat_pck_hot_update_probe.gd" id="1_hotprobe"]
+
+[node name="PackRatPckHotUpdateProbe" type="Node"]
+script = ExtResource("1_hotprobe")

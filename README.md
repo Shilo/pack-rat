@@ -22,12 +22,15 @@ object, or custom installer workflow is required.
 - [Progress And Cancellation](#progress-and-cancellation)
 - [Server Metadata Without Manifests](#server-metadata-without-manifests)
 - [Offline-First Loads](#offline-first-loads)
+- [Cache Behavior Matrix](#cache-behavior-matrix)
+- [Web Export And CORS](#web-export-and-cors)
 - [GitHub Release URLs](#github-release-urls)
 - [Cache Cleanup](#cache-cleanup)
 - [Security Notes](#security-notes)
 - [Performance And Stability Notes](#performance-and-stability-notes)
 - [Example Scene](#example-scene)
 - [Smoke Tests](#smoke-tests)
+- [Troubleshooting](#troubleshooting)
 
 ## Install
 
@@ -226,6 +229,35 @@ options.offline_first = true
 remote update checks. A cache miss still downloads. This is not the same as
 network-disabled mode.
 
+## Cache Behavior Matrix
+
+| Mode | Cache hit behavior | Cache miss behavior | Network check |
+| --- | --- | --- | --- |
+| Default | Sends `HEAD`, compares freshness, then uses cache if fresh or unknown. | Downloads. | `HEAD` on hit, `GET` on miss/stale. |
+| `expected_size` or `expected_modified_time` | Uses matching cache identity immediately. | Downloads and validates provided fields. | No `HEAD`; `GET` only on miss. |
+| `offline_first` | Uses cache immediately. | Downloads. | No `HEAD`; `GET` only on miss. |
+| `always_download` | Ignores cache for the fresh request. | Downloads. | `GET`. |
+
+## Web Export And CORS
+
+For Godot Web exports, the pack server must allow browser downloads. If you want
+HTTP freshness checks, expose the freshness headers too:
+
+```text
+Access-Control-Allow-Origin: *
+Access-Control-Expose-Headers: ETag, Last-Modified, Content-Length, Content-Type
+Cache-Control: no-cache
+ETag: "..."
+Last-Modified: Wed, 10 Jun 2026 20:15:00 GMT
+Content-Length: 123456
+Content-Type: application/octet-stream
+```
+
+If the browser cannot read `ETag`, `Last-Modified`, or `Content-Length`, PackRat
+may treat freshness as unknown and reuse the cached pack with a warning. The
+server metadata flow avoids that by passing `expected_size` and/or
+`expected_modified_time`.
+
 ## GitHub Release URLs
 
 ```gdscript
@@ -269,10 +301,16 @@ look changed?" rather than "is this trusted content?"
 - Cache metadata is saved through a temporary JSON file with backup restore.
 - `PackRatOptions` is copied when a request starts, so later option mutations do
   not affect an in-flight load.
+- Repeated cache hits for the same ID, path, replace mode, and offset skip a
+  duplicate mount call.
+- Repeated expected-metadata or `offline_first` cache hits can use an exact
+  in-process fast path after the first successful mount.
 - Concurrent calls are independent by design. If two identical calls start at
   the same time, both may download.
 - Progress polling happens once per frame while a GET is active.
 - `timeout_seconds` is finite by default so stalled downloads fail.
+- If a fresh download replaces a file at an already-mounted path, PackRat warns
+  because Godot resource packs remain mounted for the process lifetime.
 
 ## Example Scene
 
@@ -299,10 +337,22 @@ Useful CLI args:
 godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_pck_hot_update_probe.tscn"
 ```
 
 These smokes cover local metadata reads, `expected_size`,
 `expected_modified_time`, cache hits without `HEAD`/`GET`, changed metadata
 redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, cache clearing, PCK
-mounting, ZIP mounting, and extensionless PCK URLs.
+mounting, ZIP mounting, extensionless PCK URLs, repeated cache-hit performance,
+and Godot's same-path hot-update/resource-cache behavior.
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| `PackRat MVP only accepts HTTP(S) URLs.` | Local file paths are not supported by the load API. | Serve the pack over HTTP(S), or use `file_metadata()` only for metadata collection. |
+| Freshness is always unknown. | Server or browser CORS is hiding `ETag`, `Last-Modified`, or `Content-Length`. | Expose those headers or use expected metadata. |
+| `.zip` URL fails with nonzero offset. | Godot only supports offsets for PCK packs. | Keep `offset = 0` for ZIP packs. |
+| Cache cleanup returns `ERR_INVALID_PARAMETER`. | `cache_dir` is root `user://`, outside `user://`, or contains `..`. | Use a dedicated directory such as `user://pack_rat`. |
+| Updated resources do not behave like a clean restart. | Godot cannot unload an already mounted pack. | Use versioned internal resource paths or restart between incompatible pack versions. |

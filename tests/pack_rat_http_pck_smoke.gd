@@ -139,6 +139,18 @@ func _ready() -> void:
 		_fail("Expected size-only metadata cache hit to skip HEAD and GET.")
 		return
 
+	var repeated_cache_start_usec: int = Time.get_ticks_usec()
+	for index in range(50):
+		var repeated_cache: PackRatResult = await PackRat.load_resource_pack(_url, size_options)
+		if not repeated_cache.ok or not repeated_cache.from_cache:
+			_fail("Expected repeated expected_size cache hit %d to reuse cache." % index)
+			return
+
+	var repeated_cache_elapsed_usec: int = Time.get_ticks_usec() - repeated_cache_start_usec
+	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
+		_fail("Expected repeated expected_size cache hits to avoid HEAD and GET.")
+		return
+
 	var corrupt_file: FileAccess = FileAccess.open(size_second.local_path, FileAccess.WRITE)
 	if corrupt_file == null:
 		_fail("Could not corrupt cached pack for expected_size validation test.")
@@ -272,6 +284,19 @@ func _ready() -> void:
 		_fail("Expected offline-first to skip HEAD and only download on miss.")
 		return
 
+	var mutation_options: PackRatOptions = PackRatOptions.new()
+	mutation_options.id = "mutation_smoke"
+	mutation_options.cache_dir = CACHE_DIR
+	mutation_options.entry_path = MOUNTED_MARKER
+	mutation_options.timeout_seconds = 10.0
+	var mutation_request: PackRatRequest = PackRat.load_resource_pack_async(_url, mutation_options)
+	mutation_options.id = "mutated_after_start"
+	mutation_options.cache_dir = "user://pack_rat_mutated_after_start"
+	await mutation_request.completed
+	if not mutation_request.result.ok or mutation_request.result.id != "mutation_smoke":
+		_fail("Expected async request to snapshot options before caller mutation. Result: %s" % JSON.stringify(mutation_request.result.to_dictionary()))
+		return
+
 	var concurrent_head_count: int = _head_count
 	var concurrent_get_count: int = _get_count
 	var concurrent_options: PackRatOptions = PackRatOptions.new()
@@ -400,8 +425,13 @@ func _ready() -> void:
 		_fail("Expected forced-download setup load to succeed. Result: %s" % JSON.stringify(forced_first.to_dictionary()))
 		return
 
-	_fail_get = true
 	forced_options.always_download = true
+	var forced_rewrite: PackRatResult = await PackRat.load_resource_pack(_url, forced_options)
+	if not forced_rewrite.ok or not _has_warning(forced_rewrite, "already-mounted path"):
+		_fail("Expected same-path forced redownload to warn. Result: %s" % JSON.stringify(forced_rewrite.to_dictionary()))
+		return
+
+	_fail_get = true
 	var forced_second: PackRatResult = await PackRat.load_resource_pack(_url, forced_options)
 	_fail_get = false
 	if forced_second.ok:
@@ -424,7 +454,12 @@ func _ready() -> void:
 		_fail("Expected failed mounts to avoid cache reuse and download twice.")
 		return
 
-	await _finish_success("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s" % [_head_count, _get_count, third.local_path])
+	await _finish_success("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s repeated_cache_ms=%d" % [
+		_head_count,
+		_get_count,
+		third.local_path,
+		repeated_cache_elapsed_usec / 1000,
+	])
 
 
 func _process(_delta: float) -> void:
@@ -591,6 +626,7 @@ func _clear_directory(path: String) -> void:
 		var child_path: String = path.path_join(child)
 		if dir.current_is_dir():
 			_clear_directory(child_path)
+			DirAccess.remove_absolute(child_path)
 		else:
 			DirAccess.remove_absolute(child_path)
 		child = dir.get_next()

@@ -189,6 +189,7 @@ func _clear_directory(path: String) -> void:
 		var child_path: String = path.path_join(child)
 		if dir.current_is_dir():
 			_clear_directory(child_path)
+			DirAccess.remove_absolute(child_path)
 		else:
 			DirAccess.remove_absolute(child_path)
 		child = dir.get_next()
