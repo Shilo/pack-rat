@@ -63,6 +63,8 @@ func _apply_user_args() -> void:
 			expected_modified_time = int(argument.substr("--expected-modified-time=".length()))
 		elif argument == "--offline-first":
 			offline_first = true
+		elif argument == "--quit-when-done":
+			quit_when_done = true
 
 
 func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:

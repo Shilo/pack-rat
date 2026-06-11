@@ -59,6 +59,18 @@ func _ready() -> void:
 		_fail("Expected metadata.apply_to_options to copy modified time.")
 		return
 
+	metadata_options.request_headers.append("X-PackRat-Test: one")
+	var copied_options: PackRatOptions = metadata_options.copy()
+	metadata_options.cache_dir = "user://changed_after_copy"
+	metadata_options.request_headers.append("X-PackRat-Test: two")
+	if copied_options.cache_dir == metadata_options.cache_dir:
+		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
+		return
+
+	if copied_options.request_headers.size() != 1:
+		_fail("Expected PackRatOptions.copy to duplicate request headers.")
+		return
+
 	var metadata_dict: Dictionary = metadata.to_dictionary()
 	if int(metadata_dict.get("size", 0)) != metadata.size:
 		_fail("Expected file_metadata dictionary to include size.")
@@ -73,6 +85,18 @@ func _ready() -> void:
 	unsafe_clear_options.cache_dir = "user://"
 	if PackRat.clear_cache(unsafe_clear_options) != ERR_INVALID_PARAMETER:
 		_fail("Expected clear_cache to reject root user:// cache dir.")
+		return
+
+	unsafe_clear_options.cache_dir = "user://pack_rat/../outside"
+	if PackRat.clear_cache(unsafe_clear_options) != ERR_INVALID_PARAMETER:
+		_fail("Expected clear_cache to reject parent directory segments.")
+		return
+
+	var unsafe_load_options: PackRatOptions = PackRatOptions.new()
+	unsafe_load_options.cache_dir = "user://pack_rat/../outside"
+	var unsafe_load: PackRatResult = await PackRat.load_resource_pack("https://example.com/hub.pck", unsafe_load_options)
+	if unsafe_load.ok or not unsafe_load.error.contains("cache_dir"):
+		_fail("Expected load_resource_pack to reject unsafe cache_dir.")
 		return
 
 	print("PackRat component smoke passed.")
