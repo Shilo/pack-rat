@@ -6,6 +6,8 @@ PackRat is a lightweight Godot addon that downloads, verifies, caches, and
 mounts DLC/content packs at runtime. Use it for worlds, mods, patches, skins,
 episodes, asset bundles, or standalone downloadable files.
 
+<img src="addons/pack_rat/icon.svg" alt="PackRat icon" width="128">
+
 ```gdscript
 var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck")
 ```
