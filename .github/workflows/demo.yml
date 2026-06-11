@@ -19,7 +19,6 @@ concurrency:
 env:
   GODOT_VERSION: "4.6.3"
   GODOT_STATUS: "stable"
-  EXPORT_ROOT: "${{ runner.temp }}/packrat-demo"
 
 jobs:
   build:
@@ -27,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: barichello/godot-ci:4.6.3
+    env:
+      EXPORT_ROOT: "${{ runner.temp }}/packrat-demo"
 
     steps:
       - name: Checkout
