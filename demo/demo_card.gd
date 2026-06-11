@@ -1,0 +1,185 @@
+class_name PackRatDemoCard extends PanelContainer
+## Interactive baked scene card that loads one PackRat Portal demo pack.
+
+## Emitted when the pack is ready to show in the preview stage.
+signal preview_requested(pack: PackRatDemoPack, result: PackRatResult)
+
+## Emitted when a pack load finishes.
+signal load_finished(pack: PackRatDemoPack, result: PackRatResult)
+
+## Catalog pack ID this card displays.
+@export var pack_id: String = ""
+
+var _pack: PackRatDemoPack
+var _source: String = PackRatDemoCatalog.SOURCE_PAGES
+var _request: PackRatRequest
+var _last_result: PackRatResult
+
+@onready var _accent_bar: ColorRect = %AccentBar
+@onready var _title_label: Label = %TitleLabel
+@onready var _format_label: Label = %FormatLabel
+@onready var _summary_label: Label = %SummaryLabel
+@onready var _status_label: Label = %StatusLabel
+@onready var _detail_label: Label = %DetailLabel
+@onready var _progress_bar: ProgressBar = %ProgressBar
+@onready var _bytes_label: Label = %BytesLabel
+@onready var _load_button: Button = %LoadButton
+@onready var _cancel_button: Button = %CancelButton
+@onready var _preview_button: Button = %PreviewButton
+@onready var _clear_button: Button = %ClearButton
+
+
+func _ready() -> void:
+	_pack = PackRatDemoCatalog.pack_by_id(pack_id)
+	if _pack == null:
+		_status_label.text = "Missing catalog pack"
+		_detail_label.text = pack_id
+		_load_button.disabled = true
+		_cancel_button.disabled = true
+		_preview_button.disabled = true
+		_clear_button.disabled = true
+		return
+
+	_bind_pack()
+	_load_button.pressed.connect(load_pack)
+	_cancel_button.pressed.connect(_on_cancel_pressed)
+	_preview_button.pressed.connect(_on_preview_pressed)
+	_clear_button.pressed.connect(_on_clear_pressed)
+	_set_idle_state()
+
+
+## Updates which catalog URL source this card uses.
+func set_source(source: String) -> void:
+	_source = source
+	if _request == null or _request.is_completed():
+		if _last_result != null and _last_result.ok:
+			_detail_label.text = "Source: %s; mounted from %s" % [
+				PackRatDemoCatalog.source_label(_source),
+				"cache" if _last_result.from_cache else "remote",
+			]
+			return
+
+		_set_idle_state()
+
+
+## Starts this card's download and mount request.
+func load_pack() -> void:
+	if _pack == null:
+		return
+	if _request != null and not _request.is_completed():
+		return
+
+	var options: PackRatOptions = _pack.options()
+	options.cache_dir = PackRatDemoCatalog.cache_dir
+	_request = PackRat.load_resource_pack_async(_pack.url_for_source(_source), options)
+	_request.progress_changed.connect(_on_progress_changed)
+	_request.completed.connect(_on_completed, CONNECT_ONE_SHOT)
+
+	_status_label.text = "Downloading"
+	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
+	_bytes_label.text = "Waiting for bytes..."
+	_progress_bar.value = 0.0
+	_load_button.disabled = true
+	_cancel_button.disabled = false
+	_preview_button.disabled = true
+
+
+## Returns this card's catalog pack.
+func pack() -> PackRatDemoPack:
+	return _pack
+
+
+func _bind_pack() -> void:
+	_accent_bar.color = _pack.accent_color
+	_title_label.text = _pack.title
+	_format_label.text = "%s resource pack" % _pack.format
+	_format_label.add_theme_color_override("font_color", _pack.accent_color)
+	_summary_label.text = _pack.summary
+
+
+func _set_idle_state() -> void:
+	_status_label.text = "Ready"
+	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
+	if _pack.expected_size > 0:
+		_bytes_label.text = "Expected size: %s" % _format_bytes(_pack.expected_size)
+	else:
+		_bytes_label.text = "Expected size unknown."
+	_progress_bar.value = 0.0
+	_load_button.disabled = false
+	_cancel_button.disabled = true
+	_preview_button.disabled = _last_result == null or not _last_result.entry_scene_exists()
+
+
+func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:
+	if total_bytes > 0:
+		_progress_bar.value = clampf(float(downloaded_bytes) / float(total_bytes) * 100.0, 0.0, 100.0)
+		_bytes_label.text = "%s / %s" % [_format_bytes(downloaded_bytes), _format_bytes(total_bytes)]
+	else:
+		_progress_bar.value = 8.0
+		_bytes_label.text = "%s downloaded" % _format_bytes(downloaded_bytes)
+
+
+func _on_completed(result: PackRatResult) -> void:
+	_last_result = result
+	_request = null
+	_cancel_button.disabled = true
+	_load_button.disabled = false
+	_preview_button.disabled = not result.entry_scene_exists()
+
+	if result.ok:
+		_progress_bar.value = 100.0
+		_status_label.text = "Mounted: %s" % result.status
+		_detail_label.text = "Source: %s; mounted from %s" % [
+			PackRatDemoCatalog.source_label(_source),
+			"cache" if result.from_cache else "remote",
+		]
+		_bytes_label.text = "%s cached at %s" % [_format_bytes(result.content_length), result.local_path]
+		preview_requested.emit(_pack, result)
+	elif result.error == "PackRat request was canceled.":
+		_status_label.text = "Canceled"
+		_detail_label.text = "The download was canceled before mounting."
+		_bytes_label.text = "No content mounted."
+	else:
+		_status_label.text = "Failed"
+		_detail_label.text = result.error
+		_bytes_label.text = "No content mounted."
+
+	load_finished.emit(_pack, result)
+
+
+func _on_cancel_pressed() -> void:
+	if _request != null:
+		_request.cancel()
+		_status_label.text = "Canceling"
+
+
+func _on_preview_pressed() -> void:
+	if _last_result != null and _last_result.entry_scene_exists():
+		preview_requested.emit(_pack, _last_result)
+
+
+func _on_clear_pressed() -> void:
+	if _pack == null:
+		return
+
+	var options: PackRatOptions = _pack.options()
+	options.cache_dir = PackRatDemoCatalog.cache_dir
+	var error: Error = PackRat.clear_cached_resource_pack(_pack.id, options)
+	if error == OK:
+		_status_label.text = "Disk cache cleared"
+		_detail_label.text = "Mounted content remains available until reload."
+	elif error == ERR_DOES_NOT_EXIST:
+		_status_label.text = "No disk cache"
+		_detail_label.text = "This pack has no removable cached file right now."
+	else:
+		_status_label.text = "Clear failed"
+		_detail_label.text = "Error %d" % error
+
+
+func _format_bytes(value: int) -> String:
+	if value < 1024:
+		return "%d B" % value
+	if value < 1024 * 1024:
+		return "%.1f KiB" % (float(value) / 1024.0)
+
+	return "%.1f MiB" % (float(value) / 1024.0 / 1024.0)

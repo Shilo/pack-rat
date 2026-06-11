@@ -35,7 +35,7 @@ object, or custom installer workflow is required.
 - [Cache Cleanup](#cache-cleanup)
 - [Security Notes](#security-notes)
 - [Performance And Stability Notes](#performance-and-stability-notes)
-- [Example Scene](#example-scene)
+- [Demo Scene](#demo-scene)
 - [Smoke Tests](#smoke-tests)
 - [Troubleshooting](#troubleshooting)
 
@@ -439,24 +439,42 @@ rules before using it.
   Godot may keep already-loaded scenes, scripts, and resources in memory, so a
   late-mounted pack does not behave like a clean restart.
 
-## Example Scene
+## Demo Scene
 
 ```powershell
-godot --path . --scene "res://examples/pack_rat_load_resource_pack_demo.tscn" -- --id=hub --local-pack-path=user://world_packs/hub.pck --pack-url=https://example.com/world_packs/hub.pck --entry-path=res://worlds/hub/main.tscn --quit-when-done
+godot --path . --scene "res://demo/demo.tscn"
 ```
 
-Useful CLI args:
+PackRat ships with a Web-friendly showcase scene called PackRat Portal. It uses
+a tiny base scene and two generated remote packs:
+
+- `packrat-demo-warehouse.pck`, about 10 MiB.
+- `packrat-demo-gallery.zip`, about 16 MiB.
+
+Build the demo packs locally:
+
+```powershell
+godot --headless --path . --script "tools/demo_pack_builder.gd"
+```
+
+When exported for Web, the demo resolves pack URLs against the current page's
+same-origin `packs/` folder. Native/editor runs default to the canonical GitHub
+Pages mirror. For local smoke testing, pass a pack base URL:
+
+```powershell
+godot --path . --scene "res://demo/demo.tscn" -- --pack-base-url=http://127.0.0.1:18924/packs --auto-load=warehouse,gallery --quit-when-done
+```
+
+Useful demo CLI args:
 
 | Arg | Purpose |
 | --- | --- |
-| `--pack-url=...` | Remote `.pck` or `.zip` URL. |
-| `--local-pack-path=...` | Local file to read metadata from before loading. |
-| `--id=...` | Cache ID. |
-| `--entry-path=...` | Resource path to copy into the result. |
-| `--expected-size=...` | Expected byte size. |
-| `--expected-modified-time=...` | Expected Unix modified time. |
-| `--offline-first` | Enable cache-hit-first behavior. |
-| `--quit-when-done` | Exit after printing the result. |
+| `--pack-base-url=...` | Static URL base for mirrored demo packs. |
+| `--source=pages` | Use same-origin/static-host URLs. |
+| `--source=github_release` | Use GitHub Release asset URLs. |
+| `--release-tag=...` | GitHub Release tag for demo packs. |
+| `--auto-load=warehouse,gallery` | Load one or more packs after startup. |
+| `--quit-when-done` | Exit after auto-load finishes. |
 
 ## Smoke Tests
 
@@ -465,6 +483,7 @@ godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_pck_hot_update_probe.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_demo_smoke.tscn"
 ```
 
 These smokes cover local metadata reads, `expected_size`,
@@ -472,7 +491,7 @@ These smokes cover local metadata reads, `expected_size`,
 redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, fast-cache cancellation,
 request headers, redirects, timeouts, `replace_files=false`, cache clearing,
-PCK mounting, ZIP mounting, extensionless PCK URLs, MMO-style scene existence,
+PCK mounting, ZIP mounting, generated demo packs, extensionless PCK URLs, MMO-style scene existence,
 repeated cache-hit performance, and Godot's same-path hot-update/resource-cache
 behavior.
 

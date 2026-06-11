@@ -1,0 +1,403 @@
+extends Node
+
+const PORT: int = 18924
+const BUILD_DIR: String = "user://pack_rat_demo_smoke/packs"
+const CACHE_DIR: String = "user://pack_rat_demo_smoke/cache"
+
+var _server: TCPServer
+var _pack_bytes: Dictionary = {}
+var _head_count: int = 0
+var _get_count: int = 0
+
+
+func _ready() -> void:
+	get_tree().create_timer(45.0).timeout.connect(_on_timeout, CONNECT_ONE_SHOT)
+	_clear_demo_cache()
+	var build: Dictionary = PackRatDemoPackBuilder.build_all(BUILD_DIR, false)
+	if not bool(build.get("ok", false)):
+		_fail("Could not build demo packs: %s" % build.get("error", "unknown error"))
+		return
+
+	for pack in PackRatDemoCatalog.packs():
+		var path: String = BUILD_DIR.path_join(pack.file_name)
+		var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+		if bytes.is_empty():
+			_fail("Generated demo pack was empty: %s" % path)
+			return
+		if pack.expected_size > 0 and bytes.size() != pack.expected_size:
+			_fail("Catalog size for %s is stale. Expected %d, built %d." % [pack.id, pack.expected_size, bytes.size()])
+			return
+		_pack_bytes["/packs/%s" % pack.file_name] = bytes
+
+	_server = TCPServer.new()
+	var listen_error: Error = _server.listen(PORT, "127.0.0.1")
+	if listen_error != OK:
+		_fail("Could not start demo smoke HTTP server (error %d)." % listen_error)
+		return
+
+	PackRatDemoCatalog.pages_pack_base_url = "http://127.0.0.1:%d/packs" % PORT
+	PackRatDemoCatalog.cache_dir = CACHE_DIR
+	await get_tree().process_frame
+
+	var demo_scene: PackedScene = load("res://demo/demo.tscn")
+	if demo_scene == null:
+		_fail("Could not load demo scene.")
+		return
+
+	var demo: Node = demo_scene.instantiate()
+	add_child(demo)
+	await get_tree().process_frame
+
+	var placeholder: Node = demo.find_child("PreviewPlaceholder", true, false)
+	if placeholder == null or placeholder.is_queued_for_deletion():
+		_fail("Expected baked preview placeholder to remain alive.")
+		return
+
+	var warehouse_card: PackRatDemoCard = _card(demo, "WarehouseCard")
+	var gallery_card: PackRatDemoCard = _card(demo, "GalleryCard")
+	if warehouse_card == null or gallery_card == null:
+		return
+
+	var warehouse_first: PackRatResult = await _press_load(warehouse_card)
+	if warehouse_first == null:
+		return
+	if not _assert_loaded(warehouse_card, warehouse_first):
+		return
+	if not _assert_progress_complete(warehouse_card):
+		return
+
+	var gallery_canceled: PackRatResult = await _press_cancel(gallery_card)
+	if gallery_canceled == null:
+		return
+
+	var gallery_first: PackRatResult = await _press_load(gallery_card)
+	if gallery_first == null:
+		return
+	if not _assert_loaded(gallery_card, gallery_first):
+		return
+	if not _assert_progress_complete(gallery_card):
+		return
+
+	var mounted_host: Control = _control(demo, "MountedSceneHost")
+	if mounted_host == null:
+		return
+	if mounted_host.get_child_count() == 0:
+		_fail("Expected the demo scene to preview a mounted entry scene.")
+		return
+
+	var get_count_after_downloads: int = _get_count
+	var warehouse_cached: PackRatResult = await _press_load(warehouse_card)
+	if warehouse_cached == null:
+		return
+	if not warehouse_cached.from_cache:
+		_fail("Expected repeated warehouse button load to use cache.")
+		return
+	if _get_count != get_count_after_downloads:
+		_fail("Expected repeated warehouse button load to avoid an extra GET.")
+		return
+
+	var clear_button: Button = _button(warehouse_card, "ClearButton")
+	if clear_button == null:
+		return
+	clear_button.pressed.emit()
+	await get_tree().process_frame
+	var warehouse_after_clear: PackRatResult = await _press_load(warehouse_card)
+	if warehouse_after_clear == null:
+		return
+	if not warehouse_after_clear.ok:
+		_fail("Expected warehouse to load after clearing disk cache.")
+		return
+	if _get_count <= get_count_after_downloads:
+		_fail("Expected clear-disk-cache button to force a later redownload.")
+		return
+	if _head_count != 0:
+		_fail("Expected expected-size demo loads to skip HEAD requests.")
+		return
+
+	var clear_all_button: Button = _button(demo, "ClearAllButton")
+	if clear_all_button == null:
+		return
+	clear_all_button.pressed.emit()
+	await get_tree().process_frame
+	var preview_status: Label = _label(demo, "PreviewStatus")
+	if preview_status == null:
+		return
+	if preview_status.text.is_empty():
+		_fail("Expected clear-all button to update the preview status.")
+		return
+
+	print("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
+	get_tree().quit()
+
+
+func _process(_delta: float) -> void:
+	while _server != null and _server.is_connection_available():
+		var peer: StreamPeerTCP = _server.take_connection()
+		_serve_peer(peer)
+
+
+func _serve_peer(peer: StreamPeerTCP) -> void:
+	var request: String = ""
+	var wait_until: int = Time.get_ticks_msec() + 1000
+
+	while Time.get_ticks_msec() < wait_until and request.find("\r\n\r\n") < 0:
+		if peer.get_available_bytes() > 0:
+			request += peer.get_utf8_string(peer.get_available_bytes())
+		else:
+			await get_tree().process_frame
+
+	var method: String = request.get_slice(" ", 0)
+	var path: String = request.get_slice(" ", 1)
+	if not _pack_bytes.has(path):
+		_write_not_found(peer)
+	elif method == "HEAD":
+		_head_count += 1
+		await _write_response(peer, path, false)
+	elif method == "GET":
+		_get_count += 1
+		await _write_response(peer, path, true)
+	else:
+		_write_not_found(peer)
+
+	peer.disconnect_from_host()
+
+
+func _write_response(peer: StreamPeerTCP, path: String, include_body: bool) -> void:
+	var body: PackedByteArray = _pack_bytes[path]
+	var content_type: String = "application/zip" if path.ends_with(".zip") else "application/octet-stream"
+	var headers: String = (
+		"HTTP/1.1 200 OK\r\n"
+		+ "Content-Type: %s\r\n" % content_type
+		+ "Content-Length: %d\r\n" % body.size()
+		+ "Access-Control-Allow-Origin: *\r\n"
+		+ "Access-Control-Expose-Headers: Content-Length\r\n"
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+
+	if include_body:
+		await _write_body(peer, body)
+
+
+func _write_body(peer: StreamPeerTCP, body: PackedByteArray) -> void:
+	var offset: int = 0
+	var chunk_size: int = 64 * 1024
+	while offset < body.size():
+		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
+			return
+
+		var end: int = mini(offset + chunk_size, body.size())
+		var sent: Array = peer.put_partial_data(body.slice(offset, end))
+		var error: Error = sent[0]
+		var sent_bytes: int = sent[1]
+		if error != OK:
+			return
+		if sent_bytes <= 0:
+			await get_tree().process_frame
+			continue
+
+		offset += sent_bytes
+		await get_tree().process_frame
+
+
+func _write_not_found(peer: StreamPeerTCP) -> void:
+	var body: PackedByteArray = "not found".to_utf8_buffer()
+	var headers: String = (
+		"HTTP/1.1 404 Not Found\r\n"
+		+ "Content-Length: %d\r\n" % body.size()
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+	peer.put_data(body)
+
+
+func _clear_demo_cache() -> void:
+	var options: PackRatOptions = PackRatOptions.new()
+	options.cache_dir = CACHE_DIR
+	PackRat.clear_cache(options)
+	_clear_directory(BUILD_DIR)
+	_clear_directory(CACHE_DIR)
+
+
+func _clear_directory(path: String) -> void:
+	var dir: DirAccess = DirAccess.open(path)
+	if dir == null:
+		return
+
+	dir.list_dir_begin()
+	var child: String = dir.get_next()
+	while not child.is_empty():
+		var child_path: String = path.path_join(child)
+		if dir.current_is_dir():
+			_clear_directory(child_path)
+			DirAccess.remove_absolute(child_path)
+		else:
+			DirAccess.remove_absolute(child_path)
+		child = dir.get_next()
+	dir.list_dir_end()
+
+
+func _press_load(card: PackRatDemoCard) -> PackRatResult:
+	var load_button: Button = _button(card, "LoadButton")
+	if load_button == null:
+		return null
+
+	var results: Array[PackRatResult] = []
+	card.load_finished.connect(func(_pack: PackRatDemoPack, result: PackRatResult) -> void:
+		results.append(result)
+	, CONNECT_ONE_SHOT)
+	load_button.pressed.emit()
+
+	var wait_until: int = Time.get_ticks_msec() + 30000
+	while results.is_empty() and Time.get_ticks_msec() < wait_until:
+		await get_tree().process_frame
+
+	if results.is_empty():
+		_fail("Timed out waiting for card load button.")
+		return null
+
+	return results[0]
+
+
+func _press_cancel(card: PackRatDemoCard) -> PackRatResult:
+	var load_button: Button = _button(card, "LoadButton")
+	var cancel_button: Button = _button(card, "CancelButton")
+	if load_button == null or cancel_button == null:
+		return null
+
+	var results: Array[PackRatResult] = []
+	card.load_finished.connect(func(_pack: PackRatDemoPack, result: PackRatResult) -> void:
+		results.append(result)
+	, CONNECT_ONE_SHOT)
+
+	var progress_bar: ProgressBar = _progress_bar(card, "ProgressBar")
+	var get_count_before_cancel: int = _get_count
+	load_button.pressed.emit()
+
+	var wait_until: int = Time.get_ticks_msec() + 5000
+	while results.is_empty() and Time.get_ticks_msec() < wait_until:
+		if progress_bar != null and progress_bar.value > 0.0:
+			cancel_button.pressed.emit()
+			break
+		if _get_count > get_count_before_cancel:
+			await get_tree().process_frame
+			cancel_button.pressed.emit()
+			break
+
+		await get_tree().process_frame
+
+	wait_until = Time.get_ticks_msec() + 10000
+	while results.is_empty() and Time.get_ticks_msec() < wait_until:
+		await get_tree().process_frame
+
+	if results.is_empty():
+		_fail("Timed out waiting for card cancel.")
+		return null
+
+	var result: PackRatResult = results[0]
+	if result.ok:
+		_fail("Expected canceled card load to fail before mounting.")
+		return null
+	if result.error != "PackRat request was canceled.":
+		_fail("Expected canceled card load to return the PackRat cancel error, got: %s" % result.error)
+		return null
+
+	var status_label: Label = _label(card, "StatusLabel")
+	if status_label == null:
+		return null
+	if status_label.text != "Canceled":
+		_fail("Expected canceled card to show a Canceled state.")
+		return null
+
+	return result
+
+
+func _assert_loaded(card: PackRatDemoCard, result: PackRatResult) -> bool:
+	var pack: PackRatDemoPack = card.pack()
+	if pack == null:
+		_fail("Card did not expose a catalog pack.")
+		return false
+	if not result.ok:
+		_fail("Demo pack %s failed to load: %s" % [pack.id, result.error])
+		return false
+	if not result.entry_scene_exists():
+		_fail("Demo pack %s did not expose entry scene %s." % [pack.id, pack.entry_path])
+		return false
+	if result.load_entry_scene() == null:
+		_fail("Demo pack %s entry scene could not be instantiated." % pack.id)
+		return false
+
+	print("PackRat demo smoke loaded %s as %s." % [pack.id, result.status])
+	return true
+
+
+func _assert_progress_complete(card: PackRatDemoCard) -> bool:
+	var progress_bar: ProgressBar = _progress_bar(card, "ProgressBar")
+	if progress_bar == null:
+		return false
+	if progress_bar.value != 100.0:
+		_fail("Expected loaded card progress to finish at 100.")
+		return false
+
+	return true
+
+
+func _card(root: Node, name: String) -> PackRatDemoCard:
+	var node: Node = root.find_child(name, true, false)
+	if node is PackRatDemoCard:
+		var card: PackRatDemoCard = node
+		return card
+
+	_fail("Could not find demo card %s." % name)
+	return null
+
+
+func _button(root: Node, name: String) -> Button:
+	var node: Node = root.find_child(name, true, false)
+	if node is Button:
+		var button: Button = node
+		return button
+
+	_fail("Could not find button %s." % name)
+	return null
+
+
+func _progress_bar(root: Node, name: String) -> ProgressBar:
+	var node: Node = root.find_child(name, true, false)
+	if node is ProgressBar:
+		var progress_bar: ProgressBar = node
+		return progress_bar
+
+	_fail("Could not find progress bar %s." % name)
+	return null
+
+
+func _label(root: Node, name: String) -> Label:
+	var node: Node = root.find_child(name, true, false)
+	if node is Label:
+		var label: Label = node
+		return label
+
+	_fail("Could not find label %s." % name)
+	return null
+
+
+func _control(root: Node, name: String) -> Control:
+	var node: Node = root.find_child(name, true, false)
+	if node is Control:
+		var control: Control = node
+		return control
+
+	_fail("Could not find control %s." % name)
+	return null
+
+
+func _fail(message: String) -> void:
+	push_error(message)
+	get_tree().quit(1)
+
+
+func _on_timeout() -> void:
+	_fail("PackRat demo smoke timed out. GET=%d HEAD=%d" % [_get_count, _head_count])

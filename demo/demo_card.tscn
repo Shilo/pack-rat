@@ -1,0 +1,131 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://demo/demo_card.gd" id="1_card"]
+
+[sub_resource type="StyleBoxFlat" id="CardPanel"]
+content_margin_left = 0.0
+content_margin_top = 0.0
+content_margin_right = 0.0
+content_margin_bottom = 0.0
+bg_color = Color(1, 1, 1, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85098, 0.807843, 0.752941, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="ProgressFill"]
+bg_color = Color(0.152941, 0.501961, 0.423529, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[node name="PackRatDemoCard" type="PanelContainer"]
+custom_minimum_size = Vector2(360, 0)
+theme_override_styles/panel = SubResource("CardPanel")
+script = ExtResource("1_card")
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="Stack" type="VBoxContainer" parent="Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Margin/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="AccentBar" type="ColorRect" parent="Margin/Stack/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(8, 44)
+layout_mode = 2
+color = Color(0.541176, 0.341176, 0.160784, 1)
+
+[node name="TitleStack" type="VBoxContainer" parent="Margin/Stack/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="Margin/Stack/Header/TitleStack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
+theme_override_font_sizes/font_size = 20
+text = "Pack"
+
+[node name="FormatLabel" type="Label" parent="Margin/Stack/Header/TitleStack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.541176, 0.341176, 0.160784, 1)
+theme_override_font_sizes/font_size = 12
+text = "PCK resource pack"
+
+[node name="SummaryLabel" type="Label" parent="Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
+text = "Summary"
+autowrap_mode = 3
+
+[node name="StatusLabel" type="Label" parent="Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
+theme_override_font_sizes/font_size = 14
+text = "Ready"
+
+[node name="DetailLabel" type="Label" parent="Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
+theme_override_font_sizes/font_size = 12
+text = "Source"
+autowrap_mode = 3
+
+[node name="ProgressBar" type="ProgressBar" parent="Margin/Stack"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 12)
+layout_mode = 2
+theme_override_styles/fill = SubResource("ProgressFill")
+max_value = 100.0
+show_percentage = false
+
+[node name="BytesLabel" type="Label" parent="Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
+theme_override_font_sizes/font_size = 12
+text = "Expected size"
+
+[node name="Buttons" type="HBoxContainer" parent="Margin/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LoadButton" type="Button" parent="Margin/Stack/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Load"
+
+[node name="CancelButton" type="Button" parent="Margin/Stack/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Cancel"
+
+[node name="PreviewButton" type="Button" parent="Margin/Stack/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Preview"
+
+[node name="ClearButton" type="Button" parent="Margin/Stack/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Clear disk"

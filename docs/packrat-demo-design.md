@@ -1,6 +1,6 @@
 # PackRat Demo Design Plan
 
-Status: design spike, not implemented yet.
+Status: implemented design note.
 
 Date: 2026-06-11
 
@@ -146,14 +146,16 @@ Recommended first release shape:
 3. Build `packrat-demo-gallery.zip`.
 4. Upload the packs to a GitHub Release.
 5. Mirror the same packs to GitHub Pages beside the Web demo.
-6. Default the Web demo to the same-origin GitHub Pages pack URLs.
+6. Resolve the Web demo's default pack URLs against the current page's
+   same-origin `packs/` folder.
 7. Include a toggle or code path that demonstrates `PackRat.github_release_url()`
    for native/editor users, or after a browser smoke confirms release URLs work.
 
 This keeps the demo honest: GitHub Releases are used, but WebGL users get the
 most reliable browser path.
 
-Decision: the WebGL demo should default to same-origin GitHub Pages pack URLs.
+Decision: the WebGL demo should default to same-origin pack URLs resolved from
+the current browser page.
 The UI can still show the GitHub Release asset as the canonical artifact/source
 link, and native/editor examples can exercise `PackRat.github_release_url()`.
 Do not default browser users to GitHub Release asset URLs unless a real browser
@@ -201,29 +203,22 @@ References:
 demo/
   demo.tscn
   demo.gd
-  pack_card.tscn
-  pack_card.gd
+  demo_card.tscn
+  demo_card.gd
   demo_catalog.gd
-  theme.tres
-
-demo_packs/
-  warehouse/
-    project.godot or source scene files
-    packrat_demo/warehouse/main.tscn
-  gallery/
-    project.godot or source scene files
-    packrat_demo/gallery/main.tscn
+  demo_pack.gd
 
 tools/
-  build_demo_packs.ps1 or build_demo_packs.gd
+  demo_pack_builder.gd
 
 .github/workflows/
   demo.yml
 ```
 
-The final file layout can be smaller if implementation shows that `pack_card`
-does not need its own scene/script. The priority is one good demo, not a mini
-framework.
+Generated pack contents are written into PCK/ZIP files by the builder instead
+of committed as source scenes. The generated mounted scenes contain baked nodes;
+their scripts only animate existing nodes. The priority is one good demo, not a
+mini framework.
 
 ## Export And CI Plan
 
