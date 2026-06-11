@@ -39,6 +39,31 @@ jobs:
           apt-get install -y libfontconfig1 zip
           mkdir -p "$EXPORT_ROOT/web/packs"
 
+      - name: Prepare export templates
+        run: |
+          template_version="${GODOT_VERSION}.${GODOT_STATUS}"
+          target="$HOME/.local/share/godot/export_templates/$template_version"
+          mkdir -p "$target"
+
+          for candidate in \
+            "/root/.local/share/godot/export_templates/$template_version" \
+            "/usr/local/share/godot/export_templates/$template_version"
+          do
+            if [ -d "$candidate" ]; then
+              cp -a "$candidate/." "$target/"
+              break
+            fi
+          done
+
+          if [ ! -f "$target/web_nothreads_release.zip" ]; then
+            found="$(find / -path "*/export_templates/$template_version" -type d -print -quit 2>/dev/null || true)"
+            if [ -n "$found" ]; then
+              cp -a "$found/." "$target/"
+            fi
+          fi
+
+          test -f "$target/web_nothreads_release.zip"
+
       - name: Import project
         run: |
           godot --headless --editor --path . --quit
