@@ -65,6 +65,10 @@ options.id = "hub"
 options.entry_path = "res://worlds/hub/main.tscn"
 
 var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck", options)
+if not result.ok:
+	push_error(result.error)
+	return
+
 var error: Error = result.change_scene_to_entry()
 if error != OK:
 	push_error("Could not change to pack scene: %d" % error)

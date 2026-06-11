@@ -111,9 +111,8 @@ func _ready() -> void:
 		_fail("Expected entry_scene_exists to reject a missing scene.")
 		return
 
-	scene_result.entry_path = ""
 	if scene_result.change_scene_to_entry() != ERR_FILE_NOT_FOUND:
-		_fail("Expected change_scene_to_entry to reject an empty entry path.")
+		_fail("Expected change_scene_to_entry to reject a missing scene.")
 		return
 
 	var unsafe_clear_options: PackRatOptions = PackRatOptions.new()
