@@ -47,6 +47,14 @@ func _ready() -> void:
 		_fail("Expected first load to download and mount. Result: %s" % JSON.stringify(first.to_dictionary()))
 		return
 
+	if first.local_path.get_base_dir() != CACHE_DIR:
+		_fail("Expected flat cache path under %s, got %s." % [CACHE_DIR, first.local_path])
+		return
+
+	if DirAccess.dir_exists_absolute(CACHE_DIR.path_join(options.id)):
+		_fail("Expected flat cache to avoid per-id directory %s." % CACHE_DIR.path_join(options.id))
+		return
+
 	if FileAccess.get_file_as_string(MOUNTED_MARKER).strip_edges() != "mounted-from-packrat":
 		_fail("Mounted PCK marker was not readable from res://.")
 		return
@@ -98,6 +106,10 @@ func _ready() -> void:
 	var third: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not third.ok or third.from_cache:
 		_fail("Expected changed ETag to redownload. Result: %s" % JSON.stringify(third.to_dictionary()))
+		return
+
+	if third.local_path.get_base_dir() != CACHE_DIR:
+		_fail("Expected stale redownload to keep flat cache path, got %s." % third.local_path)
 		return
 
 	if third.local_path == first_cache_path:
@@ -216,6 +228,10 @@ func _ready() -> void:
 		_fail("Expected expected_size mismatch to fail.")
 		return
 
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected expected_size validation failure to remove .part files.")
+		return
+
 	var bad_modified_options: PackRatOptions = PackRatOptions.new()
 	bad_modified_options.id = "bad_modified_metadata_smoke"
 	bad_modified_options.cache_dir = CACHE_DIR
@@ -224,6 +240,10 @@ func _ready() -> void:
 	var bad_modified: PackRatResult = await PackRat.load_resource_pack(_url, bad_modified_options)
 	if bad_modified.ok:
 		_fail("Expected expected_modified_time mismatch to fail.")
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected expected_modified_time validation failure to remove .part files.")
 		return
 
 	_omit_last_modified = true
@@ -376,6 +396,10 @@ func _ready() -> void:
 		_fail("Expected canceled async load to emit canceled.")
 		return
 
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected canceled async load to remove .part files.")
+		return
+
 	var extensionless_options: PackRatOptions = PackRatOptions.new()
 	extensionless_options.id = "extensionless_smoke"
 	extensionless_options.cache_dir = CACHE_DIR
@@ -391,13 +415,17 @@ func _ready() -> void:
 		_fail("Expected extensionless PCK URL to receive a .pck cache path, got %s." % extensionless.local_path)
 		return
 
+	if extensionless.local_path.get_base_dir() != CACHE_DIR:
+		_fail("Expected extensionless PCK URL to use flat cache path, got %s." % extensionless.local_path)
+		return
+
 	var clear_item_error: Error = PackRat.clear_cached_resource_pack(extensionless_options.id, extensionless_options)
 	if clear_item_error != OK:
 		_fail("Expected clear_cached_resource_pack by ID to succeed, got error %d." % clear_item_error)
 		return
 
-	if FileAccess.file_exists(extensionless.local_path):
-		_fail("Expected clear_cached_resource_pack to remove cached file %s." % extensionless.local_path)
+	if _cache_json_contains(extensionless.local_path):
+		_fail("Expected clear_cached_resource_pack to remove cache record for %s." % extensionless.local_path)
 		return
 
 	var missing_clear_error: Error = PackRat.clear_cached_resource_pack("missing-pack", extensionless_options)
@@ -427,8 +455,8 @@ func _ready() -> void:
 
 	forced_options.always_download = true
 	var forced_rewrite: PackRatResult = await PackRat.load_resource_pack(_url, forced_options)
-	if not forced_rewrite.ok or not _has_warning(forced_rewrite, "already-mounted path"):
-		_fail("Expected same-path forced redownload to warn. Result: %s" % JSON.stringify(forced_rewrite.to_dictionary()))
+	if not forced_rewrite.ok or not _has_warning(forced_rewrite, "different pack"):
+		_fail("Expected forced redownload of a mounted path to use a new cache path and warn. Result: %s" % JSON.stringify(forced_rewrite.to_dictionary()))
 		return
 
 	_fail_get = true
@@ -436,6 +464,10 @@ func _ready() -> void:
 	_fail_get = false
 	if forced_second.ok:
 		_fail("Expected always_download to fail when the fresh download fails.")
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected failed download to remove .part files.")
 		return
 
 	var invalid_url: String = "http://127.0.0.1:%d/invalid.pck" % _server.get_local_port()
@@ -452,6 +484,54 @@ func _ready() -> void:
 
 	if _get_count != invalid_get_count + 2:
 		_fail("Expected failed mounts to avoid cache reuse and download twice.")
+		return
+
+	var stale_record_options: PackRatOptions = PackRatOptions.new()
+	stale_record_options.id = "stale_record_smoke"
+	stale_record_options.cache_dir = CACHE_DIR
+	stale_record_options.timeout_seconds = 10.0
+	stale_record_options.expected_size = _pack_bytes.size()
+	var stale_record_first: PackRatResult = await PackRat.load_resource_pack(_url, stale_record_options)
+	if not stale_record_first.ok:
+		_fail("Expected stale record setup load to succeed. Result: %s" % JSON.stringify(stale_record_first.to_dictionary()))
+		return
+
+	var stale_record_path: String = stale_record_first.local_path
+	DirAccess.remove_absolute(stale_record_path)
+	var stale_record_second: PackRatResult = await PackRat.load_resource_pack(_url, stale_record_options)
+	if not stale_record_second.ok or stale_record_second.from_cache:
+		_fail("Expected missing cache file record to repair with download. Result: %s" % JSON.stringify(stale_record_second.to_dictionary()))
+		return
+
+	_make_directory(CACHE_DIR.path_join("tmp"))
+	var temp_part_path: String = CACHE_DIR.path_join("tmp").path_join("stale.part")
+	var temp_part_file: FileAccess = FileAccess.open(temp_part_path, FileAccess.WRITE)
+	if temp_part_file == null:
+		_fail("Could not write stale .part file for clear_cache test.")
+		return
+
+	temp_part_file.store_string("stale")
+	temp_part_file = null
+	var clear_cache_error: Error = PackRat.clear_cache(options)
+	if clear_cache_error != OK:
+		_fail("Expected clear_cache to succeed, got error %d." % clear_cache_error)
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected clear_cache to remove stale .part files.")
+		return
+
+	if not _cache_json_is_empty():
+		_fail("Expected clear_cache to leave cache.json empty.")
+		return
+
+	var post_clear: PackRatResult = await PackRat.load_resource_pack(_url, stale_record_options)
+	if not post_clear.ok or post_clear.from_cache:
+		_fail("Expected post-clear load to redownload. Result: %s" % JSON.stringify(post_clear.to_dictionary()))
+		return
+
+	if post_clear.local_path == stale_record_second.local_path:
+		_fail("Expected post-clear load to avoid reusing retained mounted path %s." % post_clear.local_path)
 		return
 
 	await _finish_success("PackRat HTTP PCK smoke passed. HEAD=%d GET=%d cache=%s repeated_cache_ms=%d" % [
@@ -640,6 +720,46 @@ func _has_warning(result: PackRatResult, text: String) -> bool:
 			return true
 
 	return false
+
+
+func _has_part_files(cache_dir: String) -> bool:
+	var tmp_dir: String = cache_dir.path_join("tmp")
+	var dir: DirAccess = DirAccess.open(tmp_dir)
+	if dir == null:
+		return false
+
+	dir.list_dir_begin()
+	var child: String = dir.get_next()
+	while not child.is_empty():
+		if not dir.current_is_dir() and child.ends_with(".part"):
+			dir.list_dir_end()
+			return true
+
+		child = dir.get_next()
+
+	dir.list_dir_end()
+	return false
+
+
+func _cache_json_contains(text: String) -> bool:
+	var cache_path: String = CACHE_DIR.path_join("cache.json")
+	if not FileAccess.file_exists(cache_path):
+		return false
+
+	return FileAccess.get_file_as_string(cache_path).contains(text)
+
+
+func _cache_json_is_empty() -> bool:
+	var cache_path: String = CACHE_DIR.path_join("cache.json")
+	if not FileAccess.file_exists(cache_path):
+		return true
+
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(cache_path))
+	if not parsed is Dictionary:
+		return false
+
+	var data: Dictionary = parsed
+	return data.get("items", {}).is_empty()
 
 
 func _fail(message: String) -> void:

@@ -78,7 +78,8 @@ if result.ok:
 - Can run offline-first, using matching cache immediately and downloading only
   on cache miss.
 - Downloads missing or stale packs to `user://pack_rat/tmp/*.part`.
-- Moves successful downloads into `user://pack_rat/<id>/`.
+- Moves successful downloads into flat versioned paths such as
+  `user://pack_rat/<id>-<token>.pck`.
 - Stores cache metadata in `user://pack_rat/cache.json`.
 - Mounts `.pck` and `.zip` files with `replace_files=true` by default.
 - Supports progress and cancellation through `PackRatRequest`.
@@ -130,7 +131,7 @@ and static host URLs.
 
 | Option | Default | Purpose |
 | --- | --- | --- |
-| `id` | `""` | Cache folder name. Empty derives one from the URL filename. |
+| `id` | `""` | Cache identity and filename prefix. Empty derives one from the URL filename. |
 | `cache_dir` | `"user://pack_rat"` | Directory for `cache.json`, `.part` downloads, and cached packs. Must be a non-root `user://` path without `..` segments. |
 | `replace_files` | `true` | Passed to `ProjectSettings.load_resource_pack()`. Allows the pack to override existing `res://` paths. |
 | `offset` | `0` | Byte offset for embedded PCK files. ZIP packs must use `0`. |
@@ -300,9 +301,8 @@ path. Cleanup is limited to non-root `user://` cache directories without `..`
 segments.
 
 Clearing cache only removes files from disk. Godot does not expose an API for
-unloading a resource pack that is already mounted. If a pack is already mounted,
-avoid clearing its file until you are done loading resources from it in the
-current process.
+unloading a resource pack that is already mounted. PackRat removes matching
+cache records but may keep mounted pack files on disk until the process exits.
 
 ## Security Notes
 
