@@ -170,6 +170,11 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 		_fail("PackRat.github_release_url returned %s." % release_url)
 		return false
 
+	var demo_pack: PackRatDemoPack = PackRatDemoCatalog.packs()[0]
+	if not demo_pack.pages_url().ends_with("?v=%d" % demo_pack.expected_size):
+		_fail("Expected demo pack URLs to include a version query.")
+		return false
+
 	var metadata: PackRatFileMetadata = PackRat.file_metadata(build_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME))
 	if not metadata.ok:
 		_fail("PackRat.file_metadata failed: %s" % metadata.error)
@@ -257,7 +262,7 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 			await get_tree().process_frame
 
 	var method: String = request.get_slice(" ", 0)
-	var path: String = request.get_slice(" ", 1)
+	var path: String = request.get_slice(" ", 1).get_slice("?", 0)
 	if not _pack_bytes.has(path):
 		_write_not_found(peer)
 	elif method == "HEAD":
