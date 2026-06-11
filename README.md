@@ -73,7 +73,9 @@ var result: PackRatResult = await PackRat.prepare(pack_info.url, options)
 
 When expected metadata is set, PackRat derives cache identity from the pack ID,
 size, and modified time. A matching cached file is used immediately; otherwise
-the URL is downloaded and the size is checked.
+the URL is downloaded and provided fields are checked independently. Size is
+checked against the downloaded file bytes. Modified time is checked against the
+server's `Last-Modified` header.
 
 For PWA-style behavior:
 

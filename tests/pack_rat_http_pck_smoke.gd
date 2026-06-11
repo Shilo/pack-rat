@@ -5,6 +5,8 @@ const SERVER_DIR: String = "user://pack_rat_http_pck_smoke_server"
 const PACK_PATH: String = "user://pack_rat_http_pck_smoke_server/hub.pck"
 const SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/marker.txt"
 const MOUNTED_MARKER: String = "res://pack_rat_http_pck_smoke/marker.txt"
+const MODIFIED_V2_UNIX: int = 1781122560
+const MODIFIED_V3_UNIX: int = 1781122620
 
 var _server: TCPServer = TCPServer.new()
 var _pack_bytes: PackedByteArray = []
@@ -80,41 +82,66 @@ func _ready() -> void:
 
 	var metadata_head_count: int = _head_count
 	var metadata_get_count: int = _get_count
-	var metadata_options: PackRatOptions = PackRatOptions.new()
-	metadata_options.id = "metadata_smoke"
-	metadata_options.cache_dir = CACHE_DIR
-	metadata_options.entry_path = MOUNTED_MARKER
-	metadata_options.timeout_seconds = 10.0
-	metadata_options.expected_size = _pack_bytes.size()
-	metadata_options.expected_modified_time = 100
+	var size_options: PackRatOptions = PackRatOptions.new()
+	size_options.id = "size_metadata_smoke"
+	size_options.cache_dir = CACHE_DIR
+	size_options.entry_path = MOUNTED_MARKER
+	size_options.timeout_seconds = 10.0
+	size_options.expected_size = _pack_bytes.size()
 
-	var metadata_first: PackRatResult = await PackRat.prepare(_url, metadata_options)
-	if not metadata_first.ok or metadata_first.from_cache:
-		_fail("Expected metadata prepare to download. Result: %s" % JSON.stringify(metadata_first.to_dictionary()))
+	var size_first: PackRatResult = await PackRat.prepare(_url, size_options)
+	if not size_first.ok or size_first.from_cache:
+		_fail("Expected size-only metadata prepare to download. Result: %s" % JSON.stringify(size_first.to_dictionary()))
 		return
 
 	if _head_count != metadata_head_count:
-		_fail("Expected metadata prepare to skip HEAD, got %d new HEAD requests." % (_head_count - metadata_head_count))
+		_fail("Expected size-only metadata prepare to skip HEAD, got %d new HEAD requests." % (_head_count - metadata_head_count))
 		return
 
 	if _get_count != metadata_get_count + 1:
-		_fail("Expected metadata prepare to download once, got %d new GET requests." % (_get_count - metadata_get_count))
+		_fail("Expected size-only metadata prepare to download once, got %d new GET requests." % (_get_count - metadata_get_count))
 		return
 
-	var metadata_cache_path: String = metadata_first.local_path
-	var metadata_second: PackRatResult = await PackRat.prepare(_url, metadata_options)
-	if not metadata_second.ok or not metadata_second.from_cache:
-		_fail("Expected metadata prepare to reuse cache. Result: %s" % JSON.stringify(metadata_second.to_dictionary()))
+	var size_second: PackRatResult = await PackRat.prepare(_url, size_options)
+	if not size_second.ok or not size_second.from_cache:
+		_fail("Expected size-only metadata prepare to reuse cache. Result: %s" % JSON.stringify(size_second.to_dictionary()))
 		return
 
 	if _head_count != metadata_head_count or _get_count != metadata_get_count + 1:
-		_fail("Expected metadata cache hit to skip HEAD and GET.")
+		_fail("Expected size-only metadata cache hit to skip HEAD and GET.")
 		return
 
+	var modified_options: PackRatOptions = PackRatOptions.new()
+	modified_options.id = "modified_metadata_smoke"
+	modified_options.cache_dir = CACHE_DIR
+	modified_options.entry_path = MOUNTED_MARKER
+	modified_options.timeout_seconds = 10.0
+	modified_options.expected_modified_time = MODIFIED_V2_UNIX
+
+	var modified_first: PackRatResult = await PackRat.prepare(_url, modified_options)
+	if not modified_first.ok or modified_first.from_cache:
+		_fail("Expected modified-time-only metadata prepare to download. Result: %s" % JSON.stringify(modified_first.to_dictionary()))
+		return
+
+	var both_options: PackRatOptions = PackRatOptions.new()
+	both_options.id = "both_metadata_smoke"
+	both_options.cache_dir = CACHE_DIR
+	both_options.entry_path = MOUNTED_MARKER
+	both_options.timeout_seconds = 10.0
+	both_options.expected_size = _pack_bytes.size()
+	both_options.expected_modified_time = MODIFIED_V2_UNIX
+
+	var both_first: PackRatResult = await PackRat.prepare(_url, both_options)
+	if not both_first.ok or both_first.from_cache:
+		_fail("Expected both metadata fields to validate together. Result: %s" % JSON.stringify(both_first.to_dictionary()))
+		return
+
+	var metadata_cache_path: String = both_first.local_path
+	_last_modified = "Wed, 10 Jun 2026 20:17:00 GMT"
 	_build_pack("metadata-version-two")
-	metadata_options.expected_size = _pack_bytes.size()
-	metadata_options.expected_modified_time = 101
-	var metadata_third: PackRatResult = await PackRat.prepare(_url, metadata_options)
+	both_options.expected_size = _pack_bytes.size()
+	both_options.expected_modified_time = MODIFIED_V3_UNIX
+	var metadata_third: PackRatResult = await PackRat.prepare(_url, both_options)
 	if not metadata_third.ok or metadata_third.from_cache:
 		_fail("Expected changed expected metadata to download. Result: %s" % JSON.stringify(metadata_third.to_dictionary()))
 		return
@@ -123,8 +150,24 @@ func _ready() -> void:
 		_fail("Expected changed expected metadata to use a new cache path.")
 		return
 
-	if _head_count != metadata_head_count or _get_count != metadata_get_count + 2:
-		_fail("Expected changed metadata to skip HEAD and perform one more GET.")
+	var bad_size_options: PackRatOptions = PackRatOptions.new()
+	bad_size_options.id = "bad_size_metadata_smoke"
+	bad_size_options.cache_dir = CACHE_DIR
+	bad_size_options.timeout_seconds = 10.0
+	bad_size_options.expected_size = _pack_bytes.size() + 1
+	var bad_size: PackRatResult = await PackRat.prepare(_url, bad_size_options)
+	if bad_size.ok:
+		_fail("Expected expected_size mismatch to fail.")
+		return
+
+	var bad_modified_options: PackRatOptions = PackRatOptions.new()
+	bad_modified_options.id = "bad_modified_metadata_smoke"
+	bad_modified_options.cache_dir = CACHE_DIR
+	bad_modified_options.timeout_seconds = 10.0
+	bad_modified_options.expected_modified_time = MODIFIED_V2_UNIX
+	var bad_modified: PackRatResult = await PackRat.prepare(_url, bad_modified_options)
+	if bad_modified.ok:
+		_fail("Expected expected_modified_time mismatch to fail.")
 		return
 
 	var offline_head_count: int = _head_count
@@ -158,7 +201,7 @@ func _ready() -> void:
 	concurrent_options.entry_path = MOUNTED_MARKER
 	concurrent_options.timeout_seconds = 10.0
 	concurrent_options.expected_size = _pack_bytes.size()
-	concurrent_options.expected_modified_time = 200
+	concurrent_options.expected_modified_time = MODIFIED_V3_UNIX
 	var concurrent_results: Array[PackRatResult] = []
 	_collect_prepare(concurrent_options, concurrent_results)
 	_collect_prepare(concurrent_options, concurrent_results)
