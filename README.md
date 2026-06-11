@@ -65,8 +65,9 @@ options.id = "hub"
 options.entry_path = "res://worlds/hub/main.tscn"
 
 var result: PackRatResult = await PackRat.load_resource_pack("https://example.com/packs/hub.pck", options)
-if result.ok and ResourceLoader.exists(result.entry_path, "PackedScene"):
-	var scene: PackedScene = load(result.entry_path)
+var error: Error = result.change_scene_to_entry()
+if error != OK:
+	push_error("Could not change to pack scene: %d" % error)
 ```
 
 ## What PackRat Does
@@ -135,7 +136,7 @@ and static host URLs.
 | `cache_dir` | `"user://pack_rat"` | Directory for `cache.json`, `.part` downloads, and cached packs. Must be a non-root `user://` path without `..` segments. |
 | `replace_files` | `true` | Passed to `ProjectSettings.load_resource_pack()`. Allows the pack to override existing `res://` paths. |
 | `offset` | `0` | Byte offset for embedded PCK files. ZIP packs must use `0`. |
-| `entry_path` | `""` | Optional `res://` path copied into the result for caller convenience. PackRat does not validate or load it. |
+| `entry_path` | `""` | Optional `res://` scene path copied into the result for caller convenience. PackRat only uses it when you call result entry-scene helpers. |
 | `expected_size` | `0` | If greater than `0`, becomes part of cache identity and is checked against downloaded bytes. |
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
@@ -168,6 +169,18 @@ Useful fields:
 | `entry_path` | Copied from `PackRatOptions.entry_path`. |
 | `warnings` | Non-fatal notes, such as missing comparable freshness headers. |
 | `error` | Failure message when `ok == false`. |
+
+Entry-scene helpers:
+
+```gdscript
+if result.has_entry_scene():
+	var scene: PackedScene = result.load_entry_scene()
+
+var error: Error = result.change_scene_to_entry()
+```
+
+These helpers only use `PackRatOptions.entry_path`. PackRat does not discover
+an unknown main scene from the mounted pack.
 
 ## Progress And Cancellation
 

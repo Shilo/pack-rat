@@ -95,6 +95,26 @@ func _ready() -> void:
 		_fail("Expected missing file_metadata to fail with an error.")
 		return
 
+	var scene_result: PackRatResult = PackRatResult.new()
+	scene_result.ok = true
+	scene_result.entry_path = "res://tests/pack_rat_component_smoke.tscn"
+	if not scene_result.has_entry_scene():
+		_fail("Expected has_entry_scene to find the component smoke scene.")
+		return
+
+	if scene_result.load_entry_scene() == null:
+		_fail("Expected load_entry_scene to load the component smoke scene.")
+		return
+
+	scene_result.entry_path = "res://tests/missing_pack_rat_scene.tscn"
+	if scene_result.has_entry_scene():
+		_fail("Expected has_entry_scene to reject a missing scene.")
+		return
+
+	if scene_result.change_scene_to_entry() != ERR_FILE_NOT_FOUND:
+		_fail("Expected change_scene_to_entry to reject a missing scene.")
+		return
+
 	var unsafe_clear_options: PackRatOptions = PackRatOptions.new()
 	unsafe_clear_options.cache_dir = "user://"
 	if PackRat.clear_cache(unsafe_clear_options) != ERR_INVALID_PARAMETER:
