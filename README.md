@@ -90,4 +90,5 @@ cache miss.
 ```powershell
 godot --headless --path . "res://tests/pack_rat_component_smoke.tscn"
 godot --headless --path . "res://tests/pack_rat_http_pck_smoke.tscn"
+godot --headless --path . "res://tests/pack_rat_http_zip_smoke.tscn"
 ```
