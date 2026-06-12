@@ -73,7 +73,7 @@ static func packs() -> Array[PackRatDemoPack]:
 	result.append(PackRatDemoPack.create(
 		"warehouse",
 		"Warehouse PCK",
-		"A playful box-room packed as Godot's native resource-pack format.",
+		"Box room",
 		"PCK",
 		WAREHOUSE_FILE_NAME,
 		WAREHOUSE_ENTRY_PATH,
@@ -85,7 +85,7 @@ static func packs() -> Array[PackRatDemoPack]:
 	result.append(PackRatDemoPack.create(
 		"gallery",
 		"Gallery ZIP",
-		"A content-heavy app page packed as a standard ZIP resource pack.",
+		"Content gallery",
 		"ZIP",
 		GALLERY_FILE_NAME,
 		GALLERY_ENTRY_PATH,

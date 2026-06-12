@@ -9,10 +9,10 @@ const _DOWNLOADER_ARG: String = "--downloader="
 const _DOWNLOADER_FETCH: String = "fetch"
 const _DOWNLOADER_HTTP_REQUEST: String = "httprequest"
 const _NARROW_WIDTH: float = 900.0
+const _SPACE: int = 10
 const _FONT_APP_TITLE: int = 28
 const _FONT_SECTION_TITLE: int = 22
 const _FONT_DESCRIPTION: int = 12
-const _FONT_BODY: int = 11
 const _FONT_CONTROL: int = 12
 const _FONT_TOAST: int = 13
 
@@ -38,8 +38,6 @@ var _auto_load_failed: bool = false
 @onready var _download_client_label: Label = %DownloaderLabel
 @onready var _mounted_scene_host: Control = %MountedSceneHost
 @onready var _preview_placeholder: Control = %PreviewPlaceholder
-@onready var _preview_title: Label = %PreviewTitle
-@onready var _preview_status: Label = %PreviewStatus
 @onready var _preview_host: Control = %PreviewHost
 @onready var _placeholder_title: Label = %PlaceholderTitle
 @onready var _placeholder_copy: Label = %PlaceholderCopy
@@ -79,7 +77,6 @@ func _ready() -> void:
 func _show_placeholder() -> void:
 	_clear_preview()
 	_preview_placeholder.visible = true
-	_preview_status.text = ""
 
 
 func _apply_type_scale() -> void:
@@ -87,10 +84,8 @@ func _apply_type_scale() -> void:
 	_subtitle_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
 	_source_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
 	_download_client_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
-	_preview_title.add_theme_font_size_override("font_size", _FONT_SECTION_TITLE)
-	_preview_status.add_theme_font_size_override("font_size", _FONT_BODY)
 	_placeholder_title.add_theme_font_size_override("font_size", _FONT_SECTION_TITLE)
-	_placeholder_copy.add_theme_font_size_override("font_size", _FONT_BODY)
+	_placeholder_copy.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
 	_source_selector.add_theme_font_size_override("font_size", _FONT_CONTROL)
 	_download_client_selector.add_theme_font_size_override("font_size", _FONT_CONTROL)
 	_clear_all_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
@@ -103,11 +98,10 @@ func _apply_responsive_layout() -> void:
 	_header.vertical = narrow
 	_body.vertical = narrow
 
-	var margin: int = 14 if narrow else 28
-	_page.add_theme_constant_override("margin_left", margin)
-	_page.add_theme_constant_override("margin_top", 14 if narrow else 24)
-	_page.add_theme_constant_override("margin_right", margin)
-	_page.add_theme_constant_override("margin_bottom", 14 if narrow else 24)
+	_page.add_theme_constant_override("margin_left", _SPACE)
+	_page.add_theme_constant_override("margin_top", _SPACE)
+	_page.add_theme_constant_override("margin_right", _SPACE)
+	_page.add_theme_constant_override("margin_bottom", _SPACE)
 
 	_cards_panel.custom_minimum_size = Vector2(0.0 if narrow else 360.0, 0.0)
 	_preview_host.custom_minimum_size = Vector2(0.0 if narrow else 420.0, 260.0 if narrow else 320.0)
@@ -150,7 +144,6 @@ func _on_downloader_selected(index: int) -> void:
 func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void:
 	var scene: PackedScene = result.load_entry_scene()
 	if scene == null:
-		_preview_status.text = "Entry scene was not found after mount."
 		_show_toast("Entry scene was not found after mount.", true)
 		return
 
@@ -162,8 +155,6 @@ func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void
 		var control: Control = instance
 		control.set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	_preview_title.text = pack.title
-	_preview_status.text = "%s from %s" % [result.status, "cache" if result.from_cache else "remote"]
 	_show_toast("Previewing %s." % pack.title)
 
 
@@ -172,10 +163,8 @@ func _on_clear_all_pressed() -> void:
 	options.cache_dir = PackRatDemoCatalog.cache_dir
 	var error: Error = PackRat.clear_cache(options)
 	if error == OK:
-		_preview_status.text = "Disk cache cleared. Mounted rooms persist until reload."
 		_show_toast("Disk cache cleared.")
 	else:
-		_preview_status.text = "Could not clear disk cache (error %d)." % error
 		_show_toast("Could not clear disk cache (error %d)." % error, true)
 
 

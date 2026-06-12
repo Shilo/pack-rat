@@ -168,11 +168,11 @@ func _ready() -> void:
 		return
 	clear_all_button.pressed.emit()
 	await get_tree().process_frame
-	var preview_status: Label = _label(demo, "PreviewStatus")
-	if preview_status == null:
+	var clear_toast_label: Label = _label(demo, "ToastLabel")
+	if clear_toast_label == null:
 		return
-	if preview_status.text.is_empty():
-		_fail("Expected clear-all button to update the preview status.")
+	if clear_toast_label.text != "Disk cache cleared.":
+		_fail("Expected clear-all button to update the toast message.")
 		return
 
 	print("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])

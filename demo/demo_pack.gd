@@ -7,7 +7,7 @@ var id: String = ""
 ## User-facing pack title.
 var title: String = ""
 
-## Short user-facing description.
+## Short 2-4 word user-facing description of the pack's content.
 var summary: String = ""
 
 ## Pack format label, usually PCK or ZIP.

@@ -28,7 +28,6 @@ var _last_download_msec: int = -1
 
 @onready var _accent_bar: ColorRect = %AccentBar
 @onready var _title_label: Label = %TitleLabel
-@onready var _format_label: Label = %FormatLabel
 @onready var _summary_label: Label = %SummaryLabel
 @onready var _status_label: Label = %StatusLabel
 @onready var _detail_label: Label = %DetailLabel
@@ -117,13 +116,13 @@ func pack() -> PackRatDemoPack:
 func _bind_pack() -> void:
 	_accent_bar.color = _pack.accent_color
 	_title_label.text = _pack.title
-	_format_label.text = _pack.summary
-	_summary_label.visible = false
+	_summary_label.text = _pack.summary
+	_summary_label.visible = true
 
 
 func _apply_type_scale() -> void:
 	_title_label.add_theme_font_size_override("font_size", _FONT_CARD_TITLE)
-	_format_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
+	_summary_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
 	_status_label.add_theme_font_size_override("font_size", _FONT_STATUS)
 	_detail_label.add_theme_font_size_override("font_size", _FONT_BODY)
 	_bytes_label.add_theme_font_size_override("font_size", _FONT_BODY)
