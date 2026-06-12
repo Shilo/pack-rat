@@ -1,0 +1,365 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://demo/packs/warehouse/warehouse_scene.gd" id="1_scene"]
+[ext_resource type="Texture2D" path="res://addons/pack_rat/icon.svg" id="2_icon"]
+
+[node name="Warehouse" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_scene")
+
+[node name="Page" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Stack" type="VBoxContainer" parent="Page"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="HBoxContainer" parent="Page/Stack"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Page/Stack/Header"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.541176, 0.341176, 0.160784, 1)
+theme_override_font_sizes/font_size = 18
+text = "Warehouse PCK"
+vertical_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Page/Stack/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
+theme_override_font_sizes/font_size = 12
+text = "Moving PackRat box room"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="Page/Stack"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MascotWatermark" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -210.0
+offset_top = 18.0
+offset_right = -34.0
+offset_bottom = 194.0
+grow_horizontal = 0
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+modulate = Color(1, 0.82, 0.58, 0.88)
+
+[node name="Floor" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -34.0
+offset_bottom = -10.0
+grow_horizontal = 2
+grow_vertical = 0
+color = Color(0.541176, 0.341176, 0.160784, 1)
+
+[node name="Box00" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 110.0
+offset_right = 104.0
+offset_bottom = 154.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box01" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 136.0
+offset_top = 110.0
+offset_right = 188.0
+offset_bottom = 162.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box02" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 212.0
+offset_top = 110.0
+offset_right = 272.0
+offset_bottom = 170.0
+pivot_offset = Vector2(30, 30)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box03" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 110.0
+offset_right = 356.0
+offset_bottom = 178.0
+pivot_offset = Vector2(34, 34)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box04" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 364.0
+offset_top = 110.0
+offset_right = 408.0
+offset_bottom = 154.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box05" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 110.0
+offset_right = 492.0
+offset_bottom = 162.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box06" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 516.0
+offset_top = 110.0
+offset_right = 576.0
+offset_bottom = 170.0
+pivot_offset = Vector2(30, 30)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box07" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 592.0
+offset_top = 110.0
+offset_right = 660.0
+offset_bottom = 178.0
+pivot_offset = Vector2(34, 34)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box08" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 668.0
+offset_top = 110.0
+offset_right = 712.0
+offset_bottom = 154.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box09" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 152.0
+offset_right = 112.0
+offset_bottom = 204.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box10" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 136.0
+offset_top = 152.0
+offset_right = 196.0
+offset_bottom = 212.0
+pivot_offset = Vector2(30, 30)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box11" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 212.0
+offset_top = 152.0
+offset_right = 280.0
+offset_bottom = 220.0
+pivot_offset = Vector2(34, 34)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box12" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 152.0
+offset_right = 332.0
+offset_bottom = 196.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box13" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 364.0
+offset_top = 152.0
+offset_right = 416.0
+offset_bottom = 204.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box14" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 152.0
+offset_right = 500.0
+offset_bottom = 212.0
+pivot_offset = Vector2(30, 30)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box15" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 516.0
+offset_top = 152.0
+offset_right = 584.0
+offset_bottom = 220.0
+pivot_offset = Vector2(34, 34)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box16" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 592.0
+offset_top = 152.0
+offset_right = 636.0
+offset_bottom = 196.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box17" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 668.0
+offset_top = 152.0
+offset_right = 720.0
+offset_bottom = 204.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box18" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 60.0
+offset_top = 194.0
+offset_right = 120.0
+offset_bottom = 254.0
+pivot_offset = Vector2(30, 30)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box19" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 136.0
+offset_top = 194.0
+offset_right = 204.0
+offset_bottom = 262.0
+pivot_offset = Vector2(34, 34)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box20" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 212.0
+offset_top = 194.0
+offset_right = 256.0
+offset_bottom = 238.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box21" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 194.0
+offset_right = 340.0
+offset_bottom = 246.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box22" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 364.0
+offset_top = 194.0
+offset_right = 424.0
+offset_bottom = 254.0
+pivot_offset = Vector2(30, 30)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box23" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 440.0
+offset_top = 194.0
+offset_right = 508.0
+offset_bottom = 262.0
+pivot_offset = Vector2(34, 34)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box24" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 516.0
+offset_top = 194.0
+offset_right = 560.0
+offset_bottom = 238.0
+pivot_offset = Vector2(22, 22)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Box25" type="TextureRect" parent="."]
+layout_mode = 0
+offset_left = 592.0
+offset_top = 194.0
+offset_right = 644.0
+offset_bottom = 246.0
+pivot_offset = Vector2(26, 26)
+texture = ExtResource("2_icon")
+expand_mode = 1
+stretch_mode = 5

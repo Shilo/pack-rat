@@ -79,9 +79,9 @@ jobs:
           godot --headless --path . --scene res://tests/pack_rat_performance_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_pck_hot_update_probe.tscn
 
-      - name: Build demo packs
+      - name: Export demo packs
         run: |
-          godot --headless --path . --script tools/demo_pack_builder.gd -- --output-dir="$EXPORT_ROOT/web/packs" --no-catalog
+          godot --headless --path . --script tools/demo_pack_exporter.gd -- --output-dir="$EXPORT_ROOT/web/packs" --no-catalog
 
       - name: Run demo smoke
         run: |

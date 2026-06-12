@@ -42,25 +42,25 @@ Use two packs so the demo proves both PCK and ZIP behavior.
 
 | Pack | File | Format | Entry path | Purpose |
 | --- | --- | --- | --- | --- |
-| Warehouse | `packrat-demo-warehouse.pck` | PCK | `res://packrat_demo/warehouse/main.tscn` | A playful physics scene using simple boxes based on the PackRat icon palette. |
-| Gallery | `packrat-demo-gallery.zip` | ZIP | `res://packrat_demo/gallery/main.tscn` | A UI/content scene with generated bulky placeholder assets to show app/content-pack use. |
+| Warehouse | `packrat-demo-warehouse.pck` | PCK | `res://demo/packs/warehouse/main.tscn` | A playful physics scene using simple boxes based on the PackRat icon palette. |
+| Gallery | `packrat-demo-gallery.zip` | ZIP | `res://demo/packs/gallery/main.tscn` | A UI/content scene with bulky placeholder assets to show app/content-pack use. |
 
-Both packs should use unique namespaced `res://packrat_demo/...` paths. The demo
-should set `replace_files = false` for showcase loads so the packs cannot
-override the base UI by accident.
+The pack source scenes live under `res://demo/packs/...` so they are visible and
+editable in Godot. The base Web export excludes `demo/packs/**`, and the
+downloaded PCK/ZIP mounts those same paths back at runtime.
 
-No dedicated artwork is required. Use simple Godot UI, generated shapes,
-generated placeholder textures, and the existing PackRat icon palette.
+No dedicated artwork is required. Use simple Godot UI, baked scene nodes,
+placeholder assets, and the existing PackRat icon palette.
 
 Target payload sizes should be big enough to avoid instant-loading theater:
 
 - Warehouse PCK: roughly 8-12 MiB.
 - Gallery ZIP: roughly 12-20 MiB.
 
-Generate bulky placeholder assets during CI instead of committing large
-binaries. Do not pad files with meaningless junk in source control. The UI
-should also keep the loading state readable with a brief completion transition,
-because very fast connections can still download these sizes quickly.
+Keep bulky placeholder assets inside the demo pack source folders so the export
+step packages normal editor-authored content. The UI should also keep the
+loading state readable with a brief completion transition, because very fast
+connections can still download these sizes quickly.
 
 ## User Experience
 
@@ -99,8 +99,7 @@ The demo should intentionally exercise the public API:
 ```gdscript
 var options: PackRatOptions = PackRatOptions.new()
 options.id = "warehouse"
-options.entry_path = "res://packrat_demo/warehouse/main.tscn"
-options.replace_files = false
+options.entry_path = "res://demo/packs/warehouse/main.tscn"
 options.expected_size = 12582912
 
 var request: PackRatRequest = PackRat.load_resource_pack_async(url, options)
@@ -120,7 +119,7 @@ Also include small, visible usage of:
 - `PackRatResult.change_scene_to_entry()`, possibly as an alternate "Open full
   scene" path.
 
-For the WebGL default path, bake `expected_size` and a generated content version
+For the WebGL default path, bake `expected_size` and an exported content version
 token into the demo catalog after CI builds each pack. Expected size lets PackRat
 avoid a HEAD freshness request and keeps the Web path less dependent on
 host-specific exposed headers. The content version token must be included in
@@ -212,20 +211,20 @@ demo/
   demo_pack.gd
 
 tools/
-  demo_pack_builder.gd
+  demo_pack_exporter.gd
 
 .github/workflows/
   demo.yml
 ```
 
-Generated pack contents are written into PCK/ZIP files by the builder instead
-of committed as source scenes. The generated mounted scenes contain baked nodes;
-their scripts only animate existing nodes. The priority is one good demo, not a
+Demo pack source scenes are committed under `demo/packs/` and hidden from the
+main Web export with `exclude_filter`. The exporter only packages those
+editor-authored files into PCK/ZIP files. The priority is one good demo, not a
 mini framework.
 
-Local generated packs go in `build/packs/`. Temporary source files are written
-under `user://pack_rat_demo_pack_builder` and removed after successful builds so
-Godot's project dock does not show generated pack internals.
+Local exported packs go in `build/packs/`. Exported outputs under `build/` are
+hidden from Godot with subfolder `.gdignore` files, while the editable DLC source
+folders remain visible.
 
 ## Export And CI Plan
 
@@ -248,9 +247,9 @@ GitHub Actions workflow outline:
 4. Run PackRat smoke tests.
 5. Export/build the two packs.
 6. Compute pack sizes, and stable modified times if practical.
-7. Write the generated demo catalog with URLs, entry paths, IDs, and expected
+7. Write the exported demo catalog with URLs, entry paths, IDs, and expected
    metadata.
-8. Export the base Web demo after the catalog is generated.
+8. Export the base Web demo after the catalog is refreshed.
 9. Upload build artifacts for debugging.
 10. Create or update a GitHub Release.
 11. Upload release assets:
@@ -303,12 +302,13 @@ These would make the showcase look like a different product than PackRat's MVP.
   demonstrate `change_scene_to_entry()`;
 - target roughly 8-12 MiB for the PCK and 12-20 MiB for the ZIP so first loads
   are visibly remote content, while keeping the demo tolerable;
-- generate bulky placeholder assets in CI rather than committing large binaries.
+- keep bulky placeholder assets in the demo pack source folders so the exporter
+  packages the same files a user would author in Godot.
 
 ## Open Questions For Implementation
 
-- Should pack source scenes live in this repository while only bulky generated
-  payload files are created in CI?
+- Should the demo replace the placeholder payload files with smaller real assets
+  once dedicated artwork exists?
 - Should CI include a real browser Web smoke immediately, or should the first
   implementation ship with a documented manual browser checklist and add CI
   browser automation next?

@@ -463,7 +463,7 @@ godot --path . --scene "res://demo/demo.tscn"
 ```
 
 PackRat ships with a Web-friendly showcase scene called PackRat Portal. It uses
-a tiny base scene and two generated remote packs:
+a tiny base scene and two editor-authored remote packs:
 
 - `packrat-demo-warehouse.pck`, about 10 MiB.
 - `packrat-demo-gallery.zip`, about 16 MiB.
@@ -472,14 +472,15 @@ In Web builds, the demo includes a `Downloader` selector to compare the default
 browser `fetch()` path against Godot's `HTTPRequest` path. Native/editor runs
 hide this selector because they always use Godot `HTTPRequest`.
 
-Build the demo packs locally:
+Export the demo packs locally:
 
 ```powershell
-godot --headless --path . --script "tools/demo_pack_builder.gd"
+godot --headless --path . --script "tools/demo_pack_exporter.gd"
 ```
 
-This writes local demo packs to `build/packs/`. Generated build outputs are
-ignored by Git and hidden from the Godot editor.
+This writes local demo packs to `build/packs/`. The pack source scenes live in
+`demo/packs/` so they are visible in the Godot editor. The Web export excludes
+`demo/packs/**`, then PackRat mounts those paths back at runtime.
 
 When exported for Web, the demo resolves pack URLs against the current page's
 same-origin `packs/` folder. Native/editor runs default to the canonical GitHub
@@ -523,7 +524,7 @@ These smokes cover local metadata reads, `expected_size`,
 redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, fast-cache cancellation,
 request headers, redirects, timeouts, `replace_files=false`, cache clearing,
-PCK mounting, ZIP mounting, generated demo packs, extensionless PCK URLs, MMO-style scene existence,
+PCK mounting, ZIP mounting, demo pack exporting, extensionless PCK URLs, MMO-style scene existence,
 repeated cache-hit performance, raw Godot download/mount baselines, PackRat
 cold-load overhead, HTTP chunk-size behavior, and Godot's same-path
 hot-update/resource-cache behavior.

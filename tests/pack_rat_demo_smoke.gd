@@ -14,7 +14,7 @@ var _get_count: int = 0
 func _ready() -> void:
 	get_tree().create_timer(45.0).timeout.connect(_on_timeout, CONNECT_ONE_SHOT)
 	_clear_demo_cache()
-	var build: Dictionary = PackRatDemoPackBuilder.build_all(BUILD_DIR, false)
+	var build: Dictionary = PackRatDemoPackExporter.export_all(BUILD_DIR, false)
 	if not bool(build.get("ok", false)):
 		_fail("Could not build demo packs: %s" % build.get("error", "unknown error"))
 		return
@@ -23,7 +23,7 @@ func _ready() -> void:
 		var path: String = BUILD_DIR.path_join(pack.file_name)
 		var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
 		if bytes.is_empty():
-			_fail("Generated demo pack was empty: %s" % path)
+			_fail("Exported demo pack was empty: %s" % path)
 			return
 		if pack.expected_size > 0 and bytes.size() != pack.expected_size:
 			_fail("Catalog size for %s is stale. Expected %d, built %d." % [pack.id, pack.expected_size, bytes.size()])
@@ -221,7 +221,7 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 		_fail("Expected demo pack URLs to include a version query.")
 		return false
 	if demo_pack.options().id == demo_pack.id:
-		_fail("Expected demo pack cache ID to include the generated content version.")
+		_fail("Expected demo pack cache ID to include the exported content version.")
 		return false
 
 	var metadata: PackRatFileMetadata = PackRat.file_metadata(build_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME))
