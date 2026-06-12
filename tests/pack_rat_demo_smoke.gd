@@ -25,8 +25,8 @@ func _ready() -> void:
 		if bytes.is_empty():
 			_fail("Exported demo pack was empty: %s" % path)
 			return
-		if pack.expected_size > 0 and bytes.size() != pack.expected_size:
-			_fail("Catalog size for %s is stale. Expected %d, built %d." % [pack.id, pack.expected_size, bytes.size()])
+		if bytes.size() < 1024 * 1024:
+			_fail("Demo smoke pack fixture for %s was too small: %d bytes." % [pack.id, bytes.size()])
 			return
 		_pack_bytes["/packs/%s" % pack.file_name] = bytes
 
@@ -146,6 +146,7 @@ func _ready() -> void:
 		return
 
 	var get_count_after_downloads: int = _get_count
+	var head_count_before_cache: int = _head_count
 	var warehouse_cached: PackRatResult = await _press_load(warehouse_card)
 	if warehouse_cached == null:
 		return
@@ -154,6 +155,9 @@ func _ready() -> void:
 		return
 	if _get_count != get_count_after_downloads:
 		_fail("Expected repeated warehouse button load to avoid an extra GET.")
+		return
+	if _head_count <= head_count_before_cache:
+		_fail("Expected online-first repeated warehouse load to check freshness with HEAD.")
 		return
 
 	var clear_button: Button = _button(warehouse_card, "ClearButton")
@@ -172,10 +176,6 @@ func _ready() -> void:
 	if _get_count <= get_count_after_downloads:
 		_fail("Expected clear-disk-cache button to force a later redownload.")
 		return
-	if _head_count != 0:
-		_fail("Expected expected-size demo loads to skip HEAD requests.")
-		return
-
 	var clear_all_button: Button = _button(demo, "ClearAllButton")
 	if clear_all_button == null:
 		return
@@ -189,21 +189,6 @@ func _ready() -> void:
 		return
 	if not clear_output_text.text.contains("Gallery ZIP failed"):
 		_fail("Expected output log to keep earlier actions after new actions.")
-		return
-
-	var original_warehouse_size: int = warehouse_card.pack().expected_size
-	warehouse_card.pack().expected_size = original_warehouse_size + 64
-	var warehouse_mismatch: PackRatResult = await _press_load(warehouse_card)
-	warehouse_card.pack().expected_size = original_warehouse_size
-	if warehouse_mismatch == null:
-		return
-	if warehouse_mismatch.ok:
-		_fail("Expected mismatched demo pack size to fail.")
-		return
-	if warehouse_mismatch.content_length != original_warehouse_size:
-		_fail("Expected mismatched demo pack to preserve downloaded byte count.")
-		return
-	if not _assert_failed_download_display(warehouse_card):
 		return
 
 	print("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
@@ -233,8 +218,8 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 	if not metadata.ok:
 		_fail("PackRat.file_metadata failed: %s" % metadata.error)
 		return false
-	if metadata.size != PackRatDemoCatalog.WAREHOUSE_EXPECTED_SIZE:
-		_fail("PackRat.file_metadata returned stale size %d." % metadata.size)
+	if metadata.size < 1024 * 1024:
+		_fail("PackRat.file_metadata returned unexpectedly small size %d." % metadata.size)
 		return false
 
 	var metadata_dictionary: Dictionary = metadata.to_dictionary()
@@ -318,7 +303,7 @@ func _warehouse_source_files() -> PackedStringArray:
 		"res://demo/packs/warehouse/main.tscn",
 		"res://demo/packs/warehouse/box.tscn",
 		"res://demo/packs/warehouse/warehouse_scene.gd",
-		"res://demo/packs/warehouse/payload.bin",
+		"res://demo/packs/warehouse/payload.res",
 	])
 
 
@@ -326,7 +311,7 @@ func _gallery_source_files() -> PackedStringArray:
 	return PackedStringArray([
 		"res://demo/packs/gallery/main.tscn",
 		"res://demo/packs/gallery/gallery_scene.gd",
-		"res://demo/packs/gallery/payload.bin",
+		"res://demo/packs/gallery/payload.res",
 	])
 
 
@@ -693,31 +678,6 @@ func _assert_progress_complete(card: PackRatDemoCard) -> bool:
 		return false
 	if progress_bar.value != 100.0:
 		_fail("Expected loaded card progress to finish at 100.")
-		return false
-
-	return true
-
-
-func _assert_failed_download_display(card: PackRatDemoCard) -> bool:
-	var progress_bar: ProgressBar = _progress_bar(card, "ProgressBar")
-	if progress_bar == null:
-		return false
-	if progress_bar.value != 100.0:
-		_fail("Expected failed post-download validation to keep progress at 100.")
-		return false
-
-	var bytes_label: Label = _label(card, "BytesLabel")
-	if bytes_label == null:
-		return false
-	if bytes_label.text.begins_with("Download: 0 B"):
-		_fail("Expected failed post-download validation to show downloaded bytes.")
-		return false
-
-	var timing_label: Label = _label(card, "TimingLabel")
-	if timing_label == null:
-		return false
-	if timing_label.text == "Last: none":
-		_fail("Expected failed post-download validation to keep download timing.")
 		return false
 
 	return true

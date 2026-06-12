@@ -19,11 +19,8 @@ var file_name: String = ""
 ## Scene path exposed after the pack is mounted.
 var entry_path: String = ""
 
-## Expected exported remote file size.
-var expected_size: int = 0
-
-## Expected exported modified time when available.
-var expected_modified_time: int = 0
+## Exported remote file size shown by the demo UI.
+var file_size: int = 0
 
 ## Exported content token used to avoid stale HTTP and PackRat cache hits.
 var version_token: String = ""
@@ -40,8 +37,7 @@ static func create(
 	pack_format: String,
 	pack_file_name: String,
 	pack_entry_path: String,
-	pack_expected_size: int,
-	pack_expected_modified_time: int,
+	pack_file_size: int,
 	pack_version_token: String,
 	pack_accent_color: Color
 ) -> PackRatDemoPack:
@@ -52,8 +48,7 @@ static func create(
 	pack.format = pack_format
 	pack.file_name = pack_file_name
 	pack.entry_path = pack_entry_path
-	pack.expected_size = pack_expected_size
-	pack.expected_modified_time = pack_expected_modified_time
+	pack.file_size = pack_file_size
 	pack.version_token = pack_version_token
 	pack.accent_color = pack_accent_color
 	return pack
@@ -87,8 +82,6 @@ func options() -> PackRatOptions:
 	var pack_options: PackRatOptions = PackRatOptions.new()
 	pack_options.id = _cache_id()
 	pack_options.entry_path = entry_path
-	pack_options.expected_size = expected_size
-	pack_options.expected_modified_time = expected_modified_time
 	pack_options.capture_timings = true
 	return pack_options
 

@@ -93,7 +93,7 @@ func load_pack() -> void:
 	_status_label.text = "Downloading"
 	_detail_label.text = "Remote download in progress."
 	_detail_label.visible = true
-	_bytes_label.text = _download_text(0, options.expected_size)
+	_bytes_label.text = _download_text(0, _pack.file_size)
 	_update_timing_label()
 	_progress_bar.value = 0.0
 	_load_button.disabled = true
@@ -117,8 +117,8 @@ func _set_idle_state() -> void:
 	_status_label.text = "Ready"
 	_detail_label.text = ""
 	_detail_label.visible = false
-	if _pack.expected_size > 0:
-		_bytes_label.text = _download_text(0, _pack.expected_size)
+	if _pack.file_size > 0:
+		_bytes_label.text = _download_text(0, _pack.file_size)
 	else:
 		_bytes_label.text = _download_text(0, 0)
 	_update_timing_label()
@@ -162,7 +162,7 @@ func _on_completed(result: PackRatResult) -> void:
 		_status_label.text = "Canceled"
 		_detail_label.text = "The download was canceled before mounting."
 		_detail_label.visible = true
-		_bytes_label.text = _download_text(0, _pack.expected_size)
+		_bytes_label.text = _download_text(0, _pack.file_size)
 		_update_timing_label()
 		message_requested.emit("Canceled %s." % _pack.title, false)
 	else:
@@ -175,7 +175,7 @@ func _on_completed(result: PackRatResult) -> void:
 			_bytes_label.text = _download_text(result.content_length, _expected_display_size(result))
 		else:
 			_progress_bar.value = 0.0
-			_bytes_label.text = _download_text(0, _pack.expected_size)
+			_bytes_label.text = _download_text(0, _pack.file_size)
 		_update_timing_label()
 		message_requested.emit("%s failed: %s" % [_pack.title, result.error], true)
 
@@ -202,8 +202,8 @@ func _download_text(downloaded_bytes: int, total_bytes: int) -> String:
 
 
 func _expected_display_size(result: PackRatResult) -> int:
-	if _pack.expected_size > 0:
-		return _pack.expected_size
+	if _pack.file_size > 0:
+		return _pack.file_size
 	if result.content_length > 0:
 		return result.content_length
 	return 0

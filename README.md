@@ -472,15 +472,23 @@ In Web builds, the demo includes a `Downloader` selector to compare the default
 browser `fetch()` path against Godot's `HTTPRequest` path. Native/editor runs
 hide this selector because they always use Godot `HTTPRequest`.
 
+The demo intentionally leaves `expected_size` and `expected_modified_time`
+unset. That showcases PackRat's default online-first cache behavior: a repeated
+load checks the remote pack with `HEAD`, then reuses the cached file when it is
+still fresh.
+
 Export the demo packs locally:
 
 ```powershell
-godot --headless --path . --script "tools/demo_pack_exporter.gd"
+godot --headless --path . --export-pack "Warehouse DLC" "build/packs/packrat-demo-warehouse.pck"
+godot --headless --path . --export-pack "Gallery DLC" "build/packs/packrat-demo-gallery.zip"
+godot --headless --path . --script "tools/demo_pack_catalog.gd" -- --output-dir=build/packs
 ```
 
-This writes local demo packs to `build/packs/`. The pack source scenes live in
-`demo/packs/` so they are visible in the Godot editor. The Web export excludes
-`demo/packs/**`, then PackRat mounts those paths back at runtime.
+This writes local demo packs to `build/packs/` using the `Warehouse DLC` and
+`Gallery DLC` export presets. The pack source scenes live in `demo/packs/` so
+they are visible in the Godot editor. The Web export excludes `demo/packs/**`,
+then PackRat mounts those paths back at runtime.
 
 When exported for Web, the demo resolves pack URLs against the current page's
 same-origin `packs/` folder. Native/editor runs default to the canonical GitHub

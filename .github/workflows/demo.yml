@@ -79,9 +79,11 @@ jobs:
           godot --headless --path . --scene res://tests/pack_rat_performance_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_pck_hot_update_probe.tscn
 
-      - name: Pack editor-authored demo resources
+      - name: Export editor-authored demo packs
         run: |
-          godot --headless --path . --script tools/demo_pack_exporter.gd -- --output-dir="$EXPORT_ROOT/web/packs" --no-catalog
+          godot --headless --path . --export-pack "Warehouse DLC" "$EXPORT_ROOT/web/packs/packrat-demo-warehouse.pck"
+          godot --headless --path . --export-pack "Gallery DLC" "$EXPORT_ROOT/web/packs/packrat-demo-gallery.zip"
+          godot --headless --path . --script tools/demo_pack_catalog.gd -- --output-dir="$EXPORT_ROOT/web/packs" --check
 
       - name: Verify demo source resources were not generated
         run: |

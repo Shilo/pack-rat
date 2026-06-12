@@ -25,23 +25,17 @@ const WAREHOUSE_ENTRY_PATH: String = "res://demo/packs/warehouse/main.tscn"
 ## Gallery ZIP entry scene.
 const GALLERY_ENTRY_PATH: String = "res://demo/packs/gallery/main.tscn"
 
-## Exported expected byte size for the warehouse PCK.
-const WAREHOUSE_EXPECTED_SIZE: int = 10494220
+## Exported byte size for the warehouse PCK.
+const WAREHOUSE_FILE_SIZE: int = 10520932
 
-## Exported expected byte size for the gallery ZIP.
-const GALLERY_EXPECTED_SIZE: int = 16793718
-
-## Exported expected modified time for the warehouse PCK, when available.
-const WAREHOUSE_EXPECTED_MODIFIED_TIME: int = 0
-
-## Exported expected modified time for the gallery ZIP, when available.
-const GALLERY_EXPECTED_MODIFIED_TIME: int = 0
+## Exported byte size for the gallery ZIP.
+const GALLERY_FILE_SIZE: int = 16795264
 
 ## Exported content version for the warehouse PCK.
-const WAREHOUSE_VERSION_TOKEN: String = "10494220-a464d67122d8"
+const WAREHOUSE_VERSION_TOKEN: String = "10520932-3e583a93caea"
 
 ## Exported content version for the gallery ZIP.
-const GALLERY_VERSION_TOKEN: String = "16793718-296e8ce92458"
+const GALLERY_VERSION_TOKEN: String = "16795264-ad1eb4f8ce98"
 
 ## Canonical Pages pack mirror used outside Web exports.
 static var pages_pack_base_url: String = "https://shilo.github.io/pack-rat/packs"
@@ -77,8 +71,7 @@ static func packs() -> Array[PackRatDemoPack]:
 		"PCK",
 		WAREHOUSE_FILE_NAME,
 		WAREHOUSE_ENTRY_PATH,
-		WAREHOUSE_EXPECTED_SIZE,
-		WAREHOUSE_EXPECTED_MODIFIED_TIME,
+		WAREHOUSE_FILE_SIZE,
 		WAREHOUSE_VERSION_TOKEN,
 		Color.html("#8A5729")
 	))
@@ -89,8 +82,7 @@ static func packs() -> Array[PackRatDemoPack]:
 		"ZIP",
 		GALLERY_FILE_NAME,
 		GALLERY_ENTRY_PATH,
-		GALLERY_EXPECTED_SIZE,
-		GALLERY_EXPECTED_MODIFIED_TIME,
+		GALLERY_FILE_SIZE,
 		GALLERY_VERSION_TOKEN,
 		Color.html("#27806C")
 	))
