@@ -17,6 +17,7 @@ var _pack: PackRatDemoPack
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
 var _request: PackRatRequest
 var _last_result: PackRatResult
+var _last_download_msec: int = -1
 
 @onready var _accent_bar: ColorRect = %AccentBar
 @onready var _title_label: Label = %TitleLabel
@@ -26,6 +27,7 @@ var _last_result: PackRatResult
 @onready var _detail_label: Label = %DetailLabel
 @onready var _progress_bar: ProgressBar = %ProgressBar
 @onready var _bytes_label: Label = %BytesLabel
+@onready var _timing_label: Label = %TimingLabel
 @onready var _load_button: Button = %LoadButton
 @onready var _cancel_button: Button = %CancelButton
 @onready var _preview_button: Button = %PreviewButton
@@ -81,7 +83,8 @@ func load_pack() -> void:
 
 	_status_label.text = "Downloading"
 	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
-	_bytes_label.text = "Waiting for bytes..."
+	_bytes_label.text = _download_text(0, options.expected_size)
+	_update_timing_label()
 	_progress_bar.value = 0.0
 	_load_button.disabled = true
 	_cancel_button.disabled = false
@@ -105,9 +108,10 @@ func _set_idle_state() -> void:
 	_status_label.text = "Ready"
 	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
 	if _pack.expected_size > 0:
-		_bytes_label.text = "Expected size: %s" % _format_bytes(_pack.expected_size)
+		_bytes_label.text = _download_text(0, _pack.expected_size)
 	else:
-		_bytes_label.text = "Expected size unknown."
+		_bytes_label.text = _download_text(0, 0)
+	_update_timing_label()
 	_progress_bar.value = 0.0
 	_load_button.disabled = false
 	_cancel_button.disabled = true
@@ -117,10 +121,10 @@ func _set_idle_state() -> void:
 func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:
 	if total_bytes > 0:
 		_progress_bar.value = clampf(float(downloaded_bytes) / float(total_bytes) * 100.0, 0.0, 100.0)
-		_bytes_label.text = "%s / %s" % [_format_bytes(downloaded_bytes), _format_bytes(total_bytes)]
+		_bytes_label.text = _download_text(downloaded_bytes, total_bytes)
 	else:
 		_progress_bar.value = 8.0
-		_bytes_label.text = "%s downloaded" % _format_bytes(downloaded_bytes)
+		_bytes_label.text = _download_text(downloaded_bytes, 0)
 
 
 func _on_completed(result: PackRatResult) -> void:
@@ -138,7 +142,10 @@ func _on_completed(result: PackRatResult) -> void:
 			PackRatDemoCatalog.source_label(_source),
 			"cache" if result.from_cache else "remote",
 		]
-		_bytes_label.text = "%s cached as %s" % [_format_bytes(result.content_length), result.local_path.get_file()]
+		if not result.from_cache:
+			_last_download_msec = _download_duration_msec(result)
+		_bytes_label.text = _download_text(result.content_length, _expected_display_size(result))
+		_update_timing_label()
 		message_requested.emit(
 			"Mounted %s from %s." % [_pack.title, "cache" if result.from_cache else "remote"],
 			false
@@ -147,12 +154,14 @@ func _on_completed(result: PackRatResult) -> void:
 	elif result.was_canceled():
 		_status_label.text = "Canceled"
 		_detail_label.text = "The download was canceled before mounting."
-		_bytes_label.text = "No content mounted."
+		_bytes_label.text = _download_text(0, _pack.expected_size)
+		_update_timing_label()
 		message_requested.emit("Canceled %s." % _pack.title, false)
 	else:
 		_status_label.text = "Failed"
 		_detail_label.text = result.error
-		_bytes_label.text = "No content mounted."
+		_bytes_label.text = _download_text(0, _pack.expected_size)
+		_update_timing_label()
 		message_requested.emit("%s failed: %s" % [_pack.title, result.error], true)
 
 	load_finished.emit(_pack, result)
@@ -163,6 +172,39 @@ func _log_result_timings(result: PackRatResult) -> void:
 		return
 
 	print("PackRat demo: %s timings %s" % [_pack.title, JSON.stringify(result.timings_msec)])
+
+
+func _download_text(downloaded_bytes: int, total_bytes: int) -> String:
+	if total_bytes > 0:
+		return "Download: %s / %s" % [_format_bytes(downloaded_bytes), _format_bytes(total_bytes)]
+
+	return "Download: %s / unknown" % _format_bytes(downloaded_bytes)
+
+
+func _expected_display_size(result: PackRatResult) -> int:
+	if _pack.expected_size > 0:
+		return _pack.expected_size
+	if result.content_length > 0:
+		return result.content_length
+	return 0
+
+
+func _download_duration_msec(result: PackRatResult) -> int:
+	if result.timings_msec.has("download_http_transfer_msec"):
+		return int(result.timings_msec["download_http_transfer_msec"])
+	if result.timings_msec.has("download_msec"):
+		return int(result.timings_msec["download_msec"])
+	if result.timings_msec.has("total_msec"):
+		return int(result.timings_msec["total_msec"])
+	return -1
+
+
+func _update_timing_label() -> void:
+	if _last_download_msec < 0:
+		_timing_label.text = "Last download: none"
+		return
+
+	_timing_label.text = "Last download: %s" % _format_duration(_last_download_msec)
 
 
 func _on_cancel_pressed() -> void:
@@ -205,3 +247,10 @@ func _format_bytes(value: int) -> String:
 		return "%.1f KiB" % (float(value) / 1024.0)
 
 	return "%.1f MiB" % (float(value) / 1024.0 / 1024.0)
+
+
+func _format_duration(msec: int) -> String:
+	if msec < 1000:
+		return "%d ms" % msec
+
+	return "%.2f s" % (float(msec) / 1000.0)

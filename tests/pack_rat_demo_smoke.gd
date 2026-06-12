@@ -478,6 +478,16 @@ func _assert_card_text_fits(demo: Node, card: PackRatDemoCard) -> bool:
 	if bytes_label.text.contains("user://"):
 		_fail("Expected card cache label to hide internal user:// path.")
 		return false
+	if not bytes_label.text.begins_with("Download: ") or not bytes_label.text.contains(" / "):
+		_fail("Expected card byte label to show current and max download size.")
+		return false
+
+	var timing_label: Label = _label(card, "TimingLabel")
+	if timing_label == null:
+		return false
+	if not timing_label.text.begins_with("Last download: "):
+		_fail("Expected card timing label to show the last download duration.")
+		return false
 
 	return true
 

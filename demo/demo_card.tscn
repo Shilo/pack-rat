@@ -118,6 +118,15 @@ theme_override_font_sizes/font_size = 12
 text = "Expected size"
 autowrap_mode = 3
 
+[node name="TimingLabel" type="Label" parent="Margin/Stack"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
+theme_override_font_sizes/font_size = 12
+text = "Last download: none"
+autowrap_mode = 3
+
 [node name="Buttons" type="HFlowContainer" parent="Margin/Stack"]
 layout_mode = 2
 size_flags_horizontal = 3
