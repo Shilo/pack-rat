@@ -77,7 +77,9 @@ func _apply_responsive_layout() -> void:
 	_page.add_theme_constant_override("margin_right", _SPACE)
 	_page.add_theme_constant_override("margin_bottom", _SPACE)
 
-	_cards_panel.custom_minimum_size = Vector2(0.0 if narrow else 360.0, 0.0)
+	var cards_minimum_size: Vector2 = _cards_panel.custom_minimum_size
+	cards_minimum_size.x = 0.0 if narrow else 360.0
+	_cards_panel.custom_minimum_size = cards_minimum_size
 	_preview_host.custom_minimum_size = Vector2(0.0 if narrow else 420.0, 260.0 if narrow else 320.0)
 
 
