@@ -2,7 +2,7 @@ class_name PackRatDemoTypeScale extends RefCounted
 ## Shared typography sizes for the PackRat Portal demo and demo pack scenes.
 
 ## Main app title.
-const APP_TITLE: int = 28
+const APP_TITLE: int = 18
 
 ## Empty-state or panel title.
 const SECTION_TITLE: int = 22
