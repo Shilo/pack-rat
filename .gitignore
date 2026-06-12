@@ -2,9 +2,4 @@
 .godot/
 /android/
 /build/*
-!/build/packs/
-/build/packs/*
-!/build/packs/.gdignore
-!/build/web/
-/build/web/*
-!/build/web/.gdignore
+!/build/.gdignore

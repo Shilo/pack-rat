@@ -1,4 +1,4 @@
-class_name PackRatDemoPackExporter extends SceneTree
+extends SceneTree
 ## Exports the editor-authored PackRat Portal demo DLC folders into PCK and ZIP packs.
 
 ## Default output directory for exported demo packs.

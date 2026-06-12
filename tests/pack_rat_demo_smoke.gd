@@ -14,9 +14,9 @@ var _get_count: int = 0
 func _ready() -> void:
 	get_tree().create_timer(45.0).timeout.connect(_on_timeout, CONNECT_ONE_SHOT)
 	_clear_demo_cache()
-	var build: Dictionary = PackRatDemoPackExporter.export_all(BUILD_DIR, false)
-	if not bool(build.get("ok", false)):
-		_fail("Could not build demo packs: %s" % build.get("error", "unknown error"))
+	var export_error: Error = _export_demo_packs(BUILD_DIR)
+	if export_error != OK:
+		_fail("Could not export demo packs for smoke test (error %d)." % export_error)
 		return
 
 	for pack in PackRatDemoCatalog.packs():
@@ -292,6 +292,93 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 		return false
 
 	return true
+
+
+func _export_demo_packs(output_dir: String) -> Error:
+	var make_error: Error = DirAccess.make_dir_recursive_absolute(output_dir)
+	if make_error != OK and make_error != ERR_ALREADY_EXISTS:
+		return make_error
+
+	var warehouse_path: String = output_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME)
+	var warehouse_error: Error = _export_pck(warehouse_path, _warehouse_source_files())
+	if warehouse_error != OK:
+		return warehouse_error
+
+	var gallery_path: String = output_dir.path_join(PackRatDemoCatalog.GALLERY_FILE_NAME)
+	return _export_zip(gallery_path, _gallery_source_files())
+
+
+func _warehouse_source_files() -> PackedStringArray:
+	return PackedStringArray([
+		"res://demo/packs/warehouse/main.tscn",
+		"res://demo/packs/warehouse/warehouse_scene.gd",
+		"res://demo/packs/warehouse/payload.bin",
+	])
+
+
+func _gallery_source_files() -> PackedStringArray:
+	return PackedStringArray([
+		"res://demo/packs/gallery/main.tscn",
+		"res://demo/packs/gallery/gallery_scene.gd",
+		"res://demo/packs/gallery/payload.bin",
+	])
+
+
+func _export_pck(path: String, source_files: PackedStringArray) -> Error:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+
+	var packer: PCKPacker = PCKPacker.new()
+	var error: Error = packer.pck_start(path)
+	if error != OK:
+		return error
+
+	for source_path in source_files:
+		if not FileAccess.file_exists(source_path):
+			return ERR_FILE_NOT_FOUND
+		error = packer.add_file(source_path, source_path)
+		if error != OK:
+			return error
+
+	return packer.flush()
+
+
+func _export_zip(path: String, source_files: PackedStringArray) -> Error:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+
+	var writer: ZIPPacker = ZIPPacker.new()
+	var error: Error = writer.open(path)
+	if error != OK:
+		return error
+
+	writer.set_compression_level(ZIPPacker.COMPRESSION_NONE)
+	for source_path in source_files:
+		error = _write_zip_source_file(writer, source_path)
+		if error != OK:
+			writer.close()
+			return error
+
+	return writer.close()
+
+
+func _write_zip_source_file(writer: ZIPPacker, source_path: String) -> Error:
+	if not FileAccess.file_exists(source_path):
+		return ERR_FILE_NOT_FOUND
+
+	var data: PackedByteArray = FileAccess.get_file_as_bytes(source_path)
+	if data.is_empty() and FileAccess.get_open_error() != OK:
+		return FileAccess.get_open_error()
+
+	var error: Error = writer.start_file(source_path.trim_prefix("res://"))
+	if error != OK:
+		return error
+
+	error = writer.write_file(data)
+	if error != OK:
+		return error
+
+	return writer.close_file()
 
 
 func _assert_demo_spacing(demo: Node) -> bool:
