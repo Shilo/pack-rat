@@ -160,7 +160,7 @@ func _raw_case(id: String, download_chunk_size: int) -> Dictionary:
 	}
 	var total_start_msec: int = Time.get_ticks_msec()
 	var request: HTTPRequest = HTTPRequest.new()
-	request.accept_gzip = false
+	request.accept_gzip = true
 	request.download_file = download_path
 	request.download_chunk_size = download_chunk_size
 	request.timeout = 30.0

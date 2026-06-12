@@ -187,6 +187,7 @@ and static host URLs.
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
+| `accept_gzip` | `true` | Lets Godot `HTTPRequest` request gzip/deflate transfer compression. Godot decodes the response before PackRat caches the mountable pack. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
 | `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
@@ -438,6 +439,9 @@ rules before using it.
 - Native HTTPRequest progress polling happens once per frame while a GET is active.
 - PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
   Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
+- PackRat keeps gzip/deflate transfer compression enabled for `HTTPRequest`.
+  Godot decodes compressed responses before writing the cached file, so mounted
+  packs still use normal raw PCK/ZIP bytes.
 - Web exports use a browser `fetch()` fast path for file downloads because
   Godot's Web HTTP client cannot progress more than once per frame. This is on
   by default through `PackRatOptions.use_web_fetch`, and can be disabled to

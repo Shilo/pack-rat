@@ -176,7 +176,7 @@ in memory:
 var request := HTTPRequest.new()
 request.download_file = "user://world_packs/hub-<sha>.pck"
 request.timeout = 0.0
-request.accept_gzip = false
+request.accept_gzip = true
 request.request(pack_url)
 ```
 

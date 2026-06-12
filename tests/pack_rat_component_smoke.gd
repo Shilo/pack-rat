@@ -39,6 +39,10 @@ func _ready() -> void:
 		_fail("Expected PackRatOptions to enable browser fetch by default when available.")
 		return
 
+	if not options.accept_gzip:
+		_fail("Expected PackRatOptions to accept gzip transfer compression by default.")
+		return
+
 	var invalid: PackRatResult = await PackRat.load_resource_pack("not-a-url", options)
 	if invalid.ok or invalid.status != PackRatResult.STATUS_FAILED:
 		_fail("Expected invalid URL to return a failed result.")
@@ -89,12 +93,14 @@ func _ready() -> void:
 	metadata_options.download_chunk_size = 2 * 1024 * 1024
 	metadata_options.capture_timings = true
 	metadata_options.use_web_fetch = false
+	metadata_options.accept_gzip = false
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
 	metadata_options.download_chunk_size = 1024
 	metadata_options.capture_timings = false
 	metadata_options.use_web_fetch = true
+	metadata_options.accept_gzip = true
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
@@ -113,6 +119,27 @@ func _ready() -> void:
 
 	if copied_options.use_web_fetch:
 		_fail("Expected PackRatOptions.copy to snapshot use_web_fetch.")
+		return
+
+	if copied_options.accept_gzip:
+		_fail("Expected PackRatOptions.copy to snapshot accept_gzip.")
+		return
+
+	var gzip_response: PackRatHttpResponse = PackRatHttpResponse.from_completed(
+		HTTPRequest.RESULT_SUCCESS,
+		200,
+		PackedStringArray([
+			"Content-Encoding: gzip",
+			"Content-Length: 123",
+			"Content-Type: application/octet-stream",
+		])
+	)
+	if gzip_response.content_length != 0:
+		_fail("Expected gzip Content-Length to be transfer-only metadata.")
+		return
+
+	if gzip_response.transfer_content_length != 123:
+		_fail("Expected gzip response to preserve transfer Content-Length.")
 		return
 
 	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")

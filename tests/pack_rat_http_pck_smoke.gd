@@ -12,7 +12,9 @@ const MODIFIED_V3_UNIX: int = 1781122620
 
 var _server: TCPServer = TCPServer.new()
 var _pack_bytes: PackedByteArray = []
+var _gzip_pack_bytes: PackedByteArray = []
 var _url: String = ""
+var _gzip_url: String = ""
 var _head_count: int = 0
 var _get_count: int = 0
 var _etag: String = "\"packrat-smoke-v1\""
@@ -36,6 +38,7 @@ func _ready() -> void:
 		return
 
 	_url = "http://127.0.0.1:%d/hub.pck" % _server.get_local_port()
+	_gzip_url = "http://127.0.0.1:%d/hub-gzip.pck" % _server.get_local_port()
 	set_process(true)
 	await get_tree().process_frame
 
@@ -65,6 +68,22 @@ func _ready() -> void:
 		_fail("Mounted PCK marker was not readable from res://.")
 		return
 
+	var gzip_options: PackRatOptions = options.copy()
+	gzip_options.id = "http_pck_gzip_smoke"
+	gzip_options.expected_size = _pack_bytes.size()
+	var gzip_result: PackRatResult = await PackRat.load_resource_pack(_gzip_url, gzip_options)
+	if not gzip_result.ok or gzip_result.from_cache:
+		_fail("Expected gzip transfer PCK to download and mount. Result: %s" % JSON.stringify(gzip_result.to_dictionary()))
+		return
+
+	if FileAccess.get_size(gzip_result.local_path) != _pack_bytes.size():
+		_fail("Expected gzip transfer to cache decoded raw PCK bytes.")
+		return
+
+	if gzip_result.content_length != _pack_bytes.size():
+		_fail("Expected gzip transfer result to report decoded pack size.")
+		return
+
 	var second: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not second.ok or not second.from_cache or not second.mounted:
 		_fail("Expected second load to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
@@ -72,8 +91,8 @@ func _ready() -> void:
 	if not _assert_mount_timings(second):
 		return
 
-	if _get_count != 1:
-		_fail("Expected exactly one GET download, got %d." % _get_count)
+	if _get_count != 2:
+		_fail("Expected two GET downloads after gzip smoke, got %d." % _get_count)
 		return
 
 	if _head_count != 1:
@@ -727,6 +746,12 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 	elif path == "/slow-no-length.pck" and method == "GET":
 		_get_count += 1
 		await _write_slow_chunked_response(peer)
+	elif path == "/hub-gzip.pck" and method == "GET":
+		_get_count += 1
+		_write_gzip_response(peer)
+	elif path == "/hub-gzip.pck" and method == "HEAD":
+		_head_count += 1
+		_write_gzip_head(peer)
 	elif _fail_get and method == "GET":
 		_get_count += 1
 		_write_not_found(peer)
@@ -810,6 +835,24 @@ func _write_response(peer: StreamPeerTCP, include_body: bool) -> void:
 
 	if include_body:
 		peer.put_data(_pack_bytes)
+
+
+func _write_gzip_head(peer: StreamPeerTCP) -> void:
+	var headers: String = (
+		"HTTP/1.1 200 OK\r\n"
+		+ "Content-Type: application/octet-stream\r\n"
+		+ "Content-Encoding: gzip\r\n"
+		+ "Content-Length: %d\r\n" % _gzip_pack_bytes.size()
+		+ "ETag: \"packrat-gzip-smoke\"\r\n"
+		+ "Connection: close\r\n"
+		+ "\r\n"
+	)
+	peer.put_data(headers.to_utf8_buffer())
+
+
+func _write_gzip_response(peer: StreamPeerTCP) -> void:
+	_write_gzip_head(peer)
+	peer.put_data(_gzip_pack_bytes)
 
 
 func _write_slow_response(peer: StreamPeerTCP) -> void:
@@ -949,6 +992,11 @@ func _build_pack(marker: String) -> void:
 	_pack_bytes = FileAccess.get_file_as_bytes(PACK_PATH)
 	if _pack_bytes.is_empty():
 		_fail("Smoke PCK was empty.")
+		return
+
+	_gzip_pack_bytes = _pack_bytes.compress(FileAccess.COMPRESSION_GZIP)
+	if _gzip_pack_bytes.is_empty():
+		_fail("Smoke gzip PCK bytes were empty.")
 
 
 func _make_directory(path: String) -> void:
