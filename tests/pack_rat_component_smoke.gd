@@ -27,8 +27,12 @@ func _ready() -> void:
 	var options: PackRatOptions = PackRatOptions.new()
 	options.id = "Hub Pack"
 	options.entry_path = "res://dlc/hub/main.tscn"
+	if PackRatOptions.default_download_chunk_size() != 16 * 1024 * 1024:
+		_fail("Expected PackRatOptions default download chunk to match Godot's 16 MiB maximum.")
+		return
+
 	if options.download_chunk_size != PackRatOptions.default_download_chunk_size():
-		_fail("Expected PackRatOptions to default to the platform resource-pack download chunk.")
+		_fail("Expected PackRatOptions to default to the resource-pack download chunk.")
 		return
 
 	if options.capture_timings:
