@@ -92,6 +92,8 @@ func _ready() -> void:
 		return
 	if not _assert_preview_contains_icon(demo, "MascotWatermark"):
 		return
+	if not _assert_preview_scene_shell(demo, "Warehouse"):
+		return
 
 	var valid_pack_base_url: String = PackRatDemoCatalog.pages_pack_base_url
 	PackRatDemoCatalog.pages_pack_base_url = "ftp://invalid"
@@ -123,6 +125,8 @@ func _ready() -> void:
 	if not _assert_card_text_fits(demo, gallery_card):
 		return
 	if not _assert_preview_contains_icon(demo, "Icon"):
+		return
+	if not _assert_preview_scene_shell(demo, "Gallery"):
 		return
 	if not await _assert_gallery_responsive(gallery_first):
 		return
@@ -565,6 +569,42 @@ func _assert_preview_contains_icon(demo: Node, icon_name: String) -> bool:
 
 	_fail("Expected mounted demo scene icon %s to have a texture." % icon_name)
 	return false
+
+
+func _assert_preview_scene_shell(demo: Node, scene_name: String) -> bool:
+	var mounted_host: Control = _control(demo, "MountedSceneHost")
+	if mounted_host == null:
+		return false
+
+	var scene_root: Node = mounted_host.find_child(scene_name, true, false)
+	if scene_root == null:
+		_fail("Expected mounted demo scene %s." % scene_name)
+		return false
+
+	if scene_root.find_child("Background", true, false) != null:
+		_fail("Expected mounted demo scene %s to leave the preview background visible." % scene_name)
+		return false
+
+	var header_node: Node = scene_root.find_child("Header", true, false)
+	if header_node is not HBoxContainer:
+		_fail("Expected mounted demo scene %s to use an HBoxContainer header." % scene_name)
+		return false
+
+	var title: Label = _label(scene_root, "Title")
+	var subtitle: Label = _label(scene_root, "Subtitle")
+	if title == null or subtitle == null:
+		return false
+	if title.get_theme_font_size("font_size") != 18:
+		_fail("Expected mounted demo scene %s title to match card title size." % scene_name)
+		return false
+	if subtitle.get_theme_font_size("font_size") != 12:
+		_fail("Expected mounted demo scene %s subtitle to match card description size." % scene_name)
+		return false
+	if subtitle.text.split(" ", false).size() > 6:
+		_fail("Expected mounted demo scene %s subtitle to stay compact." % scene_name)
+		return false
+
+	return true
 
 
 func _assert_gallery_responsive(result: PackRatResult) -> bool:
