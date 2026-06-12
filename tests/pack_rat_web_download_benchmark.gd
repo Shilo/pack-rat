@@ -17,8 +17,9 @@ func _ready() -> void:
 		return
 
 	await get_tree().process_frame
-	var url: String = _absolute_pack_url()
-	print("WEB_BENCH start url=%s" % url)
+	var url: String = _benchmark_pack_url()
+	var sample_count: int = _benchmark_sample_count()
+	print("WEB_BENCH start url=%s samples=%d" % [url, sample_count])
 	var clear_options: PackRatOptions = PackRatOptions.new()
 	clear_options.cache_dir = CACHE_DIR
 	PackRat.clear_cache(clear_options)
@@ -27,7 +28,7 @@ func _ready() -> void:
 	var summaries: Dictionary = {}
 	for use_web_fetch in [true, false]:
 		for chunk_size in CHUNK_SIZES:
-			for sample_index in range(SAMPLE_COUNT):
+			for sample_index in range(sample_count):
 				var metrics: Dictionary = await _run_case(url, use_web_fetch, chunk_size, sample_index + 1)
 				var summary_key: String = "%s_%d" % [str(metrics.get("case", "")), chunk_size]
 				if not summaries.has(summary_key):
@@ -53,12 +54,37 @@ func _run_case(url: String, use_web_fetch: bool, chunk_size: int, sample_index: 
 
 	var started_msec: int = Time.get_ticks_msec()
 	var label: String = "fetch" if use_web_fetch else "httprequest"
-	var case_url: String = "%s?case=%s_%d_%d_%d" % [url, label, chunk_size, sample_index, Time.get_ticks_usec()]
+	var case_url: String = _cache_busted_url(url, "case=%s_%d_%d_%d" % [label, chunk_size, sample_index, Time.get_ticks_usec()])
 	var result: PackRatResult = await PackRat.load_resource_pack(case_url, options)
 	var elapsed_msec: int = Time.get_ticks_msec() - started_msec
 	var transfer_msec: int = int(result.timings_msec.get("download_http_transfer_msec", -1))
 	var write_chunks: int = int(result.timings_msec.get("download_http_write_chunks", 0))
 	var write_max_chunk_size: int = int(result.timings_msec.get("download_http_write_max_chunk_size", 0))
+	if not result.ok:
+		_fail("Expected Web benchmark %s chunk=%d sample=%d to load: %s" % [label, chunk_size, sample_index, result.error])
+		return {}
+
+	if result.local_path.ends_with(".part") or result.local_path.contains("/tmp/"):
+		_fail("Expected Web benchmark %s chunk=%d sample=%d to finalize out of tmp: %s" % [label, chunk_size, sample_index, result.local_path])
+		return {}
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected Web benchmark %s chunk=%d sample=%d to clean .part files." % [label, chunk_size, sample_index])
+		return {}
+
+	if use_web_fetch:
+		if write_chunks <= 0:
+			_fail("Expected Web fetch benchmark chunk=%d sample=%d to write at least one chunk." % [chunk_size, sample_index])
+			return {}
+
+		if write_max_chunk_size <= 0 or write_max_chunk_size > chunk_size:
+			_fail("Expected Web fetch benchmark chunk=%d sample=%d max chunk to stay in range, got %d." % [
+				chunk_size,
+				sample_index,
+				write_max_chunk_size,
+			])
+			return {}
+
 	print("WEB_BENCH sample=%d case=%s chunk=%d ok=%s elapsed=%d transfer=%d write_chunks=%d write_max_chunk=%d timings=%s" % [
 		sample_index,
 		label,
@@ -117,6 +143,35 @@ func _absolute_pack_url() -> String:
 	return origin + PACK_URL
 
 
+func _benchmark_pack_url() -> String:
+	var bridge: Object = Engine.get_singleton("JavaScriptBridge")
+	if bridge == null:
+		return PACK_URL
+
+	var configured_url: String = String(bridge.eval("new URLSearchParams(window.location.search).get('pack_url') || ''", true))
+	if configured_url.is_empty():
+		return _absolute_pack_url()
+
+	return configured_url
+
+
+func _benchmark_sample_count() -> int:
+	var bridge: Object = Engine.get_singleton("JavaScriptBridge")
+	if bridge == null:
+		return SAMPLE_COUNT
+
+	var configured_count: int = int(bridge.eval("Number(new URLSearchParams(window.location.search).get('samples') || 0)", true))
+	if configured_count <= 0:
+		return SAMPLE_COUNT
+
+	return configured_count
+
+
+func _cache_busted_url(url: String, query: String) -> String:
+	var separator: String = "&" if url.contains("?") else "?"
+	return "%s%s%s" % [url, separator, query]
+
+
 func _clear_directory(path: String) -> void:
 	if not DirAccess.dir_exists_absolute(path):
 		return
@@ -127,3 +182,23 @@ func _clear_directory(path: String) -> void:
 	for directory_name in DirAccess.get_directories_at(path):
 		_clear_directory(path.path_join(directory_name))
 		DirAccess.remove_absolute(path.path_join(directory_name))
+
+
+func _has_part_files(path: String) -> bool:
+	if not DirAccess.dir_exists_absolute(path):
+		return false
+
+	for file_name in DirAccess.get_files_at(path):
+		if file_name.ends_with(".part"):
+			return true
+
+	for directory_name in DirAccess.get_directories_at(path):
+		if _has_part_files(path.path_join(directory_name)):
+			return true
+
+	return false
+
+
+func _fail(message: String) -> void:
+	push_error(message)
+	get_tree().quit(1)
