@@ -43,6 +43,7 @@ func _ready() -> void:
 
 	PackRatDemoCatalog.pages_pack_base_url = "http://127.0.0.1:%d/packs" % PORT
 	PackRatDemoCatalog.cache_dir = CACHE_DIR
+	PackRatDemoCatalog.use_threads = false
 	await get_tree().process_frame
 
 	var demo_scene: PackedScene = load("res://demo/demo.tscn")

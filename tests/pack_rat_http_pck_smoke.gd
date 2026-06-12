@@ -25,6 +25,12 @@ var _require_header: bool = false
 var _active_peers: int = 0
 
 
+func _new_options() -> PackRatOptions:
+	var options: PackRatOptions = PackRatOptions.new()
+	options.use_threads = false
+	return options
+
+
 func _ready() -> void:
 	set_process(false)
 	_clear_directory(CACHE_DIR)
@@ -42,7 +48,7 @@ func _ready() -> void:
 	set_process(true)
 	await get_tree().process_frame
 
-	var options: PackRatOptions = PackRatOptions.new()
+	var options: PackRatOptions = _new_options()
 	options.id = "http_pck_smoke"
 	options.cache_dir = CACHE_DIR
 	options.entry_path = MOUNTED_MARKER
@@ -161,7 +167,7 @@ func _ready() -> void:
 
 	var metadata_head_count: int = _head_count
 	var metadata_get_count: int = _get_count
-	var size_options: PackRatOptions = PackRatOptions.new()
+	var size_options: PackRatOptions = _new_options()
 	size_options.id = "size_metadata_smoke"
 	size_options.cache_dir = CACHE_DIR
 	size_options.entry_path = MOUNTED_MARKER
@@ -245,7 +251,7 @@ func _ready() -> void:
 		_fail("Expected corrupted expected_size cache hit to add one GET request.")
 		return
 
-	var modified_options: PackRatOptions = PackRatOptions.new()
+	var modified_options: PackRatOptions = _new_options()
 	modified_options.id = "modified_metadata_smoke"
 	modified_options.cache_dir = CACHE_DIR
 	modified_options.entry_path = MOUNTED_MARKER
@@ -257,7 +263,7 @@ func _ready() -> void:
 		_fail("Expected modified-time-only metadata load to download. Result: %s" % JSON.stringify(modified_first.to_dictionary()))
 		return
 
-	var both_options: PackRatOptions = PackRatOptions.new()
+	var both_options: PackRatOptions = _new_options()
 	both_options.id = "both_metadata_smoke"
 	both_options.cache_dir = CACHE_DIR
 	both_options.entry_path = MOUNTED_MARKER
@@ -284,7 +290,7 @@ func _ready() -> void:
 		_fail("Expected changed expected metadata to use a new cache path.")
 		return
 
-	var bad_size_options: PackRatOptions = PackRatOptions.new()
+	var bad_size_options: PackRatOptions = _new_options()
 	bad_size_options.id = "bad_size_metadata_smoke"
 	bad_size_options.cache_dir = CACHE_DIR
 	bad_size_options.timeout_seconds = 10.0
@@ -301,7 +307,7 @@ func _ready() -> void:
 		_fail("Expected expected_size validation failure to remove .part files.")
 		return
 
-	var bad_modified_options: PackRatOptions = PackRatOptions.new()
+	var bad_modified_options: PackRatOptions = _new_options()
 	bad_modified_options.id = "bad_modified_metadata_smoke"
 	bad_modified_options.cache_dir = CACHE_DIR
 	bad_modified_options.timeout_seconds = 10.0
@@ -323,7 +329,7 @@ func _ready() -> void:
 
 	var stat_head_count: int = _head_count
 	var stat_get_count: int = _get_count
-	var stat_options: PackRatOptions = PackRatOptions.new()
+	var stat_options: PackRatOptions = _new_options()
 	stat_options.id = "stat_metadata_smoke"
 	stat_options.cache_dir = CACHE_DIR
 	stat_options.entry_path = MOUNTED_MARKER
@@ -352,7 +358,7 @@ func _ready() -> void:
 
 	var offline_head_count: int = _head_count
 	var offline_get_count: int = _get_count
-	var offline_options: PackRatOptions = PackRatOptions.new()
+	var offline_options: PackRatOptions = _new_options()
 	offline_options.id = "offline_smoke"
 	offline_options.cache_dir = CACHE_DIR
 	offline_options.entry_path = MOUNTED_MARKER
@@ -373,7 +379,7 @@ func _ready() -> void:
 		_fail("Expected offline-first to skip HEAD and only download on miss.")
 		return
 
-	var mutation_options: PackRatOptions = PackRatOptions.new()
+	var mutation_options: PackRatOptions = _new_options()
 	mutation_options.id = "mutation_smoke"
 	mutation_options.cache_dir = CACHE_DIR
 	mutation_options.entry_path = MOUNTED_MARKER
@@ -388,7 +394,7 @@ func _ready() -> void:
 
 	var concurrent_head_count: int = _head_count
 	var concurrent_get_count: int = _get_count
-	var concurrent_options: PackRatOptions = PackRatOptions.new()
+	var concurrent_options: PackRatOptions = _new_options()
 	concurrent_options.id = "concurrent_smoke"
 	concurrent_options.cache_dir = CACHE_DIR
 	concurrent_options.entry_path = MOUNTED_MARKER
@@ -417,7 +423,7 @@ func _ready() -> void:
 		_fail("Expected concurrent loads to use independent downloads without HEAD requests.")
 		return
 
-	var progress_options: PackRatOptions = PackRatOptions.new()
+	var progress_options: PackRatOptions = _new_options()
 	progress_options.id = "progress_smoke"
 	progress_options.cache_dir = CACHE_DIR
 	progress_options.entry_path = MOUNTED_MARKER
@@ -441,7 +447,7 @@ func _ready() -> void:
 		_fail("Expected async load to emit progress_changed at least once.")
 		return
 
-	var expected_progress_options: PackRatOptions = PackRatOptions.new()
+	var expected_progress_options: PackRatOptions = _new_options()
 	expected_progress_options.id = "expected_progress_smoke"
 	expected_progress_options.cache_dir = CACHE_DIR
 	expected_progress_options.entry_path = MOUNTED_MARKER
@@ -466,7 +472,7 @@ func _ready() -> void:
 		_fail("Expected progress to use expected_size when Content-Length is unavailable.")
 		return
 
-	var hinted_progress_options: PackRatOptions = PackRatOptions.new()
+	var hinted_progress_options: PackRatOptions = _new_options()
 	hinted_progress_options.id = "hinted_progress_smoke"
 	hinted_progress_options.cache_dir = CACHE_DIR
 	hinted_progress_options.entry_path = MOUNTED_MARKER
@@ -495,7 +501,7 @@ func _ready() -> void:
 		_fail("Expected PackRatRequestRunner to free itself after async completion.")
 		return
 
-	var cancel_options: PackRatOptions = PackRatOptions.new()
+	var cancel_options: PackRatOptions = _new_options()
 	cancel_options.id = "cancel_smoke"
 	cancel_options.cache_dir = CACHE_DIR
 	cancel_options.timeout_seconds = 10.0
@@ -528,7 +534,7 @@ func _ready() -> void:
 		_fail("Expected PackRatRequestRunner to free itself after async cancellation.")
 		return
 
-	var extensionless_options: PackRatOptions = PackRatOptions.new()
+	var extensionless_options: PackRatOptions = _new_options()
 	extensionless_options.id = "extensionless_smoke"
 	extensionless_options.cache_dir = CACHE_DIR
 	extensionless_options.entry_path = MOUNTED_MARKER
@@ -571,7 +577,7 @@ func _ready() -> void:
 		_fail("Unexpected tagged GitHub release URL: %s" % github_tag_url)
 		return
 
-	var forced_options: PackRatOptions = PackRatOptions.new()
+	var forced_options: PackRatOptions = _new_options()
 	forced_options.id = "forced_download_smoke"
 	forced_options.cache_dir = CACHE_DIR
 	forced_options.entry_path = MOUNTED_MARKER
@@ -599,7 +605,7 @@ func _ready() -> void:
 		return
 
 	var invalid_url: String = "http://127.0.0.1:%d/invalid.pck" % _server.get_local_port()
-	var invalid_options: PackRatOptions = PackRatOptions.new()
+	var invalid_options: PackRatOptions = _new_options()
 	invalid_options.id = "invalid_mount_smoke"
 	invalid_options.cache_dir = CACHE_DIR
 	invalid_options.timeout_seconds = 10.0
@@ -615,7 +621,7 @@ func _ready() -> void:
 		return
 
 	_require_header = true
-	var header_options: PackRatOptions = PackRatOptions.new()
+	var header_options: PackRatOptions = _new_options()
 	header_options.id = "header_smoke"
 	header_options.cache_dir = CACHE_DIR
 	header_options.timeout_seconds = 10.0
@@ -627,7 +633,7 @@ func _ready() -> void:
 		return
 
 	var redirect_url: String = "http://127.0.0.1:%d/redirect.pck" % _server.get_local_port()
-	var redirect_options: PackRatOptions = PackRatOptions.new()
+	var redirect_options: PackRatOptions = _new_options()
 	redirect_options.id = "redirect_smoke"
 	redirect_options.cache_dir = CACHE_DIR
 	redirect_options.timeout_seconds = 10.0
@@ -643,7 +649,7 @@ func _ready() -> void:
 		_fail("Expected max_redirects=2 to follow redirected URL. Result: %s" % JSON.stringify(redirect_followed.to_dictionary()))
 		return
 
-	var timeout_options: PackRatOptions = PackRatOptions.new()
+	var timeout_options: PackRatOptions = _new_options()
 	timeout_options.id = "timeout_smoke"
 	timeout_options.cache_dir = CACHE_DIR
 	timeout_options.timeout_seconds = 0.05
@@ -655,7 +661,7 @@ func _ready() -> void:
 
 	var marker_before_replace_false: String = FileAccess.get_file_as_string(MOUNTED_MARKER)
 	_build_pack("replace-files-false-marker")
-	var replace_false_options: PackRatOptions = PackRatOptions.new()
+	var replace_false_options: PackRatOptions = _new_options()
 	replace_false_options.id = "replace_false_smoke"
 	replace_false_options.cache_dir = CACHE_DIR
 	replace_false_options.timeout_seconds = 10.0
@@ -674,6 +680,7 @@ func _ready() -> void:
 	var world_id: String = "mmo_world"
 	var mmo_url: String = "http://127.0.0.1:%d/%s.pck" % [_server.get_local_port(), world_id]
 	var mmo_options: PackRatOptions = PackRatOptions.from_expected_metadata(MODIFIED_V3_UNIX + 60, _pack_bytes.size())
+	mmo_options.use_threads = false
 	mmo_options.entry_path = MMO_SCENE_PATH
 	var mmo_result: PackRatResult = await PackRat.load_resource_pack(mmo_url, mmo_options)
 	if not mmo_result.ok:
@@ -688,7 +695,7 @@ func _ready() -> void:
 		_fail("Expected MMO-style loaded pack to expose scene %s." % MMO_SCENE_PATH)
 		return
 
-	var stale_record_options: PackRatOptions = PackRatOptions.new()
+	var stale_record_options: PackRatOptions = _new_options()
 	stale_record_options.id = "stale_record_smoke"
 	stale_record_options.cache_dir = CACHE_DIR
 	stale_record_options.timeout_seconds = 10.0

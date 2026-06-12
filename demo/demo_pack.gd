@@ -84,6 +84,7 @@ func options() -> PackRatOptions:
 	pack_options.entry_path = entry_path
 	pack_options.progress_total_size = file_size
 	pack_options.offline_first = true
+	pack_options.use_threads = PackRatDemoCatalog.use_threads
 	pack_options.capture_timings = true
 	return pack_options
 

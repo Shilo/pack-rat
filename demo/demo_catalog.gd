@@ -46,6 +46,9 @@ static var release_tag: String = "latest"
 ## Cache directory used by the demo cards.
 static var cache_dir: String = "user://pack_rat_demo"
 
+## Whether demo cards use native HTTPRequest worker threads.
+static var use_threads: bool = true
+
 
 ## Uses the current browser page as the static pack host when running on Web.
 static func use_web_same_origin_pack_base() -> void:

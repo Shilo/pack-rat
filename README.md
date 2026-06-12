@@ -197,7 +197,7 @@ and static host URLs.
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
 | `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. |
-| `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this only after profiling a native download that feels frame-bound. |
+| `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
@@ -448,8 +448,9 @@ rules before using it.
 - PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
   Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
 - PackRat exposes native `HTTPRequest` worker threads through
-  `PackRatOptions.use_threads` for projects that profile a frame-bound native
-  download. It is opt-in because the default native path is simpler and stable.
+  `PackRatOptions.use_threads`, but leaves them off by default. In repeated
+  GitHub Pages tests, the threaded path was not consistently faster than the
+  default native path.
 - PackRat keeps gzip/deflate transfer compression enabled for native
   `HTTPRequest`. Web browsers decode fetch bodies before Godot reads them, so
   PackRat disables Web `HTTPRequest`'s extra decode step and still caches normal

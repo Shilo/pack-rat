@@ -43,6 +43,10 @@ func _ready() -> void:
 		_fail("Expected PackRatOptions to accept gzip transfer compression by default.")
 		return
 
+	if options.use_threads:
+		_fail("Expected PackRatOptions to leave native HTTPRequest threads opt-in.")
+		return
+
 	var invalid: PackRatResult = await PackRat.load_resource_pack("not-a-url", options)
 	if invalid.ok or invalid.status != PackRatResult.STATUS_FAILED:
 		_fail("Expected invalid URL to return a failed result.")

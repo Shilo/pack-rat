@@ -13,6 +13,12 @@ var _get_count: int = 0
 var _etag: String = "\"packrat-zip-smoke-v1\""
 
 
+func _new_options() -> PackRatOptions:
+	var options: PackRatOptions = PackRatOptions.new()
+	options.use_threads = false
+	return options
+
+
 func _ready() -> void:
 	set_process(false)
 	_clear_directory(CACHE_DIR)
@@ -29,7 +35,7 @@ func _ready() -> void:
 	set_process(true)
 	await get_tree().process_frame
 
-	var options: PackRatOptions = PackRatOptions.new()
+	var options: PackRatOptions = _new_options()
 	options.id = "http_zip_smoke"
 	options.cache_dir = CACHE_DIR
 	options.entry_path = MOUNTED_MARKER
@@ -61,7 +67,7 @@ func _ready() -> void:
 		_fail("Expected ZIP cache hit to check freshness once, got %d HEAD requests." % _head_count)
 		return
 
-	var offset_options: PackRatOptions = PackRatOptions.new()
+	var offset_options: PackRatOptions = _new_options()
 	offset_options.id = "http_zip_smoke"
 	offset_options.cache_dir = CACHE_DIR
 	offset_options.timeout_seconds = 10.0
