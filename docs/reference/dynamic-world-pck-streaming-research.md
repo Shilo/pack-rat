@@ -176,9 +176,14 @@ in memory:
 var request := HTTPRequest.new()
 request.download_file = "user://world_packs/hub-<sha>.pck"
 request.timeout = 0.0
-request.accept_gzip = true
+request.accept_gzip = false
 request.request(pack_url)
 ```
+
+For raw Web `HTTPRequest`, leave Godot's gzip decode disabled. The browser
+fetch layer already returns decoded chunks to Godot, and a second Godot-side
+decode can fail with `RESULT_BODY_DECOMPRESS_FAILED`. PackRat handles this
+platform detail internally while keeping native `HTTPRequest` gzip enabled.
 
 `user://` is the correct storage location because exported `res://` content is
 read-only. On HTML5 exports, `user://` maps to an IndexedDB-backed virtual
