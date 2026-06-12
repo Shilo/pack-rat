@@ -1,12 +1,6 @@
 class_name PackRatDemoCard extends PanelContainer
 ## Interactive baked scene card that loads one PackRat Portal demo pack.
 
-const _FONT_CARD_TITLE: int = 18
-const _FONT_DESCRIPTION: int = 12
-const _FONT_BODY: int = 11
-const _FONT_STATUS: int = 13
-const _FONT_CONTROL: int = 12
-
 ## Emitted when the pack is ready to show in the preview stage.
 signal preview_requested(pack: PackRatDemoPack, result: PackRatResult)
 
@@ -121,16 +115,16 @@ func _bind_pack() -> void:
 
 
 func _apply_type_scale() -> void:
-	_title_label.add_theme_font_size_override("font_size", _FONT_CARD_TITLE)
-	_summary_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
-	_status_label.add_theme_font_size_override("font_size", _FONT_STATUS)
-	_detail_label.add_theme_font_size_override("font_size", _FONT_BODY)
-	_bytes_label.add_theme_font_size_override("font_size", _FONT_BODY)
-	_timing_label.add_theme_font_size_override("font_size", _FONT_BODY)
-	_load_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
-	_cancel_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
-	_preview_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
-	_clear_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_title_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.CONTENT_TITLE)
+	_summary_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_status_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.STATUS)
+	_detail_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
+	_bytes_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
+	_timing_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
+	_load_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_cancel_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_preview_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_clear_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
 
 
 func _set_idle_state() -> void:

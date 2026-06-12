@@ -3,6 +3,7 @@ extends Node
 const PORT: int = 18924
 const BUILD_DIR: String = "user://pack_rat_demo_smoke/packs"
 const CACHE_DIR: String = "user://pack_rat_demo_smoke/cache"
+const EXPECTED_SPACE: int = 10
 
 var _server: TCPServer
 var _pack_bytes: Dictionary = {}
@@ -55,10 +56,14 @@ func _ready() -> void:
 	if placeholder == null or placeholder.is_queued_for_deletion():
 		_fail("Expected baked preview placeholder to remain alive.")
 		return
+	if not _assert_demo_spacing(demo):
+		return
 
 	var warehouse_card: PackRatDemoCard = _card(demo, "WarehouseCard")
 	var gallery_card: PackRatDemoCard = _card(demo, "GalleryCard")
 	if warehouse_card == null or gallery_card == null:
+		return
+	if not _assert_demo_type_scale(demo, [warehouse_card, gallery_card]):
 		return
 
 	var downloader_row: Control = _control(demo, "DownloaderRow")
@@ -285,6 +290,84 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 	if PackRat.clear_cached_resource_pack("missing", clear_options) != ERR_DOES_NOT_EXIST:
 		_fail("PackRat.clear_cached_resource_pack did not report a missing cache item.")
 		return false
+
+	return true
+
+
+func _assert_demo_spacing(demo: Node) -> bool:
+	if not _assert_margin_container(demo, "Page"):
+		return false
+	if not _assert_margin_container(demo, "CardsMargin"):
+		return false
+
+	for container_name in [
+		"Root",
+		"Header",
+		"Copy",
+		"HeaderControls",
+		"SourceRow",
+		"DownloaderRow",
+		"Body",
+		"CardsStack",
+		"CardStack",
+		"PlaceholderStack",
+	]:
+		if not _assert_separation(demo, container_name):
+			return false
+
+	for card_name in ["WarehouseCard", "GalleryCard"]:
+		var card: PackRatDemoCard = _card(demo, card_name)
+		if card == null:
+			return false
+		if not _assert_margin_container(card, "Margin"):
+			return false
+		for container_name in ["Stack", "Header", "TitleStack", "StatusRow", "MetricRow"]:
+			if not _assert_separation(card, container_name):
+				return false
+		if not _assert_flow_separation(card, "Buttons"):
+			return false
+
+	return true
+
+
+func _assert_demo_type_scale(demo: Node, cards: Array[PackRatDemoCard]) -> bool:
+	if not _assert_font_size(demo, "Title", PackRatDemoTypeScale.APP_TITLE):
+		return false
+	if not _assert_font_size(demo, "Subtitle", PackRatDemoTypeScale.BODY):
+		return false
+	if not _assert_font_size(demo, "SourceLabel", PackRatDemoTypeScale.BODY):
+		return false
+	if not _assert_font_size(demo, "DownloaderLabel", PackRatDemoTypeScale.BODY):
+		return false
+	if not _assert_font_size(demo, "SourceSelector", PackRatDemoTypeScale.BODY):
+		return false
+	if not _assert_font_size(demo, "DownloadClientSelector", PackRatDemoTypeScale.BODY):
+		return false
+	if not _assert_font_size(demo, "ClearAllButton", PackRatDemoTypeScale.BODY):
+		return false
+	if not _assert_font_size(demo, "ToastLabel", PackRatDemoTypeScale.STATUS):
+		return false
+	if not _assert_font_size(demo, "PlaceholderTitle", PackRatDemoTypeScale.SECTION_TITLE):
+		return false
+	if not _assert_font_size(demo, "PlaceholderCopy", PackRatDemoTypeScale.BODY):
+		return false
+
+	for card in cards:
+		if not _assert_font_size(card, "TitleLabel", PackRatDemoTypeScale.CONTENT_TITLE):
+			return false
+		if not _assert_font_size(card, "SummaryLabel", PackRatDemoTypeScale.BODY):
+			return false
+		if not _assert_font_size(card, "StatusLabel", PackRatDemoTypeScale.STATUS):
+			return false
+		if not _assert_font_size(card, "DetailLabel", PackRatDemoTypeScale.META):
+			return false
+		if not _assert_font_size(card, "BytesLabel", PackRatDemoTypeScale.META):
+			return false
+		if not _assert_font_size(card, "TimingLabel", PackRatDemoTypeScale.META):
+			return false
+		for button_name in ["LoadButton", "CancelButton", "PreviewButton", "ClearButton"]:
+			if not _assert_font_size(card, button_name, PackRatDemoTypeScale.BODY):
+				return false
 
 	return true
 
@@ -594,10 +677,10 @@ func _assert_preview_scene_shell(demo: Node, scene_name: String) -> bool:
 	var subtitle: Label = _label(scene_root, "Subtitle")
 	if title == null or subtitle == null:
 		return false
-	if title.get_theme_font_size("font_size") != 18:
+	if title.get_theme_font_size("font_size") != PackRatDemoTypeScale.CONTENT_TITLE:
 		_fail("Expected mounted demo scene %s title to match card title size." % scene_name)
 		return false
-	if subtitle.get_theme_font_size("font_size") != 12:
+	if subtitle.get_theme_font_size("font_size") != PackRatDemoTypeScale.BODY:
 		_fail("Expected mounted demo scene %s subtitle to match card description size." % scene_name)
 		return false
 	if subtitle.text.split(" ", false).size() > 6:
@@ -713,6 +796,68 @@ func _label(root: Node, name: String) -> Label:
 
 	_fail("Could not find label %s." % name)
 	return null
+
+
+func _assert_font_size(root: Node, name: String, expected: int) -> bool:
+	var node: Node = root.find_child(name, true, false)
+	if node is not Control:
+		_fail("Could not find font control %s." % name)
+		return false
+
+	var control: Control = node
+	var actual: int = control.get_theme_font_size("font_size")
+	if actual != expected:
+		_fail("Expected %s font size %d, got %d." % [name, expected, actual])
+		return false
+
+	return true
+
+
+func _assert_margin_container(root: Node, name: String) -> bool:
+	var node: Node = root.find_child(name, true, false)
+	if node is not MarginContainer:
+		_fail("Could not find margin container %s." % name)
+		return false
+
+	var margin: MarginContainer = node
+	for constant in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		var actual: int = margin.get_theme_constant(constant)
+		if actual != EXPECTED_SPACE:
+			_fail("Expected %s %s to be %d, got %d." % [name, constant, EXPECTED_SPACE, actual])
+			return false
+
+	return true
+
+
+func _assert_separation(root: Node, name: String) -> bool:
+	var node: Node = root.find_child(name, true, false)
+	if node is not BoxContainer:
+		_fail("Could not find box container %s." % name)
+		return false
+
+	var container: BoxContainer = node
+	var actual: int = container.get_theme_constant("separation")
+	if actual != EXPECTED_SPACE:
+		_fail("Expected %s separation to be %d, got %d." % [name, EXPECTED_SPACE, actual])
+		return false
+
+	return true
+
+
+func _assert_flow_separation(root: Node, name: String) -> bool:
+	var node: Node = root.find_child(name, true, false)
+	if node is not HFlowContainer:
+		_fail("Could not find flow container %s." % name)
+		return false
+
+	var container: HFlowContainer = node
+	for constant in ["h_separation", "v_separation"]:
+		var actual: int = container.get_theme_constant(constant)
+		if actual != EXPECTED_SPACE:
+			_fail("Expected %s %s to be %d, got %d." % [name, constant, EXPECTED_SPACE, actual])
+			return false
+
+	return true
 
 
 func _control(root: Node, name: String) -> Control:

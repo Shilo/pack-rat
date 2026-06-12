@@ -269,7 +269,7 @@ static func _warehouse_scene() -> String:
 		"[node name=\"Title\" type=\"Label\" parent=\"Page/Header\"]",
 		"layout_mode = 2",
 		"theme_override_colors/font_color = Color(0.541176, 0.341176, 0.160784, 1)",
-		"theme_override_font_sizes/font_size = 18",
+		"theme_override_font_sizes/font_size = %d" % PackRatDemoTypeScale.CONTENT_TITLE,
 		"text = \"Warehouse PCK\"",
 		"vertical_alignment = 1",
 		"",
@@ -277,7 +277,7 @@ static func _warehouse_scene() -> String:
 		"layout_mode = 2",
 		"size_flags_horizontal = 3",
 		"theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)",
-		"theme_override_font_sizes/font_size = 12",
+		"theme_override_font_sizes/font_size = %d" % PackRatDemoTypeScale.BODY,
 		"text = \"Moving PackRat box room\"",
 		"vertical_alignment = 1",
 		"",
@@ -422,7 +422,7 @@ static func _gallery_scene() -> String:
 		"[node name=\"Title\" type=\"Label\" parent=\"Page/Stack/Header\"]",
 		"layout_mode = 2",
 		"theme_override_colors/font_color = Color(0.121569, 0.294118, 0.262745, 1)",
-		"theme_override_font_sizes/font_size = 18",
+		"theme_override_font_sizes/font_size = %d" % PackRatDemoTypeScale.CONTENT_TITLE,
 		"text = \"Gallery ZIP\"",
 		"vertical_alignment = 1",
 		"",
@@ -430,7 +430,7 @@ static func _gallery_scene() -> String:
 		"layout_mode = 2",
 		"size_flags_horizontal = 3",
 		"theme_override_colors/font_color = Color(0.262745, 0.392157, 0.360784, 1)",
-		"theme_override_font_sizes/font_size = 12",
+		"theme_override_font_sizes/font_size = %d" % PackRatDemoTypeScale.BODY,
 		"text = \"Responsive content tile gallery\"",
 		"vertical_alignment = 1",
 		"",
@@ -483,7 +483,7 @@ static func _gallery_scene() -> String:
 		lines.append("offset_right = 154.0")
 		lines.append("offset_bottom = 84.0")
 		lines.append("theme_override_colors/font_color = Color(0.121569, 0.168627, 0.160784, 1)")
-		lines.append("theme_override_font_sizes/font_size = 12")
+		lines.append("theme_override_font_sizes/font_size = %d" % PackRatDemoTypeScale.BODY)
 		lines.append("text = \"Content tile %02d\"" % (index + 1))
 		lines.append("autowrap_mode = 3")
 		lines.append("")

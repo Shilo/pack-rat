@@ -10,11 +10,6 @@ const _DOWNLOADER_FETCH: String = "fetch"
 const _DOWNLOADER_HTTP_REQUEST: String = "httprequest"
 const _NARROW_WIDTH: float = 900.0
 const _SPACE: int = 10
-const _FONT_APP_TITLE: int = 28
-const _FONT_SECTION_TITLE: int = 22
-const _FONT_DESCRIPTION: int = 12
-const _FONT_CONTROL: int = 12
-const _FONT_TOAST: int = 13
 
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
 var _use_web_fetch: bool = true
@@ -80,16 +75,16 @@ func _show_placeholder() -> void:
 
 
 func _apply_type_scale() -> void:
-	_title_label.add_theme_font_size_override("font_size", _FONT_APP_TITLE)
-	_subtitle_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
-	_source_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
-	_download_client_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
-	_placeholder_title.add_theme_font_size_override("font_size", _FONT_SECTION_TITLE)
-	_placeholder_copy.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
-	_source_selector.add_theme_font_size_override("font_size", _FONT_CONTROL)
-	_download_client_selector.add_theme_font_size_override("font_size", _FONT_CONTROL)
-	_clear_all_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
-	_toast_label.add_theme_font_size_override("font_size", _FONT_TOAST)
+	_title_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.APP_TITLE)
+	_subtitle_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_source_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_download_client_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_placeholder_title.add_theme_font_size_override("font_size", PackRatDemoTypeScale.SECTION_TITLE)
+	_placeholder_copy.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_source_selector.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_download_client_selector.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_clear_all_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
+	_toast_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.STATUS)
 
 
 func _apply_responsive_layout() -> void:
