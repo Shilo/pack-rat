@@ -97,6 +97,7 @@ func _ready() -> void:
 	metadata_options.download_chunk_size = 2 * 1024 * 1024
 	metadata_options.capture_timings = true
 	metadata_options.use_web_fetch = false
+	metadata_options.web_fetch_max_bytes = 123456
 	metadata_options.accept_gzip = false
 	metadata_options.progress_total_size = 2048
 	metadata_options.use_threads = false
@@ -106,6 +107,7 @@ func _ready() -> void:
 	metadata_options.download_chunk_size = 1024
 	metadata_options.capture_timings = false
 	metadata_options.use_web_fetch = true
+	metadata_options.web_fetch_max_bytes = 0
 	metadata_options.accept_gzip = true
 	metadata_options.progress_total_size = 4096
 	metadata_options.use_threads = true
@@ -127,6 +129,10 @@ func _ready() -> void:
 
 	if copied_options.use_web_fetch:
 		_fail("Expected PackRatOptions.copy to snapshot use_web_fetch.")
+		return
+
+	if copied_options.web_fetch_max_bytes != 123456:
+		_fail("Expected PackRatOptions.copy to snapshot web_fetch_max_bytes.")
 		return
 
 	if copied_options.accept_gzip:

@@ -196,9 +196,10 @@ and static host URLs.
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
-| `download_chunk_size` | `PackRatOptions.default_download_chunk_size()` | Bytes read from `HTTPRequest` per engine iteration. Defaults to 8 MiB on desktop and 4 MiB on mobile/Web-mobile. PackRat clamps this to Godot's 16 MiB maximum. |
+| `download_chunk_size` | `PackRatOptions.default_download_chunk_size()` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to 8 MiB on desktop and 4 MiB on mobile/Web-mobile. PackRat clamps this to Godot's 16 MiB maximum. |
 | `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
+| `web_fetch_max_bytes` | `0` | Optional maximum size for the Web `fetch()` fast path. `0` means no PackRat-imposed size cap. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
@@ -461,10 +462,13 @@ rules before using it.
   Godot's Web HTTP client cannot progress more than once per frame. This is on
   by default through `PackRatOptions.use_web_fetch`, and can be disabled to
   compare against Godot `HTTPRequest`. It is much faster for large packs, but
-  briefly keeps the downloaded pack in memory before writing it to `user://`;
-  progress UI callbacks are rate-limited to 2 FPS to avoid bridge spam without
-  slowing the actual browser download. The final progress callback still reports
-  the exact completed byte count.
+  still uses browser and WebAssembly memory while chunks are handed to Godot.
+  Web `fetch()` writes chunks using `download_chunk_size`, so it does not buffer
+  the full pack before writing. Progress UI callbacks are rate-limited to 2 FPS
+  to avoid bridge spam without slowing the actual browser download. The final
+  progress callback still reports the exact completed byte count.
+- Set `web_fetch_max_bytes` only if you want an explicit project-level size
+  limit for the Web fast path.
 - `capture_timings` is opt-in so normal loads avoid profiling dictionary and
   timestamp overhead.
 - `timeout_seconds` is finite by default so stalled downloads fail.
