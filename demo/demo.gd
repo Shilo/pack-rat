@@ -27,15 +27,9 @@ var _auto_load_failed: bool = false
 @onready var _source_selector: OptionButton = %SourceSelector
 @onready var _download_client_row: HBoxContainer = %DownloaderRow
 @onready var _download_client_selector: OptionButton = %DownloadClientSelector
-@onready var _title_label: Label = %Title
-@onready var _subtitle_label: Label = %Subtitle
-@onready var _source_label: Label = %SourceLabel
-@onready var _download_client_label: Label = %DownloaderLabel
 @onready var _mounted_scene_host: Control = %MountedSceneHost
 @onready var _preview_placeholder: Control = %PreviewPlaceholder
 @onready var _preview_host: Control = %PreviewHost
-@onready var _placeholder_title: Label = %PlaceholderTitle
-@onready var _placeholder_copy: Label = %PlaceholderCopy
 @onready var _clear_all_button: Button = %ClearAllButton
 @onready var _output_text: TextEdit = %OutputText
 @onready var _warehouse_card: PackRatDemoCard = %WarehouseCard
@@ -61,7 +55,6 @@ func _ready() -> void:
 		card.load_finished.connect(_on_load_finished)
 		card.message_requested.connect(_append_output)
 
-	_apply_type_scale()
 	_apply_responsive_layout()
 	_show_placeholder()
 	_append_output("Ready")
@@ -71,19 +64,6 @@ func _ready() -> void:
 func _show_placeholder() -> void:
 	_clear_preview()
 	_preview_placeholder.visible = true
-
-
-func _apply_type_scale() -> void:
-	_title_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.APP_TITLE)
-	_subtitle_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_source_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_download_client_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_placeholder_title.add_theme_font_size_override("font_size", PackRatDemoTypeScale.SECTION_TITLE)
-	_placeholder_copy.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_source_selector.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_download_client_selector.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_clear_all_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_output_text.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
 
 
 func _apply_responsive_layout() -> void:

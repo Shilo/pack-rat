@@ -1,5 +1,5 @@
 class_name PackRatDemoTypeScale extends RefCounted
-## Shared typography sizes for the PackRat Portal demo and demo pack scenes.
+## Shared typography sizes baked into PackRat Portal demo scenes and verified by smoke tests.
 
 ## Main app title.
 const APP_TITLE: int = 18

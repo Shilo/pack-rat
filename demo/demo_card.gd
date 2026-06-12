@@ -46,7 +46,6 @@ func _ready() -> void:
 		return
 
 	_bind_pack()
-	_apply_type_scale()
 	_load_button.pressed.connect(load_pack)
 	_cancel_button.pressed.connect(_on_cancel_pressed)
 	_preview_button.pressed.connect(_on_preview_pressed)
@@ -112,19 +111,6 @@ func _bind_pack() -> void:
 	_title_label.text = _pack.title
 	_summary_label.text = _pack.summary
 	_summary_label.visible = true
-
-
-func _apply_type_scale() -> void:
-	_title_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.CONTENT_TITLE)
-	_summary_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_status_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.STATUS)
-	_detail_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
-	_bytes_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
-	_timing_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
-	_load_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_cancel_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_preview_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_clear_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
 
 
 func _set_idle_state() -> void:
