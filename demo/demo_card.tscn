@@ -33,22 +33,22 @@ script = ExtResource("1_card")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 14
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
 [node name="Stack" type="VBoxContainer" parent="Margin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
 
 [node name="Header" type="HBoxContainer" parent="Margin/Stack"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="AccentBar" type="ColorRect" parent="Margin/Stack/Header"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(8, 44)
+custom_minimum_size = Vector2(6, 36)
 layout_mode = 2
 color = Color(0.541176, 0.341176, 0.160784, 1)
 
@@ -61,7 +61,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 18
 text = "Pack"
 autowrap_mode = 3
 
@@ -69,9 +69,9 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.541176, 0.341176, 0.160784, 1)
+theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
 theme_override_font_sizes/font_size = 12
-text = "PCK resource pack"
+text = "Summary"
 autowrap_mode = 3
 
 [node name="SummaryLabel" type="Label" parent="Margin/Stack"]
@@ -81,13 +81,14 @@ size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
 text = "Summary"
 autowrap_mode = 3
+visible = false
 
 [node name="StatusLabel" type="Label" parent="Margin/Stack"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
-theme_override_font_sizes/font_size = 14
+theme_override_font_sizes/font_size = 13
 text = "Ready"
 autowrap_mode = 3
 
@@ -96,13 +97,13 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "Source"
 autowrap_mode = 3
 
 [node name="ProgressBar" type="ProgressBar" parent="Margin/Stack"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_styles/fill = SubResource("ProgressFill")
@@ -114,7 +115,7 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 11
 text = "Expected size"
 autowrap_mode = 3
 
@@ -123,15 +124,15 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
-theme_override_font_sizes/font_size = 12
-text = "Last download: none"
+theme_override_font_sizes/font_size = 11
+text = "Last: none"
 autowrap_mode = 3
 
 [node name="Buttons" type="HFlowContainer" parent="Margin/Stack"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 
 [node name="LoadButton" type="Button" parent="Margin/Stack/Buttons"]
 unique_name_in_owner = true

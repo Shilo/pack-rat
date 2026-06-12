@@ -19,7 +19,6 @@ var _use_web_fetch: bool = true
 var _request: PackRatRequest
 var _last_result: PackRatResult
 var _last_download_msec: int = -1
-var _last_download_client: String = ""
 
 @onready var _accent_bar: ColorRect = %AccentBar
 @onready var _title_label: Label = %TitleLabel
@@ -93,10 +92,8 @@ func load_pack() -> void:
 	message_requested.emit("Loading %s..." % _pack.title, false)
 
 	_status_label.text = "Downloading"
-	_detail_label.text = "Source: %s; downloader: %s" % [
-		PackRatDemoCatalog.source_label(_source),
-		_download_client_label(),
-	]
+	_detail_label.text = "Remote download in progress."
+	_detail_label.visible = true
 	_bytes_label.text = _download_text(0, options.expected_size)
 	_update_timing_label()
 	_progress_bar.value = 0.0
@@ -113,17 +110,14 @@ func pack() -> PackRatDemoPack:
 func _bind_pack() -> void:
 	_accent_bar.color = _pack.accent_color
 	_title_label.text = _pack.title
-	_format_label.text = "%s resource pack" % _pack.format
-	_format_label.add_theme_color_override("font_color", _pack.accent_color)
-	_summary_label.text = _pack.summary
+	_format_label.text = _pack.summary
+	_summary_label.visible = false
 
 
 func _set_idle_state() -> void:
 	_status_label.text = "Ready"
-	_detail_label.text = "Source: %s; downloader: %s" % [
-		PackRatDemoCatalog.source_label(_source),
-		_download_client_label(),
-	]
+	_detail_label.text = ""
+	_detail_label.visible = false
 	if _pack.expected_size > 0:
 		_bytes_label.text = _download_text(0, _pack.expected_size)
 	else:
@@ -158,7 +152,6 @@ func _on_completed(result: PackRatResult) -> void:
 		_update_loaded_detail()
 		if not result.from_cache:
 			_last_download_msec = _download_duration_msec(result)
-			_last_download_client = _download_client_label()
 		_bytes_label.text = _download_text(result.content_length, _expected_display_size(result))
 		_update_timing_label()
 		message_requested.emit(
@@ -169,12 +162,14 @@ func _on_completed(result: PackRatResult) -> void:
 	elif result.was_canceled():
 		_status_label.text = "Canceled"
 		_detail_label.text = "The download was canceled before mounting."
+		_detail_label.visible = true
 		_bytes_label.text = _download_text(0, _pack.expected_size)
 		_update_timing_label()
 		message_requested.emit("Canceled %s." % _pack.title, false)
 	else:
 		_status_label.text = "Failed"
 		_detail_label.text = result.error
+		_detail_label.visible = true
 		_bytes_label.text = _download_text(0, _pack.expected_size)
 		_update_timing_label()
 		message_requested.emit("%s failed: %s" % [_pack.title, result.error], true)
@@ -190,19 +185,8 @@ func _log_result_timings(result: PackRatResult) -> void:
 
 
 func _update_loaded_detail() -> void:
-	_detail_label.text = "Source: %s; downloader: %s; mounted from %s" % [
-		PackRatDemoCatalog.source_label(_source),
-		_download_client_label(),
-		"cache" if _last_result.from_cache else "remote",
-	]
-
-
-func _download_client_label() -> String:
-	if not OS.has_feature("web"):
-		return "Godot HTTPRequest"
-	if _use_web_fetch:
-		return "browser fetch"
-	return "Godot HTTPRequest"
+	_detail_label.text = "Mounted from %s." % ("cache" if _last_result.from_cache else "remote")
+	_detail_label.visible = true
 
 
 func _download_text(downloaded_bytes: int, total_bytes: int) -> String:
@@ -232,13 +216,10 @@ func _download_duration_msec(result: PackRatResult) -> int:
 
 func _update_timing_label() -> void:
 	if _last_download_msec < 0:
-		_timing_label.text = "Last download: none"
+		_timing_label.text = "Last: none"
 		return
 
-	_timing_label.text = "Last download: %s via %s" % [
-		_format_duration(_last_download_msec),
-		_last_download_client,
-	]
+	_timing_label.text = "Last: %s" % _format_duration(_last_download_msec)
 
 
 func _on_cancel_pressed() -> void:

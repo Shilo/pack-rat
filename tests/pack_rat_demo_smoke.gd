@@ -503,7 +503,7 @@ func _assert_card_text_fits(demo: Node, card: PackRatDemoCard) -> bool:
 	var timing_label: Label = _label(card, "TimingLabel")
 	if timing_label == null:
 		return false
-	if not timing_label.text.begins_with("Last download: "):
+	if not timing_label.text.begins_with("Last: "):
 		_fail("Expected card timing label to show the last download duration.")
 		return false
 
