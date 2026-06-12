@@ -434,9 +434,13 @@ rules before using it.
   in-process fast path after the first successful mount.
 - Concurrent calls are independent by design. If two identical calls start at
   the same time, both may download.
-- Progress polling happens once per frame while a GET is active.
+- Native HTTPRequest progress polling happens once per frame while a GET is active.
 - PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
   Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
+- Web exports use a browser `fetch()` fast path for file downloads because
+  Godot's Web HTTP client cannot progress more than once per frame. This is much
+  faster for large packs, but briefly keeps the downloaded pack in memory before
+  writing it to `user://`; progress updates are throttled to avoid callback spam.
 - `capture_timings` is opt-in so normal loads avoid profiling dictionary and
   timestamp overhead.
 - `timeout_seconds` is finite by default so stalled downloads fail.
