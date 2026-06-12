@@ -99,6 +99,8 @@ func _ready() -> void:
 		return
 	if not _assert_preview_scene_shell(demo, "Warehouse"):
 		return
+	if not _assert_warehouse_physics(demo):
+		return
 
 	var valid_pack_base_url: String = PackRatDemoCatalog.pages_pack_base_url
 	PackRatDemoCatalog.pages_pack_base_url = "ftp://invalid"
@@ -736,6 +738,16 @@ func _assert_preview_contains_icon(demo: Node, icon_name: String) -> bool:
 		var icon: TextureRect = node
 		if icon.texture != null:
 			return true
+	if node is Sprite2D:
+		var sprite: Sprite2D = node
+		if sprite.texture != null:
+			return true
+	if node is RigidBody2D:
+		var icon_child: Node = node.find_child("Icon", true, false)
+		if icon_child is Sprite2D:
+			var icon_sprite: Sprite2D = icon_child
+			if icon_sprite.texture != null:
+				return true
 
 	_fail("Expected mounted demo scene icon %s to have a texture." % icon_name)
 	return false
@@ -805,6 +817,59 @@ func _assert_gallery_responsive(result: PackRatResult) -> bool:
 	var fits: bool = _assert_gallery_width_fits(host, instance, "wide")
 	host.queue_free()
 	return fits
+
+
+func _assert_warehouse_physics(demo: Node) -> bool:
+	var mounted_host: Control = _control(demo, "MountedSceneHost")
+	if mounted_host == null:
+		return false
+	var scene_root: Node = mounted_host.find_child("Warehouse", true, false)
+	if scene_root is not Control:
+		_fail("Expected mounted warehouse scene root.")
+		return false
+
+	var warehouse: Control = scene_root
+	var expected_width: float = maxf(warehouse.size.x, 1.0)
+	var expected_floor_y: float = maxf(warehouse.size.y - 34.0, 1.0)
+
+	var box_node: Node = mounted_host.find_child("Box00", true, false)
+	if box_node is not RigidBody2D:
+		_fail("Expected warehouse Box00 to be a RigidBody2D.")
+		return false
+
+	var box_collision_node: Node = box_node.find_child("CollisionShape2D", true, false)
+	if box_collision_node is not CollisionShape2D:
+		_fail("Expected warehouse Box00 to have a CollisionShape2D.")
+		return false
+
+	var box_collision: CollisionShape2D = box_collision_node
+	if box_collision.shape is not RectangleShape2D:
+		_fail("Expected warehouse Box00 collision to use a RectangleShape2D.")
+		return false
+
+	for edge_name in ["FloorCollision", "LeftWallCollision", "RightWallCollision", "CeilingCollision"]:
+		var edge_node: Node = mounted_host.find_child(edge_name, true, false)
+		if edge_node is not CollisionShape2D:
+			_fail("Expected warehouse edge collider %s." % edge_name)
+			return false
+
+		var edge_collision: CollisionShape2D = edge_node
+		if edge_collision.shape is not SegmentShape2D:
+			_fail("Expected warehouse edge collider %s to use SegmentShape2D." % edge_name)
+			return false
+
+		var edge: SegmentShape2D = edge_collision.shape
+		if edge_name == "FloorCollision" and absf(edge.b.x - expected_width) > 1.0:
+			_fail("Expected warehouse floor edge to match scene width.")
+			return false
+		if edge_name == "RightWallCollision" and absf(edge.a.x - expected_width) > 1.0:
+			_fail("Expected warehouse right wall edge to match scene width.")
+			return false
+		if edge_name == "LeftWallCollision" and absf(edge.b.y - expected_floor_y) > 1.0:
+			_fail("Expected warehouse left wall edge to match scene height.")
+			return false
+
+	return true
 
 
 func _assert_gallery_width_fits(host: Control, gallery: Node, label: String) -> bool:
