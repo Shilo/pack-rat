@@ -443,8 +443,9 @@ rules before using it.
   by default through `PackRatOptions.use_web_fetch`, and can be disabled to
   compare against Godot `HTTPRequest`. It is much faster for large packs, but
   briefly keeps the downloaded pack in memory before writing it to `user://`;
-  progress UI callbacks are rate-limited to 10 FPS to avoid bridge spam without
-  slowing the actual browser download.
+  progress UI callbacks are rate-limited to 2 FPS to avoid bridge spam without
+  slowing the actual browser download. The final progress callback still reports
+  the exact completed byte count.
 - `capture_timings` is opt-in so normal loads avoid profiling dictionary and
   timestamp overhead.
 - `timeout_seconds` is finite by default so stalled downloads fail.
