@@ -1,6 +1,12 @@
 class_name PackRatDemoCard extends PanelContainer
 ## Interactive baked scene card that loads one PackRat Portal demo pack.
 
+const _FONT_CARD_TITLE: int = 18
+const _FONT_DESCRIPTION: int = 12
+const _FONT_BODY: int = 11
+const _FONT_STATUS: int = 13
+const _FONT_CONTROL: int = 12
+
 ## Emitted when the pack is ready to show in the preview stage.
 signal preview_requested(pack: PackRatDemoPack, result: PackRatResult)
 
@@ -47,6 +53,7 @@ func _ready() -> void:
 		return
 
 	_bind_pack()
+	_apply_type_scale()
 	_load_button.pressed.connect(load_pack)
 	_cancel_button.pressed.connect(_on_cancel_pressed)
 	_preview_button.pressed.connect(_on_preview_pressed)
@@ -112,6 +119,19 @@ func _bind_pack() -> void:
 	_title_label.text = _pack.title
 	_format_label.text = _pack.summary
 	_summary_label.visible = false
+
+
+func _apply_type_scale() -> void:
+	_title_label.add_theme_font_size_override("font_size", _FONT_CARD_TITLE)
+	_format_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
+	_status_label.add_theme_font_size_override("font_size", _FONT_STATUS)
+	_detail_label.add_theme_font_size_override("font_size", _FONT_BODY)
+	_bytes_label.add_theme_font_size_override("font_size", _FONT_BODY)
+	_timing_label.add_theme_font_size_override("font_size", _FONT_BODY)
+	_load_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_cancel_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_preview_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_clear_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
 
 
 func _set_idle_state() -> void:

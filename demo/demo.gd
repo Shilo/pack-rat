@@ -9,12 +9,17 @@ const _DOWNLOADER_ARG: String = "--downloader="
 const _DOWNLOADER_FETCH: String = "fetch"
 const _DOWNLOADER_HTTP_REQUEST: String = "httprequest"
 const _NARROW_WIDTH: float = 900.0
+const _FONT_APP_TITLE: int = 28
+const _FONT_SECTION_TITLE: int = 22
+const _FONT_DESCRIPTION: int = 12
+const _FONT_BODY: int = 11
+const _FONT_CONTROL: int = 12
+const _FONT_TOAST: int = 13
 
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
 var _use_web_fetch: bool = true
 var _pack_base_arg_applied: bool = false
 var _cards: Array[PackRatDemoCard] = []
-var _selected_result: PackRatResult
 var _quit_when_done: bool = false
 var _auto_load_ids: PackedStringArray = []
 var _pending_auto_loads: int = 0
@@ -27,12 +32,18 @@ var _auto_load_failed: bool = false
 @onready var _source_selector: OptionButton = %SourceSelector
 @onready var _download_client_row: HBoxContainer = %DownloaderRow
 @onready var _download_client_selector: OptionButton = %DownloadClientSelector
+@onready var _title_label: Label = %Title
+@onready var _subtitle_label: Label = %Subtitle
+@onready var _source_label: Label = %SourceLabel
+@onready var _download_client_label: Label = %DownloaderLabel
 @onready var _mounted_scene_host: Control = %MountedSceneHost
 @onready var _preview_placeholder: Control = %PreviewPlaceholder
 @onready var _preview_title: Label = %PreviewTitle
 @onready var _preview_status: Label = %PreviewStatus
-@onready var _open_full_scene_button: Button = %OpenFullSceneButton
 @onready var _preview_host: Control = %PreviewHost
+@onready var _placeholder_title: Label = %PlaceholderTitle
+@onready var _placeholder_copy: Label = %PlaceholderCopy
+@onready var _clear_all_button: Button = %ClearAllButton
 @onready var _toast_panel: PanelContainer = %ToastPanel
 @onready var _toast_label: Label = %ToastLabel
 @onready var _warehouse_card: PackRatDemoCard = %WarehouseCard
@@ -49,8 +60,7 @@ func _ready() -> void:
 	_download_client_selector.select(0 if _use_web_fetch else 1)
 	_source_selector.item_selected.connect(_on_source_selected)
 	_download_client_selector.item_selected.connect(_on_downloader_selected)
-	_open_full_scene_button.pressed.connect(_on_open_full_scene_pressed)
-	%ClearAllButton.pressed.connect(_on_clear_all_pressed)
+	_clear_all_button.pressed.connect(_on_clear_all_pressed)
 
 	for card in _cards:
 		card.set_source(_source)
@@ -59,6 +69,7 @@ func _ready() -> void:
 		card.load_finished.connect(_on_load_finished)
 		card.message_requested.connect(_show_toast)
 
+	_apply_type_scale()
 	_apply_responsive_layout()
 	_show_placeholder()
 	_show_toast("Ready")
@@ -68,8 +79,22 @@ func _ready() -> void:
 func _show_placeholder() -> void:
 	_clear_preview()
 	_preview_placeholder.visible = true
-	_preview_status.text = "Load a pack to mount a scene here."
-	_open_full_scene_button.disabled = true
+	_preview_status.text = ""
+
+
+func _apply_type_scale() -> void:
+	_title_label.add_theme_font_size_override("font_size", _FONT_APP_TITLE)
+	_subtitle_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
+	_source_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
+	_download_client_label.add_theme_font_size_override("font_size", _FONT_DESCRIPTION)
+	_preview_title.add_theme_font_size_override("font_size", _FONT_SECTION_TITLE)
+	_preview_status.add_theme_font_size_override("font_size", _FONT_BODY)
+	_placeholder_title.add_theme_font_size_override("font_size", _FONT_SECTION_TITLE)
+	_placeholder_copy.add_theme_font_size_override("font_size", _FONT_BODY)
+	_source_selector.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_download_client_selector.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_clear_all_button.add_theme_font_size_override("font_size", _FONT_CONTROL)
+	_toast_label.add_theme_font_size_override("font_size", _FONT_TOAST)
 
 
 func _apply_responsive_layout() -> void:
@@ -137,21 +162,9 @@ func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void
 		var control: Control = instance
 		control.set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	_selected_result = result
 	_preview_title.text = pack.title
 	_preview_status.text = "%s from %s" % [result.status, "cache" if result.from_cache else "remote"]
-	_open_full_scene_button.disabled = false
 	_show_toast("Previewing %s." % pack.title)
-
-
-func _on_open_full_scene_pressed() -> void:
-	if _selected_result == null:
-		return
-
-	var error: Error = _selected_result.change_scene_to_entry(get_tree())
-	if error != OK:
-		_preview_status.text = "Could not open full scene (error %d)." % error
-		_show_toast("Could not open full scene (error %d)." % error, true)
 
 
 func _on_clear_all_pressed() -> void:

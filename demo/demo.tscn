@@ -99,15 +99,17 @@ layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="Title" type="Label" parent="Page/Root/Header/Copy"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
 theme_override_font_sizes/font_size = 28
 text = "PackRat Portal"
 
 [node name="Subtitle" type="Label" parent="Page/Root/Header/Copy"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 12
 text = "A tiny shell that fetches, caches, and mounts remote Godot rooms."
 autowrap_mode = 3
 
@@ -121,6 +123,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="SourceLabel" type="Label" parent="Page/Root/Header/HeaderControls/SourceRow"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.294118, 0.258824, 0.227451, 1)
 theme_override_font_sizes/font_size = 12
@@ -130,6 +133,7 @@ text = "Source"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
 item_count = 2
 selected = 0
 popup/item_0/text = "GitHub Pages mirror"
@@ -143,6 +147,7 @@ layout_mode = 2
 theme_override_constants/separation = 8
 
 [node name="DownloaderLabel" type="Label" parent="Page/Root/Header/HeaderControls/DownloaderRow"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.294118, 0.258824, 0.227451, 1)
 theme_override_font_sizes/font_size = 12
@@ -152,6 +157,7 @@ text = "Downloader"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
 selected = 0
 item_count = 2
 popup/item_0/text = "Browser fetch"
@@ -222,6 +228,7 @@ pack_id = "gallery"
 [node name="ClearAllButton" type="Button" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack"]
 unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 12
 text = "Clear all disk cache"
 
 [node name="StagePanel" type="PanelContainer" parent="Page/Root/Body"]
@@ -253,20 +260,14 @@ size_flags_horizontal = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 text = "Preview Stage"
 
 [node name="PreviewStatus" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/StageHeader/StageTitleStack"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
-text = "Load a pack to mount a scene here."
-
-[node name="OpenFullSceneButton" type="Button" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/StageHeader"]
-unique_name_in_owner = true
-layout_mode = 2
-disabled = true
-text = "Open full scene"
+theme_override_font_sizes/font_size = 11
 
 [node name="PreviewFrame" type="PanelContainer" parent="Page/Root/Body/StagePanel/StageMargin/StageStack"]
 layout_mode = 2
@@ -312,14 +313,17 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="PlaceholderTitle" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder/PlaceholderStack"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.352941, 0.313726, 0.27451, 1)
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 22
 text = "No pack mounted"
 horizontal_alignment = 1
 
 [node name="PlaceholderCopy" type="Label" parent="Page/Root/Body/StagePanel/StageMargin/StageStack/PreviewFrame/PreviewHost/PreviewPlaceholder/PlaceholderStack"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.478431, 0.439216, 0.4, 1)
+theme_override_font_sizes/font_size = 11
 text = "Choose a card and start a remote load."
 horizontal_alignment = 1
