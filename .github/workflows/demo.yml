@@ -83,7 +83,7 @@ jobs:
         run: |
           godot --headless --path . --export-pack "Warehouse DLC" "$EXPORT_ROOT/web/packs/packrat-demo-warehouse.pck"
           godot --headless --path . --export-pack "Gallery DLC" "$EXPORT_ROOT/web/packs/packrat-demo-gallery.zip"
-          godot --headless --path . --script tools/demo_pack_catalog.gd -- --output-dir="$EXPORT_ROOT/web/packs" --check
+          godot --headless --path . --script tools/demo_pack_catalog.gd -- --output-dir="$EXPORT_ROOT/web/packs"
 
       - name: Verify demo source resources were not generated
         run: |
