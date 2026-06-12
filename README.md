@@ -491,6 +491,11 @@ version tokens. The pack source scenes live in `demo/packs/` so they are
 visible in the Godot editor. The Web export excludes `demo/packs/**`, then
 PackRat mounts those paths back at runtime.
 
+The demo pack presets enable both desktop and mobile Web VRAM texture
+compression targets. This makes the PCK/ZIP exports larger when they contain
+VRAM-compressed textures, but better demonstrates one universal Web pack that
+can run on desktop and mobile browsers.
+
 CI uses the same export presets, syncs the demo catalog to the exported
 artifacts, and passes that exported pack directory into the demo smoke test.
 This keeps Web deployments aligned even when ZIP metadata differs slightly

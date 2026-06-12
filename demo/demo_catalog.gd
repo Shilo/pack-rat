@@ -26,16 +26,16 @@ const WAREHOUSE_ENTRY_PATH: String = "res://demo/packs/warehouse/main.tscn"
 const GALLERY_ENTRY_PATH: String = "res://demo/packs/gallery/main.tscn"
 
 ## Exported byte size for the warehouse PCK.
-const WAREHOUSE_FILE_SIZE: int = 10520932
+const WAREHOUSE_FILE_SIZE: int = 10521060
 
 ## Exported byte size for the gallery ZIP.
-const GALLERY_FILE_SIZE: int = 16795264
+const GALLERY_FILE_SIZE: int = 16795299
 
 ## Exported content version for the warehouse PCK.
-const WAREHOUSE_VERSION_TOKEN: String = "10520932-3e583a93caea"
+const WAREHOUSE_VERSION_TOKEN: String = "10521060-1f2f50349564"
 
 ## Exported content version for the gallery ZIP.
-const GALLERY_VERSION_TOKEN: String = "16795264-ad1eb4f8ce98"
+const GALLERY_VERSION_TOKEN: String = "16795299-344ae4c26c96"
 
 ## Canonical Pages pack mirror used outside Web exports.
 static var pages_pack_base_url: String = "https://shilo.github.io/pack-rat/packs"
