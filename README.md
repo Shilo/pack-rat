@@ -496,6 +496,11 @@ compression targets. This makes the PCK/ZIP exports larger when they contain
 VRAM-compressed textures, but better demonstrates one universal Web pack that
 can run on desktop and mobile browsers.
 
+The demo DLC presets use Godot's `Export as dedicated server` resource mode only
+to access per-folder `Keep` and `Remove` export behavior. The presets keep
+`dedicated_server=false` and do not use `Strip Visuals`, so the exported packs
+remain normal runtime content packs.
+
 CI uses the same export presets, syncs the demo catalog to the exported
 artifacts, and passes that exported pack directory into the demo smoke test.
 This keeps Web deployments aligned even when ZIP metadata differs slightly
