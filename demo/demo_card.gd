@@ -15,9 +15,11 @@ signal message_requested(message: String, is_error: bool)
 
 var _pack: PackRatDemoPack
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
+var _use_web_fetch: bool = true
 var _request: PackRatRequest
 var _last_result: PackRatResult
 var _last_download_msec: int = -1
+var _last_download_client: String = ""
 
 @onready var _accent_bar: ColorRect = %AccentBar
 @onready var _title_label: Label = %TitleLabel
@@ -58,10 +60,18 @@ func set_source(source: String) -> void:
 	_source = source
 	if _request == null or _request.is_completed():
 		if _last_result != null and _last_result.ok:
-			_detail_label.text = "Source: %s; mounted from %s" % [
-				PackRatDemoCatalog.source_label(_source),
-				"cache" if _last_result.from_cache else "remote",
-			]
+			_update_loaded_detail()
+			return
+
+		_set_idle_state()
+
+
+## Updates whether this card prefers browser [code]fetch()[/code] on Web exports.
+func set_use_web_fetch(use_web_fetch: bool) -> void:
+	_use_web_fetch = use_web_fetch
+	if _request == null or _request.is_completed():
+		if _last_result != null and _last_result.ok:
+			_update_loaded_detail()
 			return
 
 		_set_idle_state()
@@ -76,13 +86,17 @@ func load_pack() -> void:
 
 	var options: PackRatOptions = _pack.options()
 	options.cache_dir = PackRatDemoCatalog.cache_dir
+	options.use_web_fetch = _use_web_fetch
 	_request = PackRat.load_resource_pack_async(_pack.url_for_source(_source), options)
 	_request.progress_changed.connect(_on_progress_changed)
 	_request.completed.connect(_on_completed, CONNECT_ONE_SHOT)
 	message_requested.emit("Loading %s..." % _pack.title, false)
 
 	_status_label.text = "Downloading"
-	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
+	_detail_label.text = "Source: %s; downloader: %s" % [
+		PackRatDemoCatalog.source_label(_source),
+		_download_client_label(),
+	]
 	_bytes_label.text = _download_text(0, options.expected_size)
 	_update_timing_label()
 	_progress_bar.value = 0.0
@@ -106,7 +120,10 @@ func _bind_pack() -> void:
 
 func _set_idle_state() -> void:
 	_status_label.text = "Ready"
-	_detail_label.text = "Source: %s" % PackRatDemoCatalog.source_label(_source)
+	_detail_label.text = "Source: %s; downloader: %s" % [
+		PackRatDemoCatalog.source_label(_source),
+		_download_client_label(),
+	]
 	if _pack.expected_size > 0:
 		_bytes_label.text = _download_text(0, _pack.expected_size)
 	else:
@@ -138,12 +155,10 @@ func _on_completed(result: PackRatResult) -> void:
 	if result.ok:
 		_progress_bar.value = 100.0
 		_status_label.text = "Mounted: %s" % result.status
-		_detail_label.text = "Source: %s; mounted from %s" % [
-			PackRatDemoCatalog.source_label(_source),
-			"cache" if result.from_cache else "remote",
-		]
+		_update_loaded_detail()
 		if not result.from_cache:
 			_last_download_msec = _download_duration_msec(result)
+			_last_download_client = _download_client_label()
 		_bytes_label.text = _download_text(result.content_length, _expected_display_size(result))
 		_update_timing_label()
 		message_requested.emit(
@@ -172,6 +187,22 @@ func _log_result_timings(result: PackRatResult) -> void:
 		return
 
 	print("PackRat demo: %s timings %s" % [_pack.title, JSON.stringify(result.timings_msec)])
+
+
+func _update_loaded_detail() -> void:
+	_detail_label.text = "Source: %s; downloader: %s; mounted from %s" % [
+		PackRatDemoCatalog.source_label(_source),
+		_download_client_label(),
+		"cache" if _last_result.from_cache else "remote",
+	]
+
+
+func _download_client_label() -> String:
+	if _use_web_fetch and OS.has_feature("web"):
+		return "browser fetch"
+	if _use_web_fetch:
+		return "browser fetch when available"
+	return "Godot HTTPRequest"
 
 
 func _download_text(downloaded_bytes: int, total_bytes: int) -> String:
@@ -204,7 +235,10 @@ func _update_timing_label() -> void:
 		_timing_label.text = "Last download: none"
 		return
 
-	_timing_label.text = "Last download: %s" % _format_duration(_last_download_msec)
+	_timing_label.text = "Last download: %s via %s" % [
+		_format_duration(_last_download_msec),
+		_last_download_client,
+	]
 
 
 func _on_cancel_pressed() -> void:

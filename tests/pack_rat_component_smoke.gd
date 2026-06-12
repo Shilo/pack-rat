@@ -13,6 +13,7 @@ const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/request/pack_rat_http_client.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_response.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_request_runner.gd"),
+	preload("res://addons/pack_rat/request/pack_rat_web_fetch_client.gd"),
 	preload("res://addons/pack_rat/resource_pack/pack_rat_loader.gd"),
 	preload("res://addons/pack_rat/resource_pack/pack_rat_mount_registry.gd"),
 ]
@@ -32,6 +33,10 @@ func _ready() -> void:
 
 	if options.capture_timings:
 		_fail("Expected PackRatOptions to disable capture_timings by default.")
+		return
+
+	if not options.use_web_fetch:
+		_fail("Expected PackRatOptions to enable browser fetch by default when available.")
 		return
 
 	var invalid: PackRatResult = await PackRat.load_resource_pack("not-a-url", options)
@@ -83,11 +88,13 @@ func _ready() -> void:
 	metadata_options.request_headers.append("X-PackRat-Test: one")
 	metadata_options.download_chunk_size = 2 * 1024 * 1024
 	metadata_options.capture_timings = true
+	metadata_options.use_web_fetch = false
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
 	metadata_options.download_chunk_size = 1024
 	metadata_options.capture_timings = false
+	metadata_options.use_web_fetch = true
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
@@ -102,6 +109,10 @@ func _ready() -> void:
 
 	if not copied_options.capture_timings:
 		_fail("Expected PackRatOptions.copy to snapshot capture_timings.")
+		return
+
+	if copied_options.use_web_fetch:
+		_fail("Expected PackRatOptions.copy to snapshot use_web_fetch.")
 		return
 
 	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")

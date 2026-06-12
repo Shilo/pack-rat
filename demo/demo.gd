@@ -5,9 +5,13 @@ const _SOURCE_ARG: String = "--source="
 const _PACK_BASE_ARG: String = "--pack-base-url="
 const _RELEASE_TAG_ARG: String = "--release-tag="
 const _AUTO_LOAD_ARG: String = "--auto-load="
+const _DOWNLOADER_ARG: String = "--downloader="
+const _DOWNLOADER_FETCH: String = "fetch"
+const _DOWNLOADER_HTTP_REQUEST: String = "httprequest"
 const _NARROW_WIDTH: float = 900.0
 
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
+var _use_web_fetch: bool = true
 var _pack_base_arg_applied: bool = false
 var _cards: Array[PackRatDemoCard] = []
 var _selected_result: PackRatResult
@@ -21,6 +25,7 @@ var _auto_load_failed: bool = false
 @onready var _body: BoxContainer = %Body
 @onready var _cards_panel: PanelContainer = %CardsPanel
 @onready var _source_selector: OptionButton = %SourceSelector
+@onready var _download_client_selector: OptionButton = %DownloadClientSelector
 @onready var _mounted_scene_host: Control = %MountedSceneHost
 @onready var _preview_placeholder: Control = %PreviewPlaceholder
 @onready var _preview_title: Label = %PreviewTitle
@@ -39,12 +44,15 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_cards = [_warehouse_card, _gallery_card]
 	_source_selector.select(1 if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE else 0)
+	_download_client_selector.select(0 if _use_web_fetch else 1)
 	_source_selector.item_selected.connect(_on_source_selected)
+	_download_client_selector.item_selected.connect(_on_downloader_selected)
 	_open_full_scene_button.pressed.connect(_on_open_full_scene_pressed)
 	%ClearAllButton.pressed.connect(_on_clear_all_pressed)
 
 	for card in _cards:
 		card.set_source(_source)
+		card.set_use_web_fetch(_use_web_fetch)
 		card.preview_requested.connect(_on_preview_requested)
 		card.load_finished.connect(_on_load_finished)
 		card.message_requested.connect(_show_toast)
@@ -103,6 +111,13 @@ func _on_source_selected(index: int) -> void:
 	for card in _cards:
 		card.set_source(_source)
 	_show_toast("Source set to %s." % PackRatDemoCatalog.source_label(_source))
+
+
+func _on_downloader_selected(index: int) -> void:
+	_use_web_fetch = index == 0
+	for card in _cards:
+		card.set_use_web_fetch(_use_web_fetch)
+	_show_toast("Downloader set to %s." % _downloader_label())
 
 
 func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void:
@@ -201,6 +216,12 @@ func _apply_user_args() -> void:
 			PackRatDemoCatalog.release_tag = argument.substr(_RELEASE_TAG_ARG.length())
 		elif argument.begins_with(_AUTO_LOAD_ARG):
 			_auto_load_ids = argument.substr(_AUTO_LOAD_ARG.length()).split(",", false)
+		elif argument.begins_with(_DOWNLOADER_ARG):
+			var downloader: String = argument.substr(_DOWNLOADER_ARG.length()).to_lower()
+			if downloader == _DOWNLOADER_FETCH:
+				_use_web_fetch = true
+			elif downloader == _DOWNLOADER_HTTP_REQUEST or downloader == "http_request":
+				_use_web_fetch = false
 		elif argument == "--quit-when-done":
 			_quit_when_done = true
 
@@ -221,3 +242,11 @@ func _apply_web_source_limits() -> void:
 
 func _github_release_blocked_in_browser() -> bool:
 	return OS.has_feature("web")
+
+
+func _downloader_label() -> String:
+	if _use_web_fetch and OS.has_feature("web"):
+		return "browser fetch"
+	if _use_web_fetch:
+		return "browser fetch when available"
+	return "Godot HTTPRequest"

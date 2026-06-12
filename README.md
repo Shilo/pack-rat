@@ -189,6 +189,7 @@ and static host URLs.
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
 | `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. |
+| `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
@@ -438,9 +439,11 @@ rules before using it.
 - PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
   Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
 - Web exports use a browser `fetch()` fast path for file downloads because
-  Godot's Web HTTP client cannot progress more than once per frame. This is much
-  faster for large packs, but briefly keeps the downloaded pack in memory before
-  writing it to `user://`; progress updates are throttled to avoid callback spam.
+  Godot's Web HTTP client cannot progress more than once per frame. This is on
+  by default through `PackRatOptions.use_web_fetch`, and can be disabled to
+  compare against Godot `HTTPRequest`. It is much faster for large packs, but
+  briefly keeps the downloaded pack in memory before writing it to `user://`;
+  progress UI callbacks are rate-limited to avoid bridge spam.
 - `capture_timings` is opt-in so normal loads avoid profiling dictionary and
   timestamp overhead.
 - `timeout_seconds` is finite by default so stalled downloads fail.
@@ -462,6 +465,9 @@ a tiny base scene and two generated remote packs:
 
 - `packrat-demo-warehouse.pck`, about 10 MiB.
 - `packrat-demo-gallery.zip`, about 16 MiB.
+
+The demo includes a `Downloader` selector so Web builds can compare the default
+browser `fetch()` path against Godot's `HTTPRequest` path.
 
 Build the demo packs locally:
 

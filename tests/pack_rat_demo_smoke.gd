@@ -61,6 +61,16 @@ func _ready() -> void:
 	if warehouse_card == null or gallery_card == null:
 		return
 
+	var downloader_selector: OptionButton = _option_button(demo, "DownloadClientSelector")
+	if downloader_selector == null:
+		return
+	if downloader_selector.item_count != 2:
+		_fail("Expected demo downloader selector to compare fetch and HTTPRequest.")
+		return
+	downloader_selector.select(1)
+	downloader_selector.item_selected.emit(1)
+	await get_tree().process_frame
+
 	var warehouse_first: PackRatResult = await _press_load(warehouse_card)
 	if warehouse_first == null:
 		return
@@ -524,6 +534,16 @@ func _button(root: Node, name: String) -> Button:
 		return button
 
 	_fail("Could not find button %s." % name)
+	return null
+
+
+func _option_button(root: Node, name: String) -> OptionButton:
+	var node: Node = root.find_child(name, true, false)
+	if node is OptionButton:
+		var option_button: OptionButton = node
+		return option_button
+
+	_fail("Could not find option button %s." % name)
 	return null
 
 
