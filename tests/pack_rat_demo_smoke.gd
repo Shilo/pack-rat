@@ -453,6 +453,8 @@ func _assert_demo_type_scale(demo: Node, cards: Array[PackRatDemoCard]) -> bool:
 			return false
 		if not _assert_font_size(card, "DetailLabel", PackRatDemoTypeScale.META):
 			return false
+		if not _assert_detail_label_caps(card):
+			return false
 		if not _assert_font_size(card, "BytesLabel", PackRatDemoTypeScale.META):
 			return false
 		if not _assert_font_size(card, "TimingLabel", PackRatDemoTypeScale.META):
@@ -460,6 +462,23 @@ func _assert_demo_type_scale(demo: Node, cards: Array[PackRatDemoCard]) -> bool:
 		for button_name in ["LoadButton", "CancelButton", "PreviewButton", "ClearButton"]:
 			if not _assert_font_size(card, button_name, PackRatDemoTypeScale.BODY):
 				return false
+
+	return true
+
+
+func _assert_detail_label_caps(card: PackRatDemoCard) -> bool:
+	var detail_label: Label = _label(card, "DetailLabel")
+	if detail_label == null:
+		return false
+	if not detail_label.clip_text:
+		_fail("Expected DetailLabel to clip long text.")
+		return false
+	if detail_label.max_lines_visible != 2:
+		_fail("Expected DetailLabel to show no more than two lines.")
+		return false
+	if detail_label.text_overrun_behavior != TextServer.OVERRUN_TRIM_WORD_ELLIPSIS:
+		_fail("Expected DetailLabel to ellipsize long text.")
+		return false
 
 	return true
 

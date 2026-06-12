@@ -59,6 +59,7 @@ theme_override_constants/separation = 10
 [node name="TitleLabel" type="Label" parent="Margin/Stack/Header/TitleStack" unique_id=1410223019]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.14902, 0.129412, 0.113725, 1)
 theme_override_font_sizes/font_size = 18
 text = "Pack"
@@ -87,6 +88,7 @@ vertical_alignment = 1
 
 [node name="DetailLabel" type="Label" parent="Margin/Stack/StatusRow" unique_id=720437185]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.423529, 0.384314, 0.345098, 1)
@@ -95,6 +97,9 @@ text = "Source"
 horizontal_alignment = 2
 vertical_alignment = 1
 autowrap_mode = 3
+clip_text = true
+text_overrun_behavior = 4
+max_lines_visible = 2
 
 [node name="ProgressBar" type="ProgressBar" parent="Margin/Stack" unique_id=1053769254]
 unique_name_in_owner = true

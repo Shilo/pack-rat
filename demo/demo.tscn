@@ -219,9 +219,8 @@ layout_mode = 2
 
 [node name="CardsPanel" type="PanelContainer" parent="Page/Root/Body/VBoxContainer" unique_id=590383873]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 0)
+custom_minimum_size = Vector2(360, 377)
 layout_mode = 2
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("SidebarPanel")
 
 [node name="CardsMargin" type="MarginContainer" parent="Page/Root/Body/VBoxContainer/CardsPanel" unique_id=658254785]
@@ -277,14 +276,14 @@ theme_override_constants/margin_bottom = 10
 
 [node name="OutputText" type="TextEdit" parent="Page/Root/Body/VBoxContainer/OutputPanel/OutputMargin" unique_id=1799272116]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 118)
+custom_minimum_size = Vector2(0, 66)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+mouse_filter = 2
 theme_override_colors/font_color = Color(0.294118, 0.258824, 0.227451, 1)
 theme_override_colors/font_readonly_color = Color(0.294118, 0.258824, 0.227451, 1)
 theme_override_font_sizes/font_size = 11
 placeholder_text = "Output"
-editable = false
 wrap_mode = 1
 scroll_smooth = true

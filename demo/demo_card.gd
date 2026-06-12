@@ -248,7 +248,7 @@ func _on_clear_pressed() -> void:
 	var error: Error = PackRat.clear_cached_resource_pack(options.id, options)
 	if error == OK:
 		_status_label.text = "Disk cache cleared"
-		_detail_label.text = "Mounted content remains available until reload."
+		_detail_label.text = "Mounted until reload."
 		message_requested.emit("Cleared %s disk cache." % _pack.title, false)
 	elif error == ERR_DOES_NOT_EXIST:
 		_status_label.text = "No disk cache"
