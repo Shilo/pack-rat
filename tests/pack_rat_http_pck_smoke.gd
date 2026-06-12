@@ -84,6 +84,18 @@ func _ready() -> void:
 		_fail("Expected gzip transfer result to report decoded pack size.")
 		return
 
+	var bad_gzip_size_options: PackRatOptions = gzip_options.copy()
+	bad_gzip_size_options.id = "http_pck_gzip_bad_size_smoke"
+	bad_gzip_size_options.expected_size = _pack_bytes.size() + 1
+	var bad_gzip_size_result: PackRatResult = await PackRat.load_resource_pack(_gzip_url, bad_gzip_size_options)
+	if bad_gzip_size_result.ok:
+		_fail("Expected gzip transfer with wrong expected_size to fail.")
+		return
+
+	if bad_gzip_size_result.content_length != _pack_bytes.size():
+		_fail("Expected gzip expected_size failure to report decoded pack size.")
+		return
+
 	var second: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	if not second.ok or not second.from_cache or not second.mounted:
 		_fail("Expected second load to mount from cache. Result: %s" % JSON.stringify(second.to_dictionary()))
@@ -91,8 +103,8 @@ func _ready() -> void:
 	if not _assert_mount_timings(second):
 		return
 
-	if _get_count != 2:
-		_fail("Expected two GET downloads after gzip smoke, got %d." % _get_count)
+	if _get_count != 3:
+		_fail("Expected three GET downloads after gzip smokes, got %d." % _get_count)
 		return
 
 	if _head_count != 1:
