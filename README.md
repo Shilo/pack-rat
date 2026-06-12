@@ -477,9 +477,10 @@ browser `fetch()` path against Godot's `HTTPRequest` path. Native/editor runs
 hide this selector because they always use Godot `HTTPRequest`.
 
 The demo intentionally leaves `expected_size` and `expected_modified_time`
-unset. That showcases PackRat's default online-first cache behavior: a repeated
-load checks the remote pack with `HEAD`, then reuses the cached file when it is
-still fresh.
+unset, but enables `offline_first` so repeated loads reuse the matching cached
+pack immediately without a `HEAD` check. That keeps the showcase snappy while
+still demonstrating the normal download, cache, mount, progress, cancel, and
+clear-cache APIs.
 
 Export the demo packs locally:
 

@@ -82,6 +82,7 @@ func options() -> PackRatOptions:
 	var pack_options: PackRatOptions = PackRatOptions.new()
 	pack_options.id = _cache_id()
 	pack_options.entry_path = entry_path
+	pack_options.offline_first = true
 	pack_options.capture_timings = true
 	return pack_options
 

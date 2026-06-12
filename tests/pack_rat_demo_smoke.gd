@@ -158,8 +158,8 @@ func _ready() -> void:
 	if _get_count != get_count_after_downloads:
 		_fail("Expected repeated warehouse button load to avoid an extra GET.")
 		return
-	if _head_count <= head_count_before_cache:
-		_fail("Expected online-first repeated warehouse load to check freshness with HEAD.")
+	if _head_count != head_count_before_cache:
+		_fail("Expected offline-first repeated warehouse load to avoid an extra HEAD.")
 		return
 
 	var clear_button: Button = _button(warehouse_card, "ClearButton")

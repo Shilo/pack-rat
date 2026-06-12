@@ -56,7 +56,7 @@ func _ready() -> void:
 
 	_apply_responsive_layout()
 	_show_placeholder()
-	_append_output("Ready. Online-first cache checks enabled.")
+	_append_output("Ready. Offline-first cache hits enabled.")
 	_start_auto_loads()
 
 
