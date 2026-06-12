@@ -2,22 +2,10 @@
 
 [ext_resource type="Script" uid="uid://c581w0popjjnu" path="res://demo/demo.gd" id="1_demo"]
 [ext_resource type="Texture2D" uid="uid://b2tkacsu1viqp" path="res://addons/pack_rat/icon.svg" id="2_icon"]
-[ext_resource type="PackedScene" path="res://demo/demo_card.tscn" id="3_card"]
+[ext_resource type="PackedScene" uid="uid://ddi5fx5dkardc" path="res://demo/demo_card.tscn" id="3_card"]
 
 [sub_resource type="StyleBoxFlat" id="ToastPanel"]
 bg_color = Color(0.152941, 0.501961, 0.423529, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="SidebarPanel"]
-bg_color = Color(0.980392, 0.972549, 0.952941, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.85098, 0.807843, 0.752941, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -30,6 +18,18 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.803922, 0.74902, 0.682353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="SidebarPanel"]
+bg_color = Color(0.980392, 0.972549, 0.952941, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.85098, 0.807843, 0.752941, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -76,7 +76,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="Icon" type="TextureRect" parent="Page/Root/Header" unique_id=514442144]
-custom_minimum_size = Vector2(56, 56)
+custom_minimum_size = Vector2(39, 39)
 layout_mode = 2
 texture = ExtResource("2_icon")
 expand_mode = 1
@@ -177,50 +177,6 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="CardsPanel" type="PanelContainer" parent="Page/Root/Body" unique_id=590383873]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(360, 0)
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_styles/panel = SubResource("SidebarPanel")
-
-[node name="CardsMargin" type="MarginContainer" parent="Page/Root/Body/CardsPanel" unique_id=658254785]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="CardsStack" type="VBoxContainer" parent="Page/Root/Body/CardsPanel/CardsMargin" unique_id=2126283225]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CardScroll" type="ScrollContainer" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack" unique_id=578822501]
-layout_mode = 2
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="CardStack" type="VBoxContainer" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack/CardScroll" unique_id=2013955317]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-
-[node name="WarehouseCard" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack/CardScroll/CardStack" unique_id=1101384568 instance=ExtResource("3_card")]
-unique_name_in_owner = true
-layout_mode = 2
-pack_id = "warehouse"
-
-[node name="GalleryCard" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack/CardScroll/CardStack" unique_id=489170577 instance=ExtResource("3_card")]
-unique_name_in_owner = true
-layout_mode = 2
-pack_id = "gallery"
-
-[node name="ClearAllButton" type="Button" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack" unique_id=240383756]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_font_sizes/font_size = 12
-text = "Clear all disk cache"
-
 [node name="PreviewFrame" type="PanelContainer" parent="Page/Root/Body" unique_id=150602320]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -280,3 +236,47 @@ theme_override_colors/font_color = Color(0.478431, 0.439216, 0.4, 1)
 theme_override_font_sizes/font_size = 12
 text = "Choose a card and start a remote load."
 horizontal_alignment = 1
+
+[node name="CardsPanel" type="PanelContainer" parent="Page/Root/Body" unique_id=590383873]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("SidebarPanel")
+
+[node name="CardsMargin" type="MarginContainer" parent="Page/Root/Body/CardsPanel" unique_id=658254785]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="CardsStack" type="VBoxContainer" parent="Page/Root/Body/CardsPanel/CardsMargin" unique_id=2126283225]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CardScroll" type="ScrollContainer" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack" unique_id=578822501]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="CardStack" type="VBoxContainer" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack/CardScroll" unique_id=2013955317]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="WarehouseCard" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack/CardScroll/CardStack" unique_id=1101384568 instance=ExtResource("3_card")]
+unique_name_in_owner = true
+layout_mode = 2
+pack_id = "warehouse"
+
+[node name="GalleryCard" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack/CardScroll/CardStack" unique_id=489170577 instance=ExtResource("3_card")]
+unique_name_in_owner = true
+layout_mode = 2
+pack_id = "gallery"
+
+[node name="ClearAllButton" type="Button" parent="Page/Root/Body/CardsPanel/CardsMargin/CardsStack" unique_id=240383756]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+text = "Clear all disk cache"
