@@ -29,7 +29,7 @@ const GALLERY_ENTRY_PATH: String = "res://demo/packs/gallery/main.tscn"
 const WAREHOUSE_EXPECTED_SIZE: int = 10495908
 
 ## Exported expected byte size for the gallery ZIP.
-const GALLERY_EXPECTED_SIZE: int = 16793650
+const GALLERY_EXPECTED_SIZE: int = 16793718
 
 ## Exported expected modified time for the warehouse PCK, when available.
 const WAREHOUSE_EXPECTED_MODIFIED_TIME: int = 0
@@ -41,7 +41,7 @@ const GALLERY_EXPECTED_MODIFIED_TIME: int = 0
 const WAREHOUSE_VERSION_TOKEN: String = "10495908-62a58f94d26e"
 
 ## Exported content version for the gallery ZIP.
-const GALLERY_VERSION_TOKEN: String = "16793650-02876466f80d"
+const GALLERY_VERSION_TOKEN: String = "16793718-44f9fa1377b0"
 
 ## Canonical Pages pack mirror used outside Web exports.
 static var pages_pack_base_url: String = "https://shilo.github.io/pack-rat/packs"

@@ -15,4 +15,6 @@ func _process(_delta: float) -> void:
 	for index in range(_cards.size()):
 		var card: PanelContainer = _cards[index]
 		card.pivot_offset = card.size * 0.5
-		card.rotation = sin(Time.get_ticks_msec() * 0.0014 + float(index) * 0.37) * 0.018
+		var pulse: float = sin(Time.get_ticks_msec() * 0.0014 + float(index) * 0.37) * 0.012
+		card.rotation = 0.0
+		card.scale = Vector2.ONE * (1.0 + pulse)
