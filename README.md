@@ -196,7 +196,7 @@ and static host URLs.
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
-| `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. PackRat clamps this to Godot's 16 MiB maximum. |
+| `download_chunk_size` | `PackRatOptions.default_download_chunk_size()` | Bytes read from `HTTPRequest` per engine iteration. Defaults to 16 MiB on desktop and 4 MiB on mobile/Web-mobile. PackRat clamps this to Godot's 16 MiB maximum. |
 | `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
@@ -445,9 +445,10 @@ rules before using it.
 - Concurrent calls are independent by design. If two identical calls start at
   the same time, both may download.
 - Native HTTPRequest progress polling happens once per frame while a GET is active.
-- PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
-  Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
-  Godot caps this value at 16 MiB, and PackRat clamps larger values to that maximum.
+- PackRat raises `HTTPRequest.download_chunk_size` above Godot's 64 KiB default
+  because resource packs are DLC-sized files, not small API responses. It
+  defaults to Godot's 16 MiB maximum on desktop and 4 MiB on mobile/Web-mobile.
+  PackRat clamps larger values to the 16 MiB engine maximum.
 - PackRat exposes native `HTTPRequest` worker threads through
   `PackRatOptions.use_threads`, but leaves them off by default. In repeated
   GitHub Pages tests, the threaded path was not consistently faster than the
