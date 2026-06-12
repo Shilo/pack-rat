@@ -133,6 +133,7 @@ static func _export_gallery_zip(path: String) -> Error:
 static func _warehouse_files() -> PackedStringArray:
 	return PackedStringArray([
 		"res://demo/packs/warehouse/main.tscn",
+		"res://demo/packs/warehouse/box.tscn",
 		"res://demo/packs/warehouse/warehouse_scene.gd",
 		"res://demo/packs/warehouse/payload.bin",
 	])

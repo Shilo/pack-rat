@@ -316,6 +316,7 @@ func _export_demo_packs(output_dir: String) -> Error:
 func _warehouse_source_files() -> PackedStringArray:
 	return PackedStringArray([
 		"res://demo/packs/warehouse/main.tscn",
+		"res://demo/packs/warehouse/box.tscn",
 		"res://demo/packs/warehouse/warehouse_scene.gd",
 		"res://demo/packs/warehouse/payload.bin",
 	])
