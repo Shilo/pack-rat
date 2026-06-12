@@ -7,8 +7,11 @@ const MARKER_SOURCE_PATH: String = "user://pack_rat_performance_smoke_server/mar
 const PAYLOAD_SOURCE_PATH: String = "user://pack_rat_performance_smoke_server/payload.bin"
 const LEGACY_CHUNK_SIZE: int = 64 * 1024
 const OPTIMIZED_CHUNK_SIZE: int = 4 * 1024 * 1024
+const LARGE_CHUNK_SIZE: int = 10 * 1024 * 1024
+const MAX_CHUNK_SIZE: int = 16 * 1024 * 1024
+const REQUESTED_MAX_CHUNK_SIZE: int = 20 * 1024 * 1024
 const PAYLOAD_BYTES: int = 10 * 1024 * 1024
-const SERVER_CHUNK_SIZE: int = 4 * 1024 * 1024
+const SERVER_CHUNK_SIZE: int = 20 * 1024 * 1024
 const OVERHEAD_LIMIT_MSEC: int = 1000
 
 var _server: TCPServer = TCPServer.new()
@@ -42,6 +45,14 @@ func _ready() -> void:
 	if raw_optimized.is_empty():
 		return
 
+	var raw_large: Dictionary = await _raw_case("raw_10m", LARGE_CHUNK_SIZE)
+	if raw_large.is_empty():
+		return
+
+	var raw_max: Dictionary = await _raw_case("raw_16m", MAX_CHUNK_SIZE)
+	if raw_max.is_empty():
+		return
+
 	if int(raw_legacy.get("progress_frames", 0)) <= int(raw_optimized.get("progress_frames", 0)):
 		_fail("Expected raw 64 KiB HTTP chunks to need more frames than raw 4 MiB chunks. legacy=%s optimized=%s" % [
 			JSON.stringify(raw_legacy),
@@ -55,6 +66,18 @@ func _ready() -> void:
 
 	var profiled: PackRatResult = await _packrat_case("packrat_profiled_4m", OPTIMIZED_CHUNK_SIZE, true)
 	if not profiled.ok:
+		return
+
+	var large: PackRatResult = await _packrat_case("packrat_profiled_10m", LARGE_CHUNK_SIZE, true)
+	if not large.ok:
+		return
+
+	var requested_max: PackRatResult = await _packrat_case("packrat_profiled_20m_requested", REQUESTED_MAX_CHUNK_SIZE, true)
+	if not requested_max.ok:
+		return
+
+	if int(requested_max.timings_msec.get("effective_download_chunk_size", 0)) != MAX_CHUNK_SIZE:
+		_fail("Expected requested 20 MiB PackRat chunk size to clamp to 16 MiB. Result: %s" % JSON.stringify(requested_max.timings_msec))
 		return
 
 	var legacy: PackRatResult = await _packrat_case("packrat_profiled_64k", LEGACY_CHUNK_SIZE, true)
@@ -77,11 +100,15 @@ func _ready() -> void:
 		])
 		return
 
-	await _finish_success("PackRat performance smoke passed. raw_64k=%s raw_4m=%s lean=%s profiled=%s legacy=%s" % [
+	await _finish_success("PackRat performance smoke passed. raw_64k=%s raw_4m=%s raw_10m=%s raw_16m=%s lean=%s profiled_4m=%s profiled_10m=%s profiled_20m=%s legacy=%s" % [
 		JSON.stringify(raw_legacy),
 		JSON.stringify(raw_optimized),
+		JSON.stringify(raw_large),
+		JSON.stringify(raw_max),
 		JSON.stringify(lean.timings_msec),
 		JSON.stringify(profiled.timings_msec),
+		JSON.stringify(large.timings_msec),
+		JSON.stringify(requested_max.timings_msec),
 		JSON.stringify(legacy.timings_msec),
 	])
 
@@ -123,6 +150,7 @@ func _packrat_case(id: String, download_chunk_size: int, capture_timings: bool) 
 	result.timings_msec["external_total_msec"] = external_total_msec
 	result.timings_msec["signal_progress_events"] = progress_events[0]
 	result.timings_msec["configured_download_chunk_size"] = download_chunk_size
+	result.timings_msec["effective_download_chunk_size"] = clampi(download_chunk_size, 256, MAX_CHUNK_SIZE)
 	result.timings_msec["capture_timings"] = capture_timings
 	if not result.ok:
 		_fail("Expected performance case %s to load. Result: %s" % [id, JSON.stringify(result.to_dictionary())])
