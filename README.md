@@ -15,6 +15,12 @@ var result: PackRatResult = await PackRat.load_resource_pack("https://example.co
 No editor plugin, autoload, manifest, SHA sidecar, provider system, descriptor
 object, or custom installer workflow is required.
 
+PackRat is tuned for large runtime downloads. It uses larger native download
+chunks than Godot's default, keeps transfer compression working, and uses the
+browser's native download path on Web exports for near-browser download speed.
+That means the same simple API can handle small patches, large DLC packs, and
+Web-hosted worlds without special platform code in your game.
+
 ## Table of Contents
 
 - [Install](#install)
@@ -185,11 +191,13 @@ and static host URLs.
 | `entry_path` | `""` | Optional `res://` scene path copied into the result for caller convenience. PackRat only uses it when you call result entry-scene helpers. |
 | `expected_size` | `0` | If greater than `0`, becomes part of cache identity and is checked against downloaded bytes. |
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
+| `progress_total_size` | `0` | Optional non-validating byte total for progress bars when a platform cannot report a reliable HTTP body size. |
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
 | `download_chunk_size` | `4194304` | Bytes read from `HTTPRequest` per engine iteration. The larger default avoids large packs trickling into Godot at 64 KiB per frame. |
+| `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this only after profiling a native download that feels frame-bound. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
@@ -439,6 +447,9 @@ rules before using it.
 - Native HTTPRequest progress polling happens once per frame while a GET is active.
 - PackRat raises `HTTPRequest.download_chunk_size` to 4 MiB by default because
   Godot's 64 KiB default is tuned for small requests, not DLC-sized resource packs.
+- PackRat exposes native `HTTPRequest` worker threads through
+  `PackRatOptions.use_threads` for projects that profile a frame-bound native
+  download. It is opt-in because the default native path is simpler and stable.
 - PackRat keeps gzip/deflate transfer compression enabled for native
   `HTTPRequest`. Web browsers decode fetch bodies before Godot reads them, so
   PackRat disables Web `HTTPRequest`'s extra decode step and still caches normal

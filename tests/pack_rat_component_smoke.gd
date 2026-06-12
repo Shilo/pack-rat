@@ -94,6 +94,8 @@ func _ready() -> void:
 	metadata_options.capture_timings = true
 	metadata_options.use_web_fetch = false
 	metadata_options.accept_gzip = false
+	metadata_options.progress_total_size = 2048
+	metadata_options.use_threads = false
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
@@ -101,6 +103,8 @@ func _ready() -> void:
 	metadata_options.capture_timings = false
 	metadata_options.use_web_fetch = true
 	metadata_options.accept_gzip = true
+	metadata_options.progress_total_size = 4096
+	metadata_options.use_threads = true
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
@@ -123,6 +127,14 @@ func _ready() -> void:
 
 	if copied_options.accept_gzip:
 		_fail("Expected PackRatOptions.copy to snapshot accept_gzip.")
+		return
+
+	if copied_options.progress_total_size != 2048:
+		_fail("Expected PackRatOptions.copy to snapshot progress_total_size.")
+		return
+
+	if copied_options.use_threads:
+		_fail("Expected PackRatOptions.copy to snapshot use_threads.")
 		return
 
 	var gzip_response: PackRatHttpResponse = PackRatHttpResponse.from_completed(

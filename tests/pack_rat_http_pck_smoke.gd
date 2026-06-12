@@ -466,6 +466,30 @@ func _ready() -> void:
 		_fail("Expected progress to use expected_size when Content-Length is unavailable.")
 		return
 
+	var hinted_progress_options: PackRatOptions = PackRatOptions.new()
+	hinted_progress_options.id = "hinted_progress_smoke"
+	hinted_progress_options.cache_dir = CACHE_DIR
+	hinted_progress_options.entry_path = MOUNTED_MARKER
+	hinted_progress_options.timeout_seconds = 10.0
+	hinted_progress_options.progress_total_size = _pack_bytes.size()
+	var hinted_progress_totals: Array[int] = []
+	var hinted_progress_request: PackRatRequest = PackRat.load_resource_pack_async(expected_progress_url, hinted_progress_options)
+	hinted_progress_request.progress_changed.connect(func(_downloaded_bytes: int, total_bytes: int) -> void:
+		hinted_progress_totals.append(total_bytes)
+	)
+	await hinted_progress_request.completed
+	if hinted_progress_request.result == null:
+		_fail("Expected progress-size hint load to produce a result.")
+		return
+
+	if not hinted_progress_request.result.ok:
+		_fail("Expected progress-size hint load to succeed. Result: %s" % JSON.stringify(hinted_progress_request.result.to_dictionary()))
+		return
+
+	if hinted_progress_totals.is_empty() or hinted_progress_totals[0] != _pack_bytes.size():
+		_fail("Expected progress to use progress_total_size when Content-Length is unavailable.")
+		return
+
 	await get_tree().process_frame
 	if _packrat_request_runner_count() != 0:
 		_fail("Expected PackRatRequestRunner to free itself after async completion.")
