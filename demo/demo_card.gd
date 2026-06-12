@@ -189,7 +189,13 @@ func _on_completed(result: PackRatResult) -> void:
 		_status_label.text = "Failed"
 		_detail_label.text = result.error
 		_detail_label.visible = true
-		_bytes_label.text = _download_text(0, _pack.expected_size)
+		if result.content_length > 0:
+			_progress_bar.value = 100.0
+			_last_download_msec = _download_duration_msec(result)
+			_bytes_label.text = _download_text(result.content_length, _expected_display_size(result))
+		else:
+			_progress_bar.value = 0.0
+			_bytes_label.text = _download_text(0, _pack.expected_size)
 		_update_timing_label()
 		message_requested.emit("%s failed: %s" % [_pack.title, result.error], true)
 

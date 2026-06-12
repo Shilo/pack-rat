@@ -177,6 +177,21 @@ func _ready() -> void:
 		_fail("Expected clear-all button to update the toast message.")
 		return
 
+	var original_warehouse_size: int = warehouse_card.pack().expected_size
+	warehouse_card.pack().expected_size = original_warehouse_size + 64
+	var warehouse_mismatch: PackRatResult = await _press_load(warehouse_card)
+	warehouse_card.pack().expected_size = original_warehouse_size
+	if warehouse_mismatch == null:
+		return
+	if warehouse_mismatch.ok:
+		_fail("Expected mismatched demo pack size to fail.")
+		return
+	if warehouse_mismatch.content_length != original_warehouse_size:
+		_fail("Expected mismatched demo pack to preserve downloaded byte count.")
+		return
+	if not _assert_failed_download_display(warehouse_card):
+		return
+
 	print("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
 	get_tree().quit()
 
@@ -479,6 +494,31 @@ func _assert_progress_complete(card: PackRatDemoCard) -> bool:
 		return false
 	if progress_bar.value != 100.0:
 		_fail("Expected loaded card progress to finish at 100.")
+		return false
+
+	return true
+
+
+func _assert_failed_download_display(card: PackRatDemoCard) -> bool:
+	var progress_bar: ProgressBar = _progress_bar(card, "ProgressBar")
+	if progress_bar == null:
+		return false
+	if progress_bar.value != 100.0:
+		_fail("Expected failed post-download validation to keep progress at 100.")
+		return false
+
+	var bytes_label: Label = _label(card, "BytesLabel")
+	if bytes_label == null:
+		return false
+	if bytes_label.text.begins_with("Download: 0 B"):
+		_fail("Expected failed post-download validation to show downloaded bytes.")
+		return false
+
+	var timing_label: Label = _label(card, "TimingLabel")
+	if timing_label == null:
+		return false
+	if timing_label.text == "Last: none":
+		_fail("Expected failed post-download validation to keep download timing.")
 		return false
 
 	return true

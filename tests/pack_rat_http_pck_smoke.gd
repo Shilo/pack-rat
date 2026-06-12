@@ -262,6 +262,9 @@ func _ready() -> void:
 	if bad_size.ok:
 		_fail("Expected expected_size mismatch to fail.")
 		return
+	if bad_size.content_length != _pack_bytes.size():
+		_fail("Expected expected_size mismatch result to preserve downloaded size.")
+		return
 
 	if _has_part_files(CACHE_DIR):
 		_fail("Expected expected_size validation failure to remove .part files.")
