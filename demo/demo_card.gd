@@ -198,10 +198,10 @@ func _update_loaded_detail() -> void:
 
 
 func _download_client_label() -> String:
-	if _use_web_fetch and OS.has_feature("web"):
-		return "browser fetch"
+	if not OS.has_feature("web"):
+		return "Godot HTTPRequest"
 	if _use_web_fetch:
-		return "browser fetch when available"
+		return "browser fetch"
 	return "Godot HTTPRequest"
 
 

@@ -61,15 +61,23 @@ func _ready() -> void:
 	if warehouse_card == null or gallery_card == null:
 		return
 
+	var downloader_row: Control = _control(demo, "DownloaderRow")
+	if downloader_row == null:
+		return
+	if downloader_row.visible != OS.has_feature("web"):
+		_fail("Expected demo downloader selector row to show only in Web builds.")
+		return
+
 	var downloader_selector: OptionButton = _option_button(demo, "DownloadClientSelector")
 	if downloader_selector == null:
 		return
 	if downloader_selector.item_count != 2:
 		_fail("Expected demo downloader selector to compare fetch and HTTPRequest.")
 		return
-	downloader_selector.select(1)
-	downloader_selector.item_selected.emit(1)
-	await get_tree().process_frame
+	if OS.has_feature("web"):
+		downloader_selector.select(1)
+		downloader_selector.item_selected.emit(1)
+		await get_tree().process_frame
 
 	var warehouse_first: PackRatResult = await _press_load(warehouse_card)
 	if warehouse_first == null:

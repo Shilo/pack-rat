@@ -443,7 +443,8 @@ rules before using it.
   by default through `PackRatOptions.use_web_fetch`, and can be disabled to
   compare against Godot `HTTPRequest`. It is much faster for large packs, but
   briefly keeps the downloaded pack in memory before writing it to `user://`;
-  progress UI callbacks are rate-limited to avoid bridge spam.
+  progress UI callbacks are rate-limited to 10 FPS to avoid bridge spam without
+  slowing the actual browser download.
 - `capture_timings` is opt-in so normal loads avoid profiling dictionary and
   timestamp overhead.
 - `timeout_seconds` is finite by default so stalled downloads fail.
@@ -466,8 +467,9 @@ a tiny base scene and two generated remote packs:
 - `packrat-demo-warehouse.pck`, about 10 MiB.
 - `packrat-demo-gallery.zip`, about 16 MiB.
 
-The demo includes a `Downloader` selector so Web builds can compare the default
-browser `fetch()` path against Godot's `HTTPRequest` path.
+In Web builds, the demo includes a `Downloader` selector to compare the default
+browser `fetch()` path against Godot's `HTTPRequest` path. Native/editor runs
+hide this selector because they always use Godot `HTTPRequest`.
 
 Build the demo packs locally:
 

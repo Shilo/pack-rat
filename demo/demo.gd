@@ -25,6 +25,7 @@ var _auto_load_failed: bool = false
 @onready var _body: BoxContainer = %Body
 @onready var _cards_panel: PanelContainer = %CardsPanel
 @onready var _source_selector: OptionButton = %SourceSelector
+@onready var _download_client_row: HBoxContainer = %DownloaderRow
 @onready var _download_client_selector: OptionButton = %DownloadClientSelector
 @onready var _mounted_scene_host: Control = %MountedSceneHost
 @onready var _preview_placeholder: Control = %PreviewPlaceholder
@@ -44,6 +45,7 @@ func _ready() -> void:
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_cards = [_warehouse_card, _gallery_card]
 	_source_selector.select(1 if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE else 0)
+	_download_client_row.visible = OS.has_feature("web")
 	_download_client_selector.select(0 if _use_web_fetch else 1)
 	_source_selector.item_selected.connect(_on_source_selected)
 	_download_client_selector.item_selected.connect(_on_downloader_selected)
@@ -245,8 +247,8 @@ func _github_release_blocked_in_browser() -> bool:
 
 
 func _downloader_label() -> String:
-	if _use_web_fetch and OS.has_feature("web"):
-		return "browser fetch"
+	if not OS.has_feature("web"):
+		return "Godot HTTPRequest"
 	if _use_web_fetch:
-		return "browser fetch when available"
+		return "browser fetch"
 	return "Godot HTTPRequest"
