@@ -93,7 +93,7 @@ jobs:
 
       - name: Run demo smoke
         run: |
-          godot --headless --path . --scene res://tests/pack_rat_demo_smoke.tscn
+          godot --headless --path . --scene res://tests/pack_rat_demo_smoke.tscn -- --pack-dir="$EXPORT_ROOT/web/packs"
 
       - name: Export Web demo
         run: |

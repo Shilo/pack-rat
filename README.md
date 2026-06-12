@@ -486,9 +486,18 @@ godot --headless --path . --script "tools/demo_pack_catalog.gd" -- --output-dir=
 ```
 
 This writes local demo packs to `build/packs/` using the `Warehouse DLC` and
-`Gallery DLC` export presets. The pack source scenes live in `demo/packs/` so
-they are visible in the Godot editor. The Web export excludes `demo/packs/**`,
-then PackRat mounts those paths back at runtime.
+`Gallery DLC` export presets, then updates the committed demo catalog size and
+version tokens. The pack source scenes live in `demo/packs/` so they are
+visible in the Godot editor. The Web export excludes `demo/packs/**`, then
+PackRat mounts those paths back at runtime.
+
+CI uses the same export presets, then runs the catalog tool with `--check` and
+passes the exported pack directory into the demo smoke test:
+
+```powershell
+godot --headless --path . --script "tools/demo_pack_catalog.gd" -- --output-dir=build/packs --check
+godot --headless --path . --scene "res://tests/pack_rat_demo_smoke.tscn" -- --pack-dir=build/packs
+```
 
 When exported for Web, the demo resolves pack URLs against the current page's
 same-origin `packs/` folder. Native/editor runs default to the canonical GitHub

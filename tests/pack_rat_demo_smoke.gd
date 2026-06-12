@@ -1,36 +1,38 @@
 extends Node
 
 const PORT: int = 18924
-const BUILD_DIR: String = "user://pack_rat_demo_smoke/packs"
+const DEFAULT_BUILD_DIR: String = "res://build/packs"
 const CACHE_DIR: String = "user://pack_rat_demo_smoke/cache"
 const EXPECTED_SPACE: int = 10
+const _PACK_DIR_ARG: String = "--pack-dir="
 
 var _server: TCPServer
 var _pack_bytes: Dictionary = {}
 var _head_count: int = 0
 var _get_count: int = 0
+var _active_peer_count: int = 0
 
 
 func _ready() -> void:
 	get_tree().create_timer(45.0).timeout.connect(_on_timeout, CONNECT_ONE_SHOT)
 	_clear_demo_cache()
-	var export_error: Error = _export_demo_packs(BUILD_DIR)
-	if export_error != OK:
-		_fail("Could not export demo packs for smoke test (error %d)." % export_error)
+	var build_dir: String = _pack_dir_from_args()
+	var load_error: Error = _load_exported_demo_packs(build_dir)
+	if load_error != OK:
+		_fail("Could not load exported demo packs from %s (error %d)." % [build_dir, load_error])
 		return
 
 	for pack in PackRatDemoCatalog.packs():
-		var path: String = BUILD_DIR.path_join(pack.file_name)
-		var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+		var path: String = build_dir.path_join(pack.file_name)
+		var bytes: PackedByteArray = _pack_bytes.get("/packs/%s" % pack.file_name, PackedByteArray())
 		if bytes.is_empty():
 			_fail("Exported demo pack was empty: %s" % path)
 			return
 		if bytes.size() < 1024 * 1024:
 			_fail("Demo smoke pack fixture for %s was too small: %d bytes." % [pack.id, bytes.size()])
 			return
-		_pack_bytes["/packs/%s" % pack.file_name] = bytes
 
-	if not await _assert_public_api_helpers(BUILD_DIR):
+	if not await _assert_public_api_helpers(build_dir):
 		return
 
 	_server = TCPServer.new()
@@ -191,8 +193,7 @@ func _ready() -> void:
 		_fail("Expected output log to keep earlier actions after new actions.")
 		return
 
-	print("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
-	get_tree().quit()
+	await _finish_success("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
 
 
 func _assert_public_api_helpers(build_dir: String) -> bool:
@@ -284,92 +285,28 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 	return true
 
 
-func _export_demo_packs(output_dir: String) -> Error:
-	var make_error: Error = DirAccess.make_dir_recursive_absolute(output_dir)
-	if make_error != OK and make_error != ERR_ALREADY_EXISTS:
-		return make_error
+func _pack_dir_from_args() -> String:
+	for argument in OS.get_cmdline_user_args():
+		if argument.begins_with(_PACK_DIR_ARG):
+			return argument.substr(_PACK_DIR_ARG.length())
 
-	var warehouse_path: String = output_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME)
-	var warehouse_error: Error = _export_pck(warehouse_path, _warehouse_source_files())
-	if warehouse_error != OK:
-		return warehouse_error
-
-	var gallery_path: String = output_dir.path_join(PackRatDemoCatalog.GALLERY_FILE_NAME)
-	return _export_zip(gallery_path, _gallery_source_files())
+	return DEFAULT_BUILD_DIR
 
 
-func _warehouse_source_files() -> PackedStringArray:
-	return PackedStringArray([
-		"res://demo/packs/warehouse/main.tscn",
-		"res://demo/packs/warehouse/box.tscn",
-		"res://demo/packs/warehouse/warehouse_scene.gd",
-		"res://demo/packs/warehouse/payload.res",
-	])
-
-
-func _gallery_source_files() -> PackedStringArray:
-	return PackedStringArray([
-		"res://demo/packs/gallery/main.tscn",
-		"res://demo/packs/gallery/gallery_scene.gd",
-		"res://demo/packs/gallery/payload.res",
-	])
-
-
-func _export_pck(path: String, source_files: PackedStringArray) -> Error:
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
-
-	var packer: PCKPacker = PCKPacker.new()
-	var error: Error = packer.pck_start(path)
-	if error != OK:
-		return error
-
-	for source_path in source_files:
-		if not FileAccess.file_exists(source_path):
+func _load_exported_demo_packs(build_dir: String) -> Error:
+	_pack_bytes.clear()
+	for pack in PackRatDemoCatalog.packs():
+		var path: String = build_dir.path_join(pack.file_name)
+		if not FileAccess.file_exists(path):
 			return ERR_FILE_NOT_FOUND
-		error = packer.add_file(source_path, source_path)
-		if error != OK:
-			return error
 
-	return packer.flush()
+		var bytes: PackedByteArray = FileAccess.get_file_as_bytes(path)
+		if bytes.is_empty() and FileAccess.get_open_error() != OK:
+			return FileAccess.get_open_error()
 
+		_pack_bytes["/packs/%s" % pack.file_name] = bytes
 
-func _export_zip(path: String, source_files: PackedStringArray) -> Error:
-	if FileAccess.file_exists(path):
-		DirAccess.remove_absolute(path)
-
-	var writer: ZIPPacker = ZIPPacker.new()
-	var error: Error = writer.open(path)
-	if error != OK:
-		return error
-
-	writer.set_compression_level(ZIPPacker.COMPRESSION_NONE)
-	for source_path in source_files:
-		error = _write_zip_source_file(writer, source_path)
-		if error != OK:
-			writer.close()
-			return error
-
-	return writer.close()
-
-
-func _write_zip_source_file(writer: ZIPPacker, source_path: String) -> Error:
-	if not FileAccess.file_exists(source_path):
-		return ERR_FILE_NOT_FOUND
-
-	var data: PackedByteArray = FileAccess.get_file_as_bytes(source_path)
-	if data.is_empty() and FileAccess.get_open_error() != OK:
-		return FileAccess.get_open_error()
-
-	var error: Error = writer.start_file(source_path.trim_prefix("res://"))
-	if error != OK:
-		return error
-
-	error = writer.write_file(data)
-	if error != OK:
-		return error
-
-	return writer.close_file()
+	return OK
 
 
 func _assert_demo_spacing(demo: Node) -> bool:
@@ -476,6 +413,7 @@ func _process(_delta: float) -> void:
 
 
 func _serve_peer(peer: StreamPeerTCP) -> void:
+	_active_peer_count += 1
 	var request: String = ""
 	var wait_until: int = Time.get_ticks_msec() + 1000
 
@@ -499,6 +437,7 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 		_write_not_found(peer)
 
 	peer.disconnect_from_host()
+	_active_peer_count -= 1
 
 
 func _write_response(peer: StreamPeerTCP, path: String, include_body: bool) -> void:
@@ -556,7 +495,6 @@ func _clear_demo_cache() -> void:
 	var options: PackRatOptions = PackRatOptions.new()
 	options.cache_dir = CACHE_DIR
 	PackRat.clear_cache(options)
-	_clear_directory(BUILD_DIR)
 	_clear_directory(CACHE_DIR)
 
 
@@ -1016,9 +954,26 @@ func _control(root: Node, name: String) -> Control:
 
 
 func _fail(message: String) -> void:
+	_stop_server()
 	push_error(message)
 	get_tree().quit(1)
 
 
 func _on_timeout() -> void:
 	_fail("PackRat demo smoke timed out. GET=%d HEAD=%d" % [_get_count, _head_count])
+
+
+func _finish_success(message: String) -> void:
+	var wait_until: int = Time.get_ticks_msec() + 1000
+	while _active_peer_count > 0 and Time.get_ticks_msec() < wait_until:
+		await get_tree().process_frame
+
+	_stop_server()
+	print(message)
+	get_tree().quit()
+
+
+func _stop_server() -> void:
+	if _server != null:
+		_server.stop()
+		_server = null
