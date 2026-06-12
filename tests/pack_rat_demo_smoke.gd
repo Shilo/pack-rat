@@ -111,11 +111,11 @@ func _ready() -> void:
 	if gallery_invalid.ok:
 		_fail("Expected invalid demo URL to fail.")
 		return
-	var toast_label: Label = _label(demo, "ToastLabel")
-	if toast_label == null:
+	var output_text: TextEdit = _text_edit(demo, "OutputText")
+	if output_text == null:
 		return
-	if not toast_label.text.contains("failed"):
-		_fail("Expected invalid demo URL to surface an error toast.")
+	if not output_text.text.contains("Gallery ZIP failed"):
+		_fail("Expected invalid demo URL to be added to the output log.")
 		return
 
 	var gallery_canceled: PackRatResult = await _press_cancel(gallery_card)
@@ -181,11 +181,14 @@ func _ready() -> void:
 		return
 	clear_all_button.pressed.emit()
 	await get_tree().process_frame
-	var clear_toast_label: Label = _label(demo, "ToastLabel")
-	if clear_toast_label == null:
+	var clear_output_text: TextEdit = _text_edit(demo, "OutputText")
+	if clear_output_text == null:
 		return
-	if clear_toast_label.text != "Disk cache cleared.":
-		_fail("Expected clear-all button to update the toast message.")
+	if not clear_output_text.text.contains("Disk cache cleared."):
+		_fail("Expected clear-all button to append to the output log.")
+		return
+	if not clear_output_text.text.contains("Gallery ZIP failed"):
+		_fail("Expected output log to keep earlier actions after new actions.")
 		return
 
 	var original_warehouse_size: int = warehouse_card.pack().expected_size
@@ -434,7 +437,7 @@ func _assert_demo_type_scale(demo: Node, cards: Array[PackRatDemoCard]) -> bool:
 		return false
 	if not _assert_font_size(demo, "ClearAllButton", PackRatDemoTypeScale.BODY):
 		return false
-	if not _assert_font_size(demo, "ToastLabel", PackRatDemoTypeScale.STATUS):
+	if not _assert_font_size(demo, "OutputText", PackRatDemoTypeScale.META):
 		return false
 	if not _assert_font_size(demo, "PlaceholderTitle", PackRatDemoTypeScale.SECTION_TITLE):
 		return false
@@ -947,6 +950,16 @@ func _label(root: Node, name: String) -> Label:
 		return label
 
 	_fail("Could not find label %s." % name)
+	return null
+
+
+func _text_edit(root: Node, name: String) -> TextEdit:
+	var node: Node = root.find_child(name, true, false)
+	if node is TextEdit:
+		var text_edit: TextEdit = node
+		return text_edit
+
+	_fail("Could not find text edit %s." % name)
 	return null
 
 

@@ -7,7 +7,7 @@ signal preview_requested(pack: PackRatDemoPack, result: PackRatResult)
 ## Emitted when a pack load finishes.
 signal load_finished(pack: PackRatDemoPack, result: PackRatResult)
 
-## Emitted when the card has a status message for the demo toast or console.
+## Emitted when the card has a status message for the demo output log.
 signal message_requested(message: String, is_error: bool)
 
 ## Catalog pack ID this card displays.

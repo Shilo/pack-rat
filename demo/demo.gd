@@ -37,8 +37,7 @@ var _auto_load_failed: bool = false
 @onready var _placeholder_title: Label = %PlaceholderTitle
 @onready var _placeholder_copy: Label = %PlaceholderCopy
 @onready var _clear_all_button: Button = %ClearAllButton
-@onready var _toast_panel: PanelContainer = %ToastPanel
-@onready var _toast_label: Label = %ToastLabel
+@onready var _output_text: TextEdit = %OutputText
 @onready var _warehouse_card: PackRatDemoCard = %WarehouseCard
 @onready var _gallery_card: PackRatDemoCard = %GalleryCard
 
@@ -60,12 +59,12 @@ func _ready() -> void:
 		card.set_use_web_fetch(_use_web_fetch)
 		card.preview_requested.connect(_on_preview_requested)
 		card.load_finished.connect(_on_load_finished)
-		card.message_requested.connect(_show_toast)
+		card.message_requested.connect(_append_output)
 
 	_apply_type_scale()
 	_apply_responsive_layout()
 	_show_placeholder()
-	_show_toast("Ready")
+	_append_output("Ready")
 	_start_auto_loads()
 
 
@@ -84,7 +83,7 @@ func _apply_type_scale() -> void:
 	_source_selector.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
 	_download_client_selector.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
 	_clear_all_button.add_theme_font_size_override("font_size", PackRatDemoTypeScale.BODY)
-	_toast_label.add_theme_font_size_override("font_size", PackRatDemoTypeScale.STATUS)
+	_output_text.add_theme_font_size_override("font_size", PackRatDemoTypeScale.META)
 
 
 func _apply_responsive_layout() -> void:
@@ -100,46 +99,54 @@ func _apply_responsive_layout() -> void:
 
 	_cards_panel.custom_minimum_size = Vector2(0.0 if narrow else 360.0, 0.0)
 	_preview_host.custom_minimum_size = Vector2(0.0 if narrow else 420.0, 260.0 if narrow else 320.0)
-	_toast_panel.custom_minimum_size = Vector2(0.0 if narrow else 184.0, 42.0 if narrow else 48.0)
 
 
-func _show_toast(message: String, is_error: bool = false) -> void:
+func _append_output(message: String, is_error: bool = false) -> void:
 	if message.is_empty():
 		return
 
-	_toast_label.text = message
+	var line: String = "- %s" % message
 	if is_error:
-		_toast_label.add_theme_color_override("font_color", Color.html("#FFECE6"))
+		line = "- ERROR: %s" % message
 		printerr("PackRat demo error: %s" % message)
 	else:
-		_toast_label.add_theme_color_override("font_color", Color.html("#F6ECD9"))
 		print("PackRat demo: %s" % message)
+
+	if _output_text.text.is_empty():
+		_output_text.text = line
+	else:
+		_output_text.text = "%s\n%s" % [_output_text.text, line]
+	_scroll_output_to_bottom.call_deferred()
+
+
+func _scroll_output_to_bottom() -> void:
+	_output_text.scroll_vertical = float(_output_text.get_line_count())
 
 
 func _on_source_selected(index: int) -> void:
 	if index == 1 and _github_release_blocked_in_browser():
 		_source_selector.select(0)
 		_source = PackRatDemoCatalog.SOURCE_PAGES
-		_show_toast("GitHub Release assets are blocked by browser CORS; using GitHub Pages.", true)
+		_append_output("GitHub Release assets are blocked by browser CORS; using GitHub Pages.", true)
 		return
 
 	_source = PackRatDemoCatalog.SOURCE_GITHUB_RELEASE if index == 1 else PackRatDemoCatalog.SOURCE_PAGES
 	for card in _cards:
 		card.set_source(_source)
-	_show_toast("Source set to %s." % PackRatDemoCatalog.source_label(_source))
+	_append_output("Source set to %s." % PackRatDemoCatalog.source_label(_source))
 
 
 func _on_downloader_selected(index: int) -> void:
 	_use_web_fetch = index == 0
 	for card in _cards:
 		card.set_use_web_fetch(_use_web_fetch)
-	_show_toast("Downloader set to %s." % _downloader_label())
+	_append_output("Downloader set to %s." % _downloader_label())
 
 
 func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void:
 	var scene: PackedScene = result.load_entry_scene()
 	if scene == null:
-		_show_toast("Entry scene was not found after mount.", true)
+		_append_output("Entry scene was not found after mount.", true)
 		return
 
 	_clear_preview()
@@ -150,7 +157,7 @@ func _on_preview_requested(pack: PackRatDemoPack, result: PackRatResult) -> void
 		var control: Control = instance
 		control.set_anchors_preset(Control.PRESET_FULL_RECT)
 
-	_show_toast("Previewing %s." % pack.title)
+	_append_output("Previewing %s." % pack.title)
 
 
 func _on_clear_all_pressed() -> void:
@@ -158,9 +165,9 @@ func _on_clear_all_pressed() -> void:
 	options.cache_dir = PackRatDemoCatalog.cache_dir
 	var error: Error = PackRat.clear_cache(options)
 	if error == OK:
-		_show_toast("Disk cache cleared.")
+		_append_output("Disk cache cleared.")
 	else:
-		_show_toast("Could not clear disk cache (error %d)." % error, true)
+		_append_output("Could not clear disk cache (error %d)." % error, true)
 
 
 func _on_load_finished(_pack: PackRatDemoPack, result: PackRatResult) -> void:
@@ -173,9 +180,9 @@ func _on_load_finished(_pack: PackRatDemoPack, result: PackRatResult) -> void:
 
 	if _pending_auto_loads == 0 and _quit_when_done:
 		if _auto_load_failed:
-			_show_toast("Auto-load finished with errors.", true)
+			_append_output("Auto-load finished with errors.", true)
 		else:
-			_show_toast("Auto-load finished.")
+			_append_output("Auto-load finished.")
 		get_tree().quit(1 if _auto_load_failed else 0)
 
 
@@ -187,7 +194,7 @@ func _clear_preview() -> void:
 func _start_auto_loads() -> void:
 	if _auto_load_ids.is_empty():
 		if _quit_when_done:
-			_show_toast("No auto-load packs requested.")
+			_append_output("No auto-load packs requested.")
 			get_tree().quit()
 		return
 
@@ -198,7 +205,7 @@ func _start_auto_loads() -> void:
 			card.load_pack()
 
 	if _pending_auto_loads == 0 and _quit_when_done:
-		_show_toast("No matching auto-load packs were found.", true)
+		_append_output("No matching auto-load packs were found.", true)
 		get_tree().quit(1)
 
 
