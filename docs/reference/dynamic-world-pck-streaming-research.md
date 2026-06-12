@@ -273,17 +273,17 @@ Suggested presets:
 
 ```text
 Web Client Base
-  includes: client/**, shared/main/**, shared/net/**, shared/world/**,
-            shared/player/**, icon/project basics
-  excludes: server/**
+  includes: client/*, shared/main/*, shared/net/*, shared/world/*,
+            shared/player/*, icon/project basics
+  excludes: server/*
 
 Server
-  includes: server/**, shared/**
+  includes: server/*, shared/*
   dedicated server export
 
 World Pack <key>
-  includes: server/worlds/<key>/** plus required imported dependencies
-  excludes: other server-only paths under server/**
+  includes: server/worlds/<key>/* plus required imported dependencies
+  excludes: other server-only paths under server/*
 ```
 
 Godot supports command-line PCK export with `--export-pack`. For per-world PCKs,

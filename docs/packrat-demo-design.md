@@ -46,7 +46,7 @@ Use two packs so the demo proves both PCK and ZIP behavior.
 | Gallery | `packrat-demo-gallery.zip` | ZIP | `res://demo/packs/gallery/main.tscn` | A UI/content scene with bulky placeholder assets to show app/content-pack use. |
 
 The pack source scenes live under `res://demo/packs/...` so they are visible and
-editable in Godot. The base Web export excludes `demo/packs/**`, and the
+editable in Godot. The base Web export excludes `demo/packs/*`, and the
 downloaded PCK/ZIP mounts those same paths back at runtime.
 
 No dedicated artwork is required. Use simple Godot UI, baked scene nodes,

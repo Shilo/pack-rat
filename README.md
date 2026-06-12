@@ -488,7 +488,7 @@ godot --headless --path . --script "tools/demo_pack_catalog.gd" -- --output-dir=
 This writes local demo packs to `build/packs/` using the `Warehouse DLC` and
 `Gallery DLC` export presets, then updates the committed demo catalog size and
 version tokens. The pack source scenes live in `demo/packs/` so they are
-visible in the Godot editor. The Web export excludes `demo/packs/**`, then
+visible in the Godot editor. The Web export excludes `demo/packs/*`, then
 PackRat mounts those paths back at runtime.
 
 The demo pack presets enable both desktop and mobile Web VRAM texture
