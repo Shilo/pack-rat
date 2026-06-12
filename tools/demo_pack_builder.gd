@@ -281,7 +281,7 @@ static func _warehouse_scene() -> String:
 		"offset_right = 360.0",
 		"offset_bottom = 58.0",
 		"theme_override_colors/font_color = Color(0.964706, 0.788235, 0.552941, 1)",
-		"theme_override_font_sizes/font_size = 30",
+		"theme_override_font_sizes/font_size = 28",
 		"text = \"Warehouse PCK\"",
 		"",
 		"[node name=\"Subtitle\" type=\"Label\" parent=\".\"]",
@@ -291,6 +291,7 @@ static func _warehouse_scene() -> String:
 		"offset_right = 520.0",
 		"offset_bottom = 86.0",
 		"theme_override_colors/font_color = Color(0.847059, 0.780392, 0.686275, 1)",
+		"theme_override_font_sizes/font_size = 12",
 		"text = \"A mounted room full of moving PackRat boxes.\"",
 		"",
 		"[node name=\"Floor\" type=\"ColorRect\" parent=\".\"]",
@@ -405,45 +406,60 @@ static func _gallery_scene() -> String:
 		"grow_vertical = 2",
 		"color = Color(0.917647, 0.952941, 0.937255, 1)",
 		"",
-		"[node name=\"Title\" type=\"Label\" parent=\".\"]",
-		"layout_mode = 0",
-		"offset_left = 28.0",
-		"offset_top = 22.0",
-		"offset_right = 360.0",
-		"offset_bottom = 60.0",
+		"[node name=\"Page\" type=\"MarginContainer\" parent=\".\"]",
+		"layout_mode = 1",
+		"anchors_preset = 15",
+		"anchor_right = 1.0",
+		"anchor_bottom = 1.0",
+		"grow_horizontal = 2",
+		"grow_vertical = 2",
+		"theme_override_constants/margin_left = 10",
+		"theme_override_constants/margin_top = 10",
+		"theme_override_constants/margin_right = 10",
+		"theme_override_constants/margin_bottom = 10",
+		"",
+		"[node name=\"Stack\" type=\"VBoxContainer\" parent=\"Page\"]",
+		"layout_mode = 2",
+		"theme_override_constants/separation = 10",
+		"",
+		"[node name=\"Title\" type=\"Label\" parent=\"Page/Stack\"]",
+		"layout_mode = 2",
 		"theme_override_colors/font_color = Color(0.121569, 0.294118, 0.262745, 1)",
-		"theme_override_font_sizes/font_size = 30",
+		"theme_override_font_sizes/font_size = 28",
 		"text = \"Gallery ZIP\"",
 		"",
-		"[node name=\"Subtitle\" type=\"Label\" parent=\".\"]",
-		"layout_mode = 0",
-		"offset_left = 30.0",
-		"offset_top = 62.0",
-		"offset_right = 570.0",
-		"offset_bottom = 88.0",
+		"[node name=\"Subtitle\" type=\"Label\" parent=\"Page/Stack\"]",
+		"layout_mode = 2",
 		"theme_override_colors/font_color = Color(0.262745, 0.392157, 0.360784, 1)",
+		"theme_override_font_sizes/font_size = 12",
 		"text = \"A mounted content page with generated downloadable weight.\"",
+		"autowrap_mode = 3",
+		"",
+		"[node name=\"CardScroll\" type=\"ScrollContainer\" parent=\"Page/Stack\"]",
+		"layout_mode = 2",
+		"size_flags_vertical = 3",
+		"horizontal_scroll_mode = 0",
+		"",
+		"[node name=\"TileFlow\" type=\"HFlowContainer\" parent=\"Page/Stack/CardScroll\"]",
+		"layout_mode = 2",
+		"size_flags_horizontal = 3",
+		"theme_override_constants/h_separation = 10",
+		"theme_override_constants/v_separation = 10",
 		"",
 	])
 
 	for index in range(12):
-		var column: int = index % 4
-		var row: int = int(index / 4)
-		var left: float = 38.0 + float(column) * 205.0
-		var top: float = 118.0 + float(row) * 142.0
 		var swatch: String = "Color(0.152941, 0.501961, 0.423529, 1)"
 		if index % 2 != 0:
 			swatch = "Color(0.541176, 0.341176, 0.160784, 1)"
 
-		lines.append("[node name=\"Tile%02d\" type=\"PanelContainer\" parent=\".\"]" % index)
-		lines.append("layout_mode = 0")
-		lines.append("offset_left = %.1f" % left)
-		lines.append("offset_top = %.1f" % top)
-		lines.append("offset_right = %.1f" % (left + 180.0))
-		lines.append("offset_bottom = %.1f" % (top + 118.0))
+		lines.append("[node name=\"Tile%02d\" type=\"PanelContainer\" parent=\"Page/Stack/CardScroll/TileFlow\"]" % index)
+		lines.append("custom_minimum_size = Vector2(160, 108)")
+		lines.append("layout_mode = 2")
 		lines.append("theme_override_styles/panel = SubResource(\"TilePanel\")")
 		lines.append("")
-		lines.append("[node name=\"Swatch\" type=\"ColorRect\" parent=\"Tile%02d\"]" % index)
+		var tile_path: String = "Page/Stack/CardScroll/TileFlow/Tile%02d" % index
+		lines.append("[node name=\"Swatch\" type=\"ColorRect\" parent=\"%s\"]" % tile_path)
 		lines.append("layout_mode = 0")
 		lines.append("offset_left = 14.0")
 		lines.append("offset_top = 12.0")
@@ -451,24 +467,26 @@ static func _gallery_scene() -> String:
 		lines.append("offset_bottom = 40.0")
 		lines.append("color = %s" % swatch)
 		lines.append("")
-		lines.append("[node name=\"Icon\" type=\"TextureRect\" parent=\"Tile%02d\"]" % index)
+		lines.append("[node name=\"Icon\" type=\"TextureRect\" parent=\"%s\"]" % tile_path)
 		lines.append("layout_mode = 0")
 		lines.append("offset_left = 22.0")
-		lines.append("offset_top = 46.0")
+		lines.append("offset_top = 44.0")
 		lines.append("offset_right = 74.0")
-		lines.append("offset_bottom = 98.0")
+		lines.append("offset_bottom = 96.0")
 		lines.append("texture = ExtResource(\"2_icon\")")
 		lines.append("expand_mode = 1")
 		lines.append("stretch_mode = 5")
 		lines.append("")
-		lines.append("[node name=\"Label\" type=\"Label\" parent=\"Tile%02d\"]" % index)
+		lines.append("[node name=\"Label\" type=\"Label\" parent=\"%s\"]" % tile_path)
 		lines.append("layout_mode = 0")
 		lines.append("offset_left = 82.0")
-		lines.append("offset_top = 52.0")
-		lines.append("offset_right = 166.0")
-		lines.append("offset_bottom = 78.0")
+		lines.append("offset_top = 50.0")
+		lines.append("offset_right = 154.0")
+		lines.append("offset_bottom = 84.0")
 		lines.append("theme_override_colors/font_color = Color(0.121569, 0.168627, 0.160784, 1)")
+		lines.append("theme_override_font_sizes/font_size = 12")
 		lines.append("text = \"Content tile %02d\"" % (index + 1))
+		lines.append("autowrap_mode = 3")
 		lines.append("")
 
 	return "\n".join(lines)
@@ -479,20 +497,20 @@ static func _gallery_script() -> String:
 		"extends Control",
 		"",
 		"var _cards: Array[PanelContainer] = []",
-		"var _base_positions: Array[Vector2] = []",
 		"",
 		"func _ready() -> void:",
 		"\tfor index in range(12):",
-		"\t\tvar node: Node = get_node(\"Tile%02d\" % index)",
+		"\t\tvar node: Node = find_child(\"Tile%02d\" % index, true, false)",
 		"\t\tif node is PanelContainer:",
 		"\t\t\tvar card: PanelContainer = node",
 		"\t\t\t_cards.append(card)",
-		"\t\t\t_base_positions.append(card.position)",
 		"",
-		"func _process(delta: float) -> void:",
+		"func _process(_delta: float) -> void:",
 		"\tfor index in range(_cards.size()):",
 		"\t\tvar card: PanelContainer = _cards[index]",
-		"\t\tcard.position = _base_positions[index] + Vector2(0.0, sin(Time.get_ticks_msec() * 0.0015 + float(index)) * 6.0)",
+		"\t\tcard.pivot_offset = card.size * 0.5",
+		"\t\tvar pulse: float = sin(Time.get_ticks_msec() * 0.0015 + float(index)) * 0.015",
+		"\t\tcard.scale = Vector2.ONE * (1.0 + pulse)",
 		"",
 	]))
 

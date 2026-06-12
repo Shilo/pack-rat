@@ -124,6 +124,8 @@ func _ready() -> void:
 		return
 	if not _assert_preview_contains_icon(demo, "Icon"):
 		return
+	if not await _assert_gallery_responsive(gallery_first):
+		return
 
 	var mounted_host: Control = _control(demo, "MountedSceneHost")
 	if mounted_host == null:
@@ -523,6 +525,64 @@ func _assert_preview_contains_icon(demo: Node, icon_name: String) -> bool:
 
 	_fail("Expected mounted demo scene icon %s to have a texture." % icon_name)
 	return false
+
+
+func _assert_gallery_responsive(result: PackRatResult) -> bool:
+	var scene: PackedScene = result.load_entry_scene()
+	if scene == null:
+		_fail("Could not load gallery entry scene for responsive smoke.")
+		return false
+
+	var host: Control = Control.new()
+	host.size = Vector2(240.0, 260.0)
+	add_child(host)
+
+	var instance: Node = scene.instantiate()
+	host.add_child(instance)
+	if instance is Control:
+		var control: Control = instance
+		control.set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if not _assert_gallery_width_fits(host, instance, "narrow"):
+		host.queue_free()
+		return false
+
+	host.size = Vector2(720.0, 360.0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var fits: bool = _assert_gallery_width_fits(host, instance, "wide")
+	host.queue_free()
+	return fits
+
+
+func _assert_gallery_width_fits(host: Control, gallery: Node, label: String) -> bool:
+	var scroll_node: Node = gallery.find_child("CardScroll", true, false)
+	if scroll_node is not ScrollContainer:
+		_fail("Expected gallery scene to use a ScrollContainer.")
+		return false
+
+	var scroll: ScrollContainer = scroll_node
+	if scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+		_fail("Expected gallery %s layout to disable horizontal scrolling." % label)
+		return false
+
+	var flow_node: Node = gallery.find_child("TileFlow", true, false)
+	if flow_node is not HFlowContainer:
+		_fail("Expected gallery scene to use an HFlowContainer.")
+		return false
+
+	var flow: HFlowContainer = flow_node
+	var host_right: float = host.get_global_rect().end.x + 1.0
+	for child in flow.get_children():
+		if child is Control:
+			var tile: Control = child
+			if tile.get_global_rect().end.x > host_right:
+				_fail("Gallery %s layout overflowed horizontally." % label)
+				return false
+
+	return true
 
 
 func _card(root: Node, name: String) -> PackRatDemoCard:

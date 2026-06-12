@@ -26,10 +26,10 @@ const WAREHOUSE_ENTRY_PATH: String = "res://packrat_demo/warehouse/main.tscn"
 const GALLERY_ENTRY_PATH: String = "res://packrat_demo/gallery/main.tscn"
 
 ## Generated expected byte size for the warehouse PCK.
-const WAREHOUSE_EXPECTED_SIZE: int = 10495564
+const WAREHOUSE_EXPECTED_SIZE: int = 10495628
 
 ## Generated expected byte size for the gallery ZIP.
-const GALLERY_EXPECTED_SIZE: int = 16791372
+const GALLERY_EXPECTED_SIZE: int = 16793734
 
 ## Generated expected modified time for the warehouse PCK, when available.
 const WAREHOUSE_EXPECTED_MODIFIED_TIME: int = 0
@@ -38,10 +38,10 @@ const WAREHOUSE_EXPECTED_MODIFIED_TIME: int = 0
 const GALLERY_EXPECTED_MODIFIED_TIME: int = 0
 
 ## Generated content version for the warehouse PCK.
-const WAREHOUSE_VERSION_TOKEN: String = "10495564-9037a406cb33"
+const WAREHOUSE_VERSION_TOKEN: String = "10495628-2e5f4c705582"
 
 ## Generated content version for the gallery ZIP.
-const GALLERY_VERSION_TOKEN: String = "16791372-b204b1645f42"
+const GALLERY_VERSION_TOKEN: String = "16793734-e1ca17626b54"
 
 ## Canonical Pages pack mirror used outside Web exports.
 static var pages_pack_base_url: String = "https://shilo.github.io/pack-rat/packs"
