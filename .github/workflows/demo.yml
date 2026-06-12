@@ -87,7 +87,10 @@ jobs:
 
       - name: Verify demo source resources were not generated
         run: |
-          git diff --exit-code -- demo/packs
+          if [ -n "$(git status --porcelain -- demo/packs)" ]; then
+            git status --porcelain -- demo/packs
+            exit 1
+          fi
           test ! -e demo/packs/packrat-demo-warehouse.pck
           test ! -e demo/packs/packrat-demo-gallery.zip
 
