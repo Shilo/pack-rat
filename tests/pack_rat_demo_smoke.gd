@@ -67,6 +67,8 @@ func _ready() -> void:
 		return
 	if not _assert_demo_type_scale(demo, [warehouse_card, gallery_card]):
 		return
+	if not _assert_unknown_total_progress_uses_catalog_size(warehouse_card):
+		return
 
 	var downloader_row: Control = _control(demo, "DownloaderRow")
 	if downloader_row == null:
@@ -616,6 +618,28 @@ func _assert_progress_complete(card: PackRatDemoCard) -> bool:
 		return false
 	if progress_bar.value != 100.0:
 		_fail("Expected loaded card progress to finish at 100.")
+		return false
+
+	return true
+
+
+func _assert_unknown_total_progress_uses_catalog_size(card: PackRatDemoCard) -> bool:
+	var pack: PackRatDemoPack = card.pack()
+	if pack == null:
+		_fail("Card did not expose a catalog pack.")
+		return false
+
+	var progress_bar: ProgressBar = _progress_bar(card, "ProgressBar")
+	var bytes_label: Label = _label(card, "BytesLabel")
+	if progress_bar == null or bytes_label == null:
+		return false
+
+	card._on_progress_changed(pack.file_size / 2, 0)
+	if progress_bar.value < 49.0 or progress_bar.value > 51.0:
+		_fail("Expected unknown-total progress to use the demo catalog size, got %.2f." % progress_bar.value)
+		return false
+	if bytes_label.text.contains("unknown"):
+		_fail("Expected unknown-total progress label to use the demo catalog size.")
 		return false
 
 	return true

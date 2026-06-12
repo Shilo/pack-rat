@@ -129,9 +129,13 @@ func _set_idle_state() -> void:
 
 
 func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:
-	if total_bytes > 0:
-		_progress_bar.value = clampf(float(downloaded_bytes) / float(total_bytes) * 100.0, 0.0, 100.0)
-		_bytes_label.text = _download_text(downloaded_bytes, total_bytes)
+	var display_total_bytes: int = total_bytes
+	if display_total_bytes <= 0 and _pack != null:
+		display_total_bytes = _pack.file_size
+
+	if display_total_bytes > 0:
+		_progress_bar.value = clampf(float(downloaded_bytes) / float(display_total_bytes) * 100.0, 0.0, 100.0)
+		_bytes_label.text = _download_text(downloaded_bytes, display_total_bytes)
 	else:
 		_progress_bar.value = 8.0
 		_bytes_label.text = _download_text(downloaded_bytes, 0)
