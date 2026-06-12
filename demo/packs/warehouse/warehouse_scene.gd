@@ -5,8 +5,6 @@ const _DEFAULT_SIZE: Vector2 = Vector2(900.0, 520.0)
 const _FLOOR_HEIGHT: float = 34.0
 
 @export var box_scene: PackedScene
-
-@onready var _physics_world: Node2D = %PhysicsWorld
 @onready var _box_layer: Node2D = %BoxLayer
 @onready var _floor_body: StaticBody2D = %FloorBody
 @onready var _floor_collision: CollisionShape2D = %FloorCollision

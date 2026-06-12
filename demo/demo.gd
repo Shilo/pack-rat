@@ -21,7 +21,6 @@ var _pending_auto_loads: int = 0
 var _auto_load_failed: bool = false
 
 @onready var _page: MarginContainer = %Page
-@onready var _header: BoxContainer = %Header
 @onready var _body: BoxContainer = %Body
 @onready var _cards_panel: PanelContainer = %CardsPanel
 @onready var _source_selector: OptionButton = %SourceSelector
@@ -69,7 +68,6 @@ func _show_placeholder() -> void:
 func _apply_responsive_layout() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
 	var narrow: bool = viewport_size.x < _NARROW_WIDTH or viewport_size.x < viewport_size.y
-	_header.vertical = narrow
 	_body.vertical = narrow
 
 	_page.add_theme_constant_override("margin_left", _SPACE)
