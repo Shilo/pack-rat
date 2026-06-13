@@ -33,6 +33,7 @@ Web-hosted worlds without special platform code in your game.
 - [Options](#options)
 - [Results](#results)
 - [Progress And Cancellation](#progress-and-cancellation)
+- [Web Fetch Helper](#web-fetch-helper)
 - [Server Metadata Without Manifests](#server-metadata-without-manifests)
 - [Offline-First Loads](#offline-first-loads)
 - [Cache Behavior Matrix](#cache-behavior-matrix)
@@ -264,6 +265,22 @@ elif request.result.was_canceled():
 
 Canceling a request completes it with a failed result. It also cancels the
 active `HTTPRequest` when a download is already running.
+
+## Web Fetch Helper
+
+For Web exports, PackRat also includes `PackRatWebFetch`: a small static helper
+that downloads any URL straight to a `user://` file with browser-native
+`fetch()`.
+
+```gdscript
+var result: PackRatWebFetchResult = await PackRatWebFetch.download_file(
+	"https://example.com/large-file.bin",
+	"user://large-file.bin"
+)
+```
+
+Use `PackRat.load_resource_pack()` for PCK/ZIP packs. Use `PackRatWebFetch`
+only when you want PackRat's fast Web download path for a non-pack file.
 
 ## Server Metadata Without Manifests
 

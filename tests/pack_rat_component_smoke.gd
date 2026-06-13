@@ -10,10 +10,11 @@ const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/core/pack_rat_request.gd"),
 	preload("res://addons/pack_rat/core/pack_rat_result.gd"),
 	preload("res://addons/pack_rat/filesystem/pack_rat_file_metadata.gd"),
+	preload("res://addons/pack_rat/request/pack_rat_web_fetch.gd"),
+	preload("res://addons/pack_rat/request/pack_rat_web_fetch_result.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_client.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_response.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_request_runner.gd"),
-	preload("res://addons/pack_rat/request/pack_rat_web_fetch_client.gd"),
 	preload("res://addons/pack_rat/resource_pack/pack_rat_loader.gd"),
 	preload("res://addons/pack_rat/resource_pack/pack_rat_mount_registry.gd"),
 ]
@@ -29,6 +30,14 @@ func _ready() -> void:
 	options.entry_path = "res://dlc/hub/main.tscn"
 	if options.download_chunk_size != PackRatOptions.DEFAULT_DOWNLOAD_CHUNK_SIZE:
 		_fail("Expected PackRatOptions to default to the balanced resource-pack download chunk.")
+		return
+
+	if PackRatOptions.DEFAULT_DOWNLOAD_CHUNK_SIZE != PackRatWebFetch.DEFAULT_CHUNK_SIZE:
+		_fail("Expected PackRatOptions to share the PackRatWebFetch default chunk size.")
+		return
+
+	if not OS.has_feature("web") and PackRatWebFetch.is_available():
+		_fail("Expected PackRatWebFetch to be unavailable outside Web exports.")
 		return
 
 	if options.capture_timings:
@@ -156,6 +165,15 @@ func _ready() -> void:
 
 	if gzip_response.transfer_content_length != 123:
 		_fail("Expected gzip response to preserve transfer Content-Length.")
+		return
+
+	var fetch_failure: PackRatWebFetchResult = PackRatWebFetchResult.failed("fetch failed")
+	if fetch_failure.ok or fetch_failure.error != "fetch failed":
+		_fail("Expected PackRatWebFetchResult.failed to keep a clear error.")
+		return
+
+	if PackRatWebFetchResult.ERROR_CANCELED.is_empty():
+		_fail("Expected PackRatWebFetchResult to expose a generic cancellation error.")
 		return
 
 	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")
