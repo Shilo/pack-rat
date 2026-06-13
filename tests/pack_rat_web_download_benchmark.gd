@@ -26,6 +26,7 @@ func _ready() -> void:
 	_clear_directory(CACHE_DIR)
 	await _assert_fetch_non_success_fails_without_body(url)
 	await _assert_fetch_expected_size_cap(url)
+	await _assert_fetch_invalid_header_fails_without_body(url)
 
 	var summaries: Dictionary = {}
 	for use_web_fetch in [true, false]:
@@ -153,6 +154,34 @@ func _assert_fetch_expected_size_cap(url: String) -> void:
 
 	if _has_part_files(CACHE_DIR):
 		_fail("Expected Web fetch size cap failure to clean .part files.")
+		return
+
+
+func _assert_fetch_invalid_header_fails_without_body(url: String) -> void:
+	var options: PackRatOptions = PackRatOptions.new()
+	options.id = "web_bench_fetch_invalid_header"
+	options.cache_dir = CACHE_DIR
+	options.use_web_fetch = true
+	options.download_chunk_size = 4 * 1024 * 1024
+	options.request_headers = PackedStringArray(["InvalidHeader"])
+	options.capture_timings = true
+	options.always_download = true
+
+	var result: PackRatResult = await PackRat.load_resource_pack(_cache_busted_url(url, "case=invalid_header_%d" % Time.get_ticks_usec()), options)
+	if result.ok:
+		_fail("Expected Web fetch benchmark invalid header to fail.")
+		return
+
+	if not result.error.contains("Invalid HTTP header"):
+		_fail("Expected Web fetch invalid header to report a stable error. Result: %s" % JSON.stringify(result.to_dictionary()))
+		return
+
+	if int(result.timings_msec.get("download_http_write_chunks", 0)) != 0:
+		_fail("Expected Web fetch invalid header to fail before writing body chunks. Result: %s" % JSON.stringify(result.to_dictionary()))
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected Web fetch invalid header failure to clean .part files.")
 		return
 
 
