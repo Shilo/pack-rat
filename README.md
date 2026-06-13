@@ -25,7 +25,7 @@ object, or custom installer workflow is required.
 | Large-file friendly | Bigger download chunks, gzip support, temp files, cancellation, and progress. |
 | Simple cache rules | Use freshness headers, server-provided size/mtime, `offline_first`, or forced downloads. |
 | Static-host friendly | Works with ordinary VPS/CDN/GitHub Pages URLs. |
-| No manifest boilerplate | Upload only a `.pck` or `.zip`; no `manifest.json`, SHA sidecar, or provider config is required. |
+| No manifest files | Upload only a `.pck` or `.zip` to your host; no `manifest.json`, SHA sidecar, or provider config is required. |
 | No plugin workflow | Runtime code works by class name without enabling an editor plugin. |
 
 ## Table of Contents
