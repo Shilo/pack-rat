@@ -177,6 +177,56 @@ func _ready() -> void:
 		_fail("Expected PackRatWebFetchResult to expose a generic cancellation error.")
 		return
 
+	var stale_fetch_dir: String = "user://pack_rat_web_fetch_stale_smoke"
+	PackRatCacheFiles.ensure_dir(stale_fetch_dir)
+	var stale_target_path: String = stale_fetch_dir.path_join("sample.bin")
+	var stale_download_path: String = "%s.download-1-2.part" % stale_target_path
+	var stale_backup_path: String = "%s.backup-1-2.part" % stale_target_path
+	_write_smoke_file(stale_target_path, "current")
+	_write_smoke_file(stale_download_path, "stale-download")
+	_write_smoke_file(stale_backup_path, "stale-backup")
+	PackRatWebFetch._remove_stale_temporary_files(stale_target_path)
+	if FileAccess.file_exists(stale_download_path):
+		_fail("Expected stale Web fetch download temp file to be removed.")
+		return
+
+	if FileAccess.file_exists(stale_backup_path):
+		_fail("Expected stale Web fetch backup temp file to be removed when target exists.")
+		return
+
+	if _read_smoke_file(stale_target_path) != "current":
+		_fail("Expected Web fetch stale cleanup to preserve the target file.")
+		return
+
+	DirAccess.remove_absolute(stale_target_path)
+	_write_smoke_file(stale_backup_path, "restored-backup")
+	PackRatWebFetch._remove_stale_temporary_files(stale_target_path)
+	if FileAccess.file_exists(stale_backup_path):
+		_fail("Expected orphaned Web fetch backup temp file to be restored into target path.")
+		return
+
+	if _read_smoke_file(stale_target_path) != "restored-backup":
+		_fail("Expected Web fetch stale cleanup to restore backup file content.")
+		return
+
+	var active_download_paths_before: Dictionary = PackRatWebFetch._active_download_paths.duplicate()
+	PackRatWebFetch._active_download_paths[stale_target_path] = 2
+	PackRatWebFetch._release_active_download_path(stale_target_path)
+	if int(PackRatWebFetch._active_download_paths.get(stale_target_path, 0)) != 1:
+		_restore_web_fetch_active_paths(active_download_paths_before)
+		_fail("Expected active Web fetch download path reference count to decrement.")
+		return
+
+	PackRatWebFetch._release_active_download_path(stale_target_path)
+	if PackRatWebFetch._active_download_paths.has(stale_target_path):
+		_restore_web_fetch_active_paths(active_download_paths_before)
+		_fail("Expected active Web fetch download path to be released.")
+		return
+
+	_restore_web_fetch_active_paths(active_download_paths_before)
+	DirAccess.remove_absolute(stale_target_path)
+	DirAccess.remove_absolute(stale_fetch_dir)
+
 	var joined_url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")
 	if joined_url != "https://cdn.example.com/worlds/hub.pck":
 		_fail("Expected join_url to build a clean URL.")
@@ -237,3 +287,30 @@ func _ready() -> void:
 func _fail(message: String) -> void:
 	push_error(message)
 	get_tree().quit(1)
+
+
+func _write_smoke_file(path: String, text: String) -> void:
+	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		_fail("Could not write smoke file: %s." % path)
+		return
+
+	file.store_buffer(text.to_utf8_buffer())
+	file = null
+
+
+func _read_smoke_file(path: String) -> String:
+	var file: FileAccess = FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		_fail("Could not read smoke file: %s." % path)
+		return ""
+
+	var text: String = file.get_as_text()
+	file = null
+	return text
+
+
+func _restore_web_fetch_active_paths(snapshot: Dictionary) -> void:
+	PackRatWebFetch._active_download_paths.clear()
+	for path in snapshot.keys():
+		PackRatWebFetch._active_download_paths[path] = snapshot[path]
