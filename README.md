@@ -263,8 +263,9 @@ elif request.result.was_canceled():
 	print("Canceled")
 ```
 
-Canceling a request completes it with a failed result. It also cancels the
-active `HTTPRequest` when a download is already running.
+Canceling a request completes it with a failed result. On Web fetch downloads it
+aborts the browser request; on Godot HTTP downloads it cancels the active
+`HTTPRequest`.
 
 ## Web Fetch Helper
 
@@ -280,7 +281,9 @@ var result: PackRatWebFetchResult = await PackRatWebFetch.download_file(
 ```
 
 Use `PackRat.load_resource_pack()` for PCK/ZIP packs. Use `PackRatWebFetch`
-only when you want PackRat's fast Web download path for a non-pack file.
+only when you want PackRat's fast Web download path for a non-pack file. The
+helper writes to a temporary file first and replaces `download_path` only after
+the request succeeds.
 
 ## Server Metadata Without Manifests
 

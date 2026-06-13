@@ -11,6 +11,7 @@ const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/core/pack_rat_result.gd"),
 	preload("res://addons/pack_rat/filesystem/pack_rat_file_metadata.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_web_fetch.gd"),
+	preload("res://addons/pack_rat/request/pack_rat_web_fetch_bridge.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_web_fetch_result.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_client.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_response.gd"),
