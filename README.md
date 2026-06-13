@@ -64,8 +64,8 @@ You do not need to enable a plugin in Project Settings.
 ## Requirements
 
 PackRat targets Godot 4 and is currently tested with Godot 4.6.x. It uses
-runtime `HTTPRequest` nodes and `ProjectSettings.load_resource_pack()`, so it
-must run from a live `SceneTree`.
+runtime `HTTPRequest` nodes or browser fetch downloads, plus
+`ProjectSettings.load_resource_pack()`, so it must run from a live `SceneTree`.
 
 Build downloadable packs with the same Godot version family as your game. Godot
 may reject packs produced by a newer incompatible engine version.
