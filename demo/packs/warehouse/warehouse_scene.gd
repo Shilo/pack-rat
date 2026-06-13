@@ -6,13 +6,9 @@ const _FLOOR_HEIGHT: float = 34.0
 
 @export var box_scene: PackedScene
 @onready var _box_layer: Node2D = %BoxLayer
-@onready var _floor_body: StaticBody2D = %FloorBody
 @onready var _floor_collision: CollisionShape2D = %FloorCollision
-@onready var _left_wall_body: StaticBody2D = %LeftWallBody
 @onready var _left_wall_collision: CollisionShape2D = %LeftWallCollision
-@onready var _right_wall_body: StaticBody2D = %RightWallBody
 @onready var _right_wall_collision: CollisionShape2D = %RightWallCollision
-@onready var _ceiling_body: StaticBody2D = %CeilingBody
 @onready var _ceiling_collision: CollisionShape2D = %CeilingCollision
 
 
@@ -29,14 +25,13 @@ func _layout_physics_world() -> void:
 		bounds = _DEFAULT_SIZE
 
 	var floor_y: float = bounds.y - _FLOOR_HEIGHT
-	_set_static_edge(_floor_body, _floor_collision, Vector2.ZERO, Vector2(0.0, floor_y), Vector2(bounds.x, floor_y))
-	_set_static_edge(_left_wall_body, _left_wall_collision, Vector2.ZERO, Vector2(0.0, 0.0), Vector2(0.0, floor_y))
-	_set_static_edge(_right_wall_body, _right_wall_collision, Vector2.ZERO, Vector2(bounds.x, 0.0), Vector2(bounds.x, floor_y))
-	_set_static_edge(_ceiling_body, _ceiling_collision, Vector2.ZERO, Vector2(0.0, 0.0), Vector2(bounds.x, 0.0))
+	_set_static_edge(_floor_collision, Vector2(0.0, floor_y), Vector2(bounds.x, floor_y))
+	_set_static_edge(_left_wall_collision, Vector2(0.0, 0.0), Vector2(0.0, floor_y))
+	_set_static_edge(_right_wall_collision, Vector2(bounds.x, 0.0), Vector2(bounds.x, floor_y))
+	_set_static_edge(_ceiling_collision, Vector2(0.0, 0.0), Vector2(bounds.x, 0.0))
 
 
-func _set_static_edge(body: StaticBody2D, collision: CollisionShape2D, body_position: Vector2, point_a: Vector2, point_b: Vector2) -> void:
-	body.position = body_position
+func _set_static_edge(collision: CollisionShape2D, point_a: Vector2, point_b: Vector2) -> void:
 	if collision.shape is SegmentShape2D:
 		var segment: SegmentShape2D = collision.shape
 		segment.a = point_a

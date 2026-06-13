@@ -45,6 +45,7 @@ Web-hosted worlds without special platform code in your game.
 - [Smoke Tests](#smoke-tests)
 - [Explicit Benchmarks](#explicit-benchmarks)
 - [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ## Install
 
@@ -196,7 +197,7 @@ and static host URLs.
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
-| `timeout_seconds` | `120.0` | Finite HTTP timeout. |
+| `timeout_seconds` | `120.0` | Total HTTP request deadline in seconds. Large packs on slow links may need a higher value. |
 | `download_chunk_size` | `8 * 1024 * 1024` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to a balanced 8 MiB chunk for DLC-sized files. Try 4 MiB or 16 MiB only after profiling your own host/device mix. PackRat clamps larger values to Godot's 16 MiB maximum. |
 | `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
@@ -473,7 +474,9 @@ rules before using it.
   completed byte count.
 - `capture_timings` is opt-in so normal loads avoid profiling dictionary and
   timestamp overhead.
-- `timeout_seconds` is finite by default so stalled downloads fail.
+- `timeout_seconds` is finite by default so failed or extremely slow downloads
+  do not hang forever. It is a total request deadline, not an idle-only timeout,
+  so raise it for very large packs or slow links.
 - If a fresh download would target an already-mounted cache path, PackRat keeps
   the mounted file and stores the new download at a unique cache path. It warns
   when a different pack is mounted for the same ID.
@@ -609,3 +612,7 @@ The Web download benchmark is also explicit. Export a Web build that starts
 | Web console prints `Failed to save IDB file system`. | Godot Web is syncing `user://` cache files to browser IndexedDB. DevTools may show a very large minified engine stack trace for one storage sync message. | Treat browser cache as a performance cache, keep using same-origin pack URLs, and clear the site's browser storage if IndexedDB gets wedged during testing. |
 | Godot cannot mount the downloaded pack. | The pack may be invalid or built with an incompatible Godot version. | Rebuild the pack with the same Godot version family as the client. |
 | Updated resources do not behave like a clean restart. | Godot cannot unload an already mounted pack. | Use versioned internal resource paths or restart between incompatible pack versions. |
+
+## License
+
+PackRat is released under the MIT License. See [LICENSE](LICENSE).

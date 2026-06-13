@@ -27,7 +27,7 @@ func _ready() -> void:
 	var options: PackRatOptions = PackRatOptions.new()
 	options.id = "Hub Pack"
 	options.entry_path = "res://dlc/hub/main.tscn"
-	if options.download_chunk_size != 8 * 1024 * 1024:
+	if options.download_chunk_size != PackRatOptions.DEFAULT_DOWNLOAD_CHUNK_SIZE:
 		_fail("Expected PackRatOptions to default to the balanced resource-pack download chunk.")
 		return
 

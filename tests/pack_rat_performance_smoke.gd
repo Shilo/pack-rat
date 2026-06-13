@@ -8,7 +8,7 @@ const PAYLOAD_SOURCE_PATH: String = "user://pack_rat_performance_smoke_server/pa
 const LEGACY_CHUNK_SIZE: int = 64 * 1024
 const OPTIMIZED_CHUNK_SIZE: int = 4 * 1024 * 1024
 const LARGE_CHUNK_SIZE: int = 10 * 1024 * 1024
-const MAX_CHUNK_SIZE: int = 16 * 1024 * 1024
+const MAX_CHUNK_SIZE: int = PackRatOptions.MAX_DOWNLOAD_CHUNK_SIZE
 const REQUESTED_MAX_CHUNK_SIZE: int = 20 * 1024 * 1024
 const PAYLOAD_BYTES: int = 10 * 1024 * 1024
 const SERVER_CHUNK_SIZE: int = 20 * 1024 * 1024
@@ -150,7 +150,7 @@ func _packrat_case(id: String, download_chunk_size: int, capture_timings: bool) 
 	result.timings_msec["external_total_msec"] = external_total_msec
 	result.timings_msec["signal_progress_events"] = progress_events[0]
 	result.timings_msec["configured_download_chunk_size"] = download_chunk_size
-	result.timings_msec["effective_download_chunk_size"] = clampi(download_chunk_size, 256, MAX_CHUNK_SIZE)
+	result.timings_msec["effective_download_chunk_size"] = clampi(download_chunk_size, PackRatOptions.MIN_DOWNLOAD_CHUNK_SIZE, MAX_CHUNK_SIZE)
 	result.timings_msec["capture_timings"] = capture_timings
 	if not result.ok:
 		_fail("Expected performance case %s to load. Result: %s" % [id, JSON.stringify(result.to_dictionary())])

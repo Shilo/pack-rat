@@ -6,7 +6,7 @@ const SAMPLE_COUNT: int = 5
 const CHUNK_SIZES: Array[int] = [
 	4 * 1024 * 1024,
 	8 * 1024 * 1024,
-	16 * 1024 * 1024,
+	PackRatOptions.MAX_DOWNLOAD_CHUNK_SIZE,
 ]
 
 
