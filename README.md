@@ -25,6 +25,7 @@ object, or custom installer workflow is required.
 | Large-file friendly | Bigger download chunks, gzip support, temp files, cancellation, and progress. |
 | Simple cache rules | Use freshness headers, server-provided size/mtime, `offline_first`, or forced downloads. |
 | Static-host friendly | Works with ordinary VPS/CDN/GitHub Pages URLs. |
+| No manifest boilerplate | Upload a `.pck` or `.zip` to your host and let PackRat download, cache, validate, and mount it. |
 | No plugin workflow | Runtime code works by class name without enabling an editor plugin. |
 
 ## Table of Contents
@@ -161,45 +162,45 @@ if error != OK:
 
 ## API
 
-### `PackRat.load_resource_pack(url, options := PackRatOptions.new())`
+### `PackRat.load_resource_pack(url, options := PackRatOptions.new()) -> PackRatResult`
 
 Downloads when needed, caches the file, mounts the `.pck` or `.zip`, and returns
 a completed `PackRatResult`.
 
-### `PackRat.load_resource_pack_async(url, options := PackRatOptions.new())`
+### `PackRat.load_resource_pack_async(url, options := PackRatOptions.new()) -> PackRatRequest`
 
 Starts the same load and immediately returns a cancelable `PackRatRequest` with
 progress and completion signals.
 
-### `PackRat.clear_cached_resource_pack(value, options := PackRatOptions.new())`
+### `PackRat.clear_cached_resource_pack(value, options := PackRatOptions.new()) -> Error`
 
 Deletes one cached pack by URL, ID, cached filename, or cached path. Already
 mounted packs remain mounted until the app exits because Godot has no unload API.
 
-### `PackRat.clear_cache(options := PackRatOptions.new())`
+### `PackRat.clear_cache(options := PackRatOptions.new()) -> Error`
 
 Deletes all removable PackRat cache files, temporary downloads, and cache
 metadata in the selected cache directory.
 
-### `PackRat.file_metadata(path)`
+### `PackRat.file_metadata(path) -> PackRatFileMetadata`
 
 Reads local file size and modified time for server-side metadata flows.
 
-### `PackRat.github_release_url(owner, repo, filename, tag := "latest")`
-
-Builds a direct GitHub Release asset URL without calling the GitHub API.
-
-### `PackRat.github_pages_url(owner, repo, path := "")`
+### `PackRat.github_pages_url(owner, repo, path := "") -> String`
 
 Builds a GitHub Pages project URL such as
 `https://owner.github.io/repo/packs/hub.pck`.
 
-### `PackRat.can_download_github_releases()`
+### `PackRat.github_release_url(owner, repo, filename, tag := "latest") -> String`
+
+Builds a direct GitHub Release asset URL without calling the GitHub API.
+
+### `PackRat.can_download_github_releases() -> bool`
 
 Returns `false` in Web exports because GitHub Release asset redirects are not
 CORS-friendly for browser downloads. Native/editor clients can use Release URLs.
 
-### `PackRat.join_url(base_url, path)`
+### `PackRat.join_url(base_url, path) -> String`
 
 Joins a static host base URL and relative path with slash cleanup only.
 
