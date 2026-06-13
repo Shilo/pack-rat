@@ -15,11 +15,17 @@ var result: PackRatResult = await PackRat.load_resource_pack("https://example.co
 No editor plugin, autoload, manifest, SHA sidecar, provider system, descriptor
 object, or custom installer workflow is required.
 
-PackRat is tuned for large runtime downloads. It uses larger native download
-chunks than Godot's default, keeps transfer compression working, and uses the
-browser's native download path on Web exports for near-browser download speed.
-That means the same simple API can handle small patches, large DLC packs, and
-Web-hosted worlds without special platform code in your game.
+## Why PackRat
+
+| Feature | What it means |
+| --- | --- |
+| One-call happy path | Download, cache, mount, and get a result from one await. |
+| PCK and ZIP packs | Use Godot's native runtime resource-pack support. |
+| Fast Web downloads | Web exports use browser-native `fetch()` by default for near-browser transfer speed. |
+| Large-file friendly | Bigger download chunks, gzip support, temp files, cancellation, and progress. |
+| Simple cache rules | Use freshness headers, server-provided size/mtime, `offline_first`, or forced downloads. |
+| Static-host friendly | Works with ordinary VPS/CDN/GitHub Pages URLs. |
+| No plugin workflow | Runtime code works by class name without enabling an editor plugin. |
 
 ## Table of Contents
 
@@ -38,7 +44,7 @@ Web-hosted worlds without special platform code in your game.
 - [Offline-First Loads](#offline-first-loads)
 - [Cache Behavior Matrix](#cache-behavior-matrix)
 - [Web Export And CORS](#web-export-and-cors)
-- [GitHub Release URLs](#github-release-urls)
+- [GitHub URL Helpers](#github-url-helpers)
 - [Cache Cleanup](#cache-cleanup)
 - [Security Notes](#security-notes)
 - [Performance And Stability Notes](#performance-and-stability-notes)
@@ -140,7 +146,8 @@ if error != OK:
 - Mounts `.pck` and `.zip` files with `replace_files=true` by default.
 - Supports progress and cancellation through `PackRatRequest`.
 - Can clear one cached pack or the full cache.
-- Builds direct GitHub Releases URLs without calling the GitHub API.
+- Builds GitHub Pages and GitHub Release URLs without calling the GitHub API.
+- Reports when direct GitHub Release downloads are unsuitable for Web clients.
 - Keeps concurrent loads independent; duplicate simultaneous calls may each download.
 
 ## What PackRat Does Not Do
@@ -154,34 +161,47 @@ if error != OK:
 
 ## API
 
-```gdscript
-var result: PackRatResult = await PackRat.load_resource_pack(url, options)
-```
+### `PackRat.load_resource_pack(url, options := PackRatOptions.new())`
 
-Downloads if needed, mounts the resource pack, and returns after completion.
+Downloads when needed, caches the file, mounts the `.pck` or `.zip`, and returns
+a completed `PackRatResult`.
 
-```gdscript
-var request: PackRatRequest = PackRat.load_resource_pack_async(url, options)
-```
+### `PackRat.load_resource_pack_async(url, options := PackRatOptions.new())`
 
-Starts the same work but returns a request handle immediately for progress and
-cancellation.
+Starts the same load and immediately returns a cancelable `PackRatRequest` with
+progress and completion signals.
 
-```gdscript
-var item_error: Error = PackRat.clear_cached_resource_pack(value, options)
-var cache_error: Error = PackRat.clear_cache(options)
-```
+### `PackRat.clear_cached_resource_pack(value, options := PackRatOptions.new())`
 
-Deletes one cached pack or all PackRat cache files from disk.
+Deletes one cached pack by URL, ID, cached filename, or cached path. Already
+mounted packs remain mounted until the app exits because Godot has no unload API.
 
-```gdscript
-var metadata: PackRatFileMetadata = PackRat.file_metadata(path)
-var release_url: String = PackRat.github_release_url(owner, repo, filename, tag)
-var static_url: String = PackRat.join_url(base_url, path)
-```
+### `PackRat.clear_cache(options := PackRatOptions.new())`
 
-Small helpers for server metadata workflows, direct GitHub Release asset URLs,
-and static host URLs.
+Deletes all removable PackRat cache files, temporary downloads, and cache
+metadata in the selected cache directory.
+
+### `PackRat.file_metadata(path)`
+
+Reads local file size and modified time for server-side metadata flows.
+
+### `PackRat.github_release_url(owner, repo, filename, tag := "latest")`
+
+Builds a direct GitHub Release asset URL without calling the GitHub API.
+
+### `PackRat.github_pages_url(owner, repo, path := "")`
+
+Builds a GitHub Pages project URL such as
+`https://owner.github.io/repo/packs/hub.pck`.
+
+### `PackRat.can_download_github_releases()`
+
+Returns `false` in Web exports because GitHub Release asset redirects are not
+CORS-friendly for browser downloads. Native/editor clients can use Release URLs.
+
+### `PackRat.join_url(base_url, path)`
+
+Joins a static host base URL and relative path with slash cleanup only.
 
 ## Options
 
@@ -405,14 +425,33 @@ In Web exports, `user://` cache lives in browser-managed storage. Browsers can
 evict it, so treat PackRat's cache as a performance cache, not durable game
 state. Your server or master-server metadata should remain the source of truth.
 
-## GitHub Release URLs
+## GitHub URL Helpers
 
 ```gdscript
+var pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub.pck")
 var latest_url: String = PackRat.github_release_url("owner", "repo", "hub.pck")
 var tagged_url: String = PackRat.github_release_url("owner", "repo", "hub.pck", "v1.2.0")
 ```
 
-This helper only builds direct asset URLs. It does not call the GitHub API.
+These helpers only build URLs. They do not call the GitHub API.
+
+Use GitHub Pages for browser-friendly static downloads:
+
+```gdscript
+var url: String = PackRat.github_pages_url("owner", "repo", "packs/hub.pck")
+```
+
+Use GitHub Releases for native/editor downloads:
+
+```gdscript
+if PackRat.can_download_github_releases():
+	var url: String = PackRat.github_release_url("owner", "repo", "hub.pck")
+```
+
+Direct GitHub Release asset downloads are not recommended for Web exports
+because browsers require CORS headers across the redirect chain and GitHub's
+release asset storage is not designed as a game CDN. Mirror release assets to
+GitHub Pages, a CDN, or your own static host for Web builds.
 
 For ordinary static hosts or CDNs:
 
@@ -581,7 +620,7 @@ Useful demo CLI args:
 | --- | --- |
 | `--pack-base-url=...` | Static URL base for mirrored demo packs. |
 | `--source=pages` | Use same-origin/static-host URLs. |
-| `--source=github_release` | Use GitHub Release asset URLs for native/editor testing. Browser Web exports should use `pages` because GitHub release redirects do not provide game-friendly CORS headers. |
+| `--source=github_release` | Use GitHub Release asset URLs for native/editor testing. Browser Web exports disable this source because GitHub release redirects do not provide game-friendly CORS headers. |
 | `--release-tag=...` | GitHub Release tag for demo packs. |
 | `--auto-load=warehouse,gallery` | Load one or more packs after startup. |
 | `--quit-when-done` | Exit after auto-load finishes. |

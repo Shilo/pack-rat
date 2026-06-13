@@ -38,7 +38,7 @@ const WAREHOUSE_VERSION_TOKEN: String = "10520852-d59a39094fbf"
 const GALLERY_VERSION_TOKEN: String = "16795395-752afd70222f"
 
 ## Canonical Pages pack mirror used outside Web exports.
-static var pages_pack_base_url: String = "https://shilo.github.io/pack-rat/packs"
+static var pages_pack_base_url: String = PackRat.github_pages_url(RELEASE_OWNER, RELEASE_REPO, "packs")
 
 ## Release tag used by [method PackRat.github_release_url].
 static var release_tag: String = "latest"

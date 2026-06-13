@@ -104,7 +104,7 @@ func _scroll_output_to_bottom() -> void:
 
 
 func _on_source_selected(index: int) -> void:
-	if index == 1 and _github_release_blocked_in_browser():
+	if index == 1 and not PackRat.can_download_github_releases():
 		_source_selector.select(0)
 		_source = PackRatDemoCatalog.SOURCE_PAGES
 		_append_output("GitHub Release assets are blocked by browser CORS; using GitHub Pages.", true)
@@ -216,7 +216,7 @@ func _apply_user_args() -> void:
 
 
 func _apply_web_source_limits() -> void:
-	if not _github_release_blocked_in_browser():
+	if PackRat.can_download_github_releases():
 		return
 
 	if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE:
@@ -224,10 +224,6 @@ func _apply_web_source_limits() -> void:
 
 	_source_selector.set_item_disabled(1, true)
 	_source_selector.set_item_text(1, "GitHub Release asset (native only)")
-
-
-func _github_release_blocked_in_browser() -> bool:
-	return OS.has_feature("web")
 
 
 func _downloader_label() -> String:

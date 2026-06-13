@@ -210,6 +210,11 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 		_fail("PackRat.github_release_url returned %s." % release_url)
 		return false
 
+	var pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub.pck")
+	if pages_url != "https://owner.github.io/repo/packs/hub.pck":
+		_fail("PackRat.github_pages_url returned %s." % pages_url)
+		return false
+
 	var demo_pack: PackRatDemoPack = PackRatDemoCatalog.packs()[0]
 	if not demo_pack.pages_url().ends_with("?v=%s" % demo_pack.version_token.uri_encode()):
 		_fail("Expected demo pack URLs to include a version query.")

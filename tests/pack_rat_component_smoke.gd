@@ -232,6 +232,15 @@ func _ready() -> void:
 		_fail("Expected join_url to build a clean URL.")
 		return
 
+	var pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub world.pck")
+	if pages_url != "https://owner.github.io/repo/packs/hub%20world.pck":
+		_fail("Expected github_pages_url to build a clean URL, got %s." % pages_url)
+		return
+
+	if PackRat.can_download_github_releases() == OS.has_feature("web"):
+		_fail("Expected GitHub Release downloads to be unavailable on Web only.")
+		return
+
 	var metadata_dict: Dictionary = metadata.to_dictionary()
 	if int(metadata_dict.get("size", 0)) != metadata.size:
 		_fail("Expected file_metadata dictionary to include size.")

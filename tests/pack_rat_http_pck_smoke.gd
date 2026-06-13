@@ -594,6 +594,11 @@ func _ready() -> void:
 		_fail("Unexpected tagged GitHub release URL: %s" % github_tag_url)
 		return
 
+	var github_pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub.pck")
+	if github_pages_url != "https://owner.github.io/repo/packs/hub.pck":
+		_fail("Unexpected GitHub Pages URL: %s" % github_pages_url)
+		return
+
 	var forced_options: PackRatOptions = _new_options()
 	forced_options.id = "forced_download_smoke"
 	forced_options.cache_dir = CACHE_DIR
