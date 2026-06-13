@@ -76,7 +76,6 @@ jobs:
           godot --headless --path . --scene res://tests/pack_rat_component_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_http_zip_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_http_pck_smoke.tscn
-          godot --headless --path . --scene res://tests/pack_rat_performance_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_pck_hot_update_probe.tscn
 
       - name: Export editor-authored demo packs

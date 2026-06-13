@@ -43,6 +43,7 @@ Web-hosted worlds without special platform code in your game.
 - [Performance And Stability Notes](#performance-and-stability-notes)
 - [Demo Scene](#demo-scene)
 - [Smoke Tests](#smoke-tests)
+- [Explicit Benchmarks](#explicit-benchmarks)
 - [Troubleshooting](#troubleshooting)
 
 ## Install
@@ -196,7 +197,7 @@ and static host URLs.
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
-| `download_chunk_size` | `8 * 1024 * 1024` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to a large balanced 8 MiB chunk. PackRat clamps larger values to Godot's 16 MiB maximum. |
+| `download_chunk_size` | `8 * 1024 * 1024` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to a balanced 8 MiB chunk for DLC-sized files. Try 4 MiB or 16 MiB only after profiling your own host/device mix. PackRat clamps larger values to Godot's 16 MiB maximum. |
 | `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
@@ -449,7 +450,9 @@ rules before using it.
 - PackRat raises `HTTPRequest.download_chunk_size` above Godot's 64 KiB default
   because resource packs are DLC-sized files, not small API responses. It
   defaults to a balanced 8 MiB chunk and clamps larger values to Godot's 16 MiB
-  engine maximum.
+  engine maximum. In repeated tests, 8 MiB was the best default because 16 MiB
+  can reduce callback overhead but may lose that gain to larger memory copies or
+  longer single-step stalls. Treat 4 MiB and 16 MiB as opt-in profiling knobs.
 - PackRat exposes native `HTTPRequest` worker threads through
   `PackRatOptions.use_threads`, but leaves them off by default. In repeated
   GitHub Pages tests, the threaded path was not consistently faster than the
@@ -565,7 +568,6 @@ Useful demo CLI args:
 ```powershell
 godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
-godot --headless --path . --scene "res://tests/pack_rat_performance_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_pck_hot_update_probe.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_demo_smoke.tscn"
@@ -576,10 +578,25 @@ These smokes cover local metadata reads, `expected_size`,
 redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, fast-cache cancellation,
 request headers, redirects, timeouts, `replace_files=false`, cache clearing,
-PCK mounting, ZIP mounting, demo pack exporting, extensionless PCK URLs, MMO-style scene existence,
-repeated cache-hit performance, raw Godot download/mount baselines, PackRat
-cold-load overhead, HTTP chunk-size behavior, and Godot's same-path
-hot-update/resource-cache behavior.
+PCK mounting, ZIP mounting, demo pack exporting, extensionless PCK URLs,
+MMO-style scene existence, and Godot's same-path hot-update/resource-cache
+behavior.
+
+## Explicit Benchmarks
+
+Benchmarks are intentionally not part of the automatic CI smoke path because
+download timing depends on the runner, CDN edge, OS file cache, browser, and
+frame rate. Run them explicitly when changing download code or tuning pack
+hosting:
+
+```powershell
+godot --headless --path . --scene "res://tests/pack_rat_performance_smoke.tscn"
+```
+
+The Web download benchmark is also explicit. Export a Web build that starts
+`res://tests/pack_rat_web_download_benchmark.tscn`, serve it over HTTP, and pass
+`?url=<pack-url>&samples=<count>` to compare Web `fetch()` and Godot
+`HTTPRequest` chunk sizes.
 
 ## Troubleshooting
 
