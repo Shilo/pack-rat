@@ -125,7 +125,7 @@ if error != OK:
 ## What PackRat Does
 
 - Sends `HEAD` when a cached file exists and update checking is enabled.
-- Compares `ETag`, `Last-Modified`, then `Content-Length` when available.
+- Compares `ETag`, `Last-Modified`, then reliable `Content-Length` when available.
 - Can reuse cache by expected file metadata without a `HEAD` request.
 - Can read local file size and modified time with `PackRat.file_metadata(path)`.
 - Can run offline-first, using matching cache immediately and downloading only
@@ -196,11 +196,11 @@ and static host URLs.
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Finite HTTP timeout. |
-| `download_chunk_size` | `16 * 1024 * 1024` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to Godot's 16 MiB maximum on every platform. PackRat clamps larger values to that maximum. |
+| `download_chunk_size` | `8 * 1024 * 1024` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to a large balanced 8 MiB chunk. PackRat clamps larger values to Godot's 16 MiB maximum. |
 | `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
-| `max_redirects` | `8` | Redirect limit for `HTTPRequest`. |
+| `max_redirects` | `8` | Redirect limit for `HTTPRequest`. On Web `fetch()`, `0` disables redirects and positive values use the browser redirect behavior. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
 
 Create options from server-provided file metadata:
@@ -373,10 +373,11 @@ Content-Length: 123456
 Content-Type: application/octet-stream
 ```
 
-If the browser cannot read `ETag`, `Last-Modified`, or `Content-Length`, PackRat
-may treat freshness as unknown and reuse the cached pack with a warning. The
-server metadata flow avoids that by passing `expected_size` and/or
-`expected_modified_time`.
+If the browser cannot read `ETag` or `Last-Modified`, PackRat may treat
+freshness as unknown and reuse the cached pack with a warning. Browser
+`Content-Length` can describe compressed transfer bytes instead of decoded pack
+bytes, so Web exports should use `expected_size` and/or `progress_total_size`
+when they need exact byte totals.
 
 In Web exports, `user://` cache lives in browser-managed storage. Browsers can
 evict it, so treat PackRat's cache as a performance cache, not durable game
@@ -447,8 +448,8 @@ rules before using it.
 - Native HTTPRequest progress polling happens once per frame while a GET is active.
 - PackRat raises `HTTPRequest.download_chunk_size` above Godot's 64 KiB default
   because resource packs are DLC-sized files, not small API responses. It
-  defaults to Godot's 16 MiB engine maximum on every platform. PackRat clamps
-  larger values to that same maximum.
+  defaults to a balanced 8 MiB chunk and clamps larger values to Godot's 16 MiB
+  engine maximum.
 - PackRat exposes native `HTTPRequest` worker threads through
   `PackRatOptions.use_threads`, but leaves them off by default. In repeated
   GitHub Pages tests, the threaded path was not consistently faster than the
@@ -585,7 +586,7 @@ hot-update/resource-cache behavior.
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | `PackRat only accepts HTTP(S) URLs.` | Local file paths are not supported by the load API. | Serve the pack over HTTP(S), or use `file_metadata()` only for metadata collection. |
-| Freshness is always unknown. | Server or browser CORS is hiding `ETag`, `Last-Modified`, or `Content-Length`. | Expose those headers or use expected metadata. |
+| Freshness is always unknown. | Server or browser CORS is hiding `ETag`/`Last-Modified`, or the host cannot provide reliable freshness. | Expose freshness headers or use expected metadata. |
 | `.zip` URL fails with nonzero offset. | Godot only supports offsets for PCK packs. | Keep `offset = 0` for ZIP packs. |
 | Cache cleanup returns `ERR_INVALID_PARAMETER`. | `cache_dir` is root `user://`, outside `user://`, or contains `..`. | Use a dedicated directory such as `user://pack_rat`. |
 | Web console prints `Failed to save IDB file system`. | Godot Web is syncing `user://` cache files to browser IndexedDB. DevTools may show a very large minified engine stack trace for one storage sync message. | Treat browser cache as a performance cache, keep using same-origin pack URLs, and clear the site's browser storage if IndexedDB gets wedged during testing. |

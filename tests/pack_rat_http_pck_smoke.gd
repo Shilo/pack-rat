@@ -5,10 +5,13 @@ const SERVER_DIR: String = "user://pack_rat_http_pck_smoke_server"
 const PACK_PATH: String = "user://pack_rat_http_pck_smoke_server/hub.pck"
 const SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/marker.txt"
 const SCENE_SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/mmo_world.tscn"
+const RANDOM_SOURCE_PATH: String = "user://pack_rat_http_pck_smoke_server/random.bin"
 const MOUNTED_MARKER: String = "res://pack_rat_http_pck_smoke/marker.txt"
 const MMO_SCENE_PATH: String = "res://server/worlds/mmo_world/mmo_world.tscn"
+const RANDOM_PACK_PATH: String = "res://pack_rat_http_pck_smoke/random.bin"
 const MODIFIED_V2_UNIX: int = 1781122560
 const MODIFIED_V3_UNIX: int = 1781122620
+const SLOW_RESPONSE_CHUNK_SIZE: int = 4096
 
 var _server: TCPServer = TCPServer.new()
 var _pack_bytes: PackedByteArray = []
@@ -305,6 +308,20 @@ func _ready() -> void:
 
 	if _has_part_files(CACHE_DIR):
 		_fail("Expected expected_size validation failure to remove .part files.")
+		return
+
+	var too_small_size_options: PackRatOptions = _new_options()
+	too_small_size_options.id = "too_small_size_metadata_smoke"
+	too_small_size_options.cache_dir = CACHE_DIR
+	too_small_size_options.timeout_seconds = 10.0
+	too_small_size_options.expected_size = 1
+	var too_small_size: PackRatResult = await PackRat.load_resource_pack(_url, too_small_size_options)
+	if too_small_size.ok:
+		_fail("Expected too-small expected_size to fail during download.")
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected too-small expected_size failure to remove .part files.")
 		return
 
 	var bad_modified_options: PackRatOptions = _new_options()
@@ -909,10 +926,14 @@ func _write_slow_response(peer: StreamPeerTCP) -> void:
 	headers += "\r\n"
 	peer.put_data(headers.to_utf8_buffer())
 
-	for byte in _pack_bytes:
+	var offset: int = 0
+	while offset < _pack_bytes.size():
 		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 			return
-		peer.put_u8(byte)
+
+		var next_offset: int = mini(offset + SLOW_RESPONSE_CHUNK_SIZE, _pack_bytes.size())
+		peer.put_data(_pack_bytes.slice(offset, next_offset))
+		offset = next_offset
 		await get_tree().process_frame
 
 
@@ -927,12 +948,17 @@ func _write_slow_chunked_response(peer: StreamPeerTCP) -> void:
 	)
 	peer.put_data(headers.to_utf8_buffer())
 
-	for byte in _pack_bytes:
+	var offset: int = 0
+	while offset < _pack_bytes.size():
 		if peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
 			return
-		peer.put_data("1\r\n".to_utf8_buffer())
-		peer.put_u8(byte)
+
+		var next_offset: int = mini(offset + SLOW_RESPONSE_CHUNK_SIZE, _pack_bytes.size())
+		var chunk: PackedByteArray = _pack_bytes.slice(offset, next_offset)
+		peer.put_data(("%s\r\n" % String.num_int64(chunk.size(), 16)).to_utf8_buffer())
+		peer.put_data(chunk)
 		peer.put_data("\r\n".to_utf8_buffer())
+		offset = next_offset
 		await get_tree().process_frame
 
 	peer.put_data("0\r\n\r\n".to_utf8_buffer())
@@ -1011,6 +1037,20 @@ func _build_pack(marker: String) -> void:
 	scene_source.store_string("[gd_scene format=3]\n\n[node name=\"MmoWorld\" type=\"Node\"]\n")
 	scene_source = null
 
+	var random_source: FileAccess = FileAccess.open(RANDOM_SOURCE_PATH, FileAccess.WRITE)
+	if random_source == null:
+		_fail("Could not write smoke random source file (error %d)." % FileAccess.get_open_error())
+		return
+
+	var random_bytes: PackedByteArray = PackedByteArray()
+	random_bytes.resize(512 * 1024)
+	var random_generator: RandomNumberGenerator = RandomNumberGenerator.new()
+	random_generator.seed = 123456789
+	for index in range(random_bytes.size()):
+		random_bytes[index] = random_generator.randi_range(0, 255)
+	random_source.store_buffer(random_bytes)
+	random_source = null
+
 	var packer: PCKPacker = PCKPacker.new()
 	var start_error: Error = packer.pck_start(PACK_PATH)
 	if start_error != OK:
@@ -1027,6 +1067,11 @@ func _build_pack(marker: String) -> void:
 		_fail("Could not add smoke scene to PCK (error %d)." % add_error)
 		return
 
+	add_error = packer.add_file(RANDOM_PACK_PATH, RANDOM_SOURCE_PATH)
+	if add_error != OK:
+		_fail("Could not add smoke random payload to PCK (error %d)." % add_error)
+		return
+
 	var flush_error: Error = packer.flush()
 	if flush_error != OK:
 		_fail("Could not flush smoke PCK (error %d)." % flush_error)
@@ -1040,6 +1085,10 @@ func _build_pack(marker: String) -> void:
 	_gzip_pack_bytes = _pack_bytes.compress(FileAccess.COMPRESSION_GZIP)
 	if _gzip_pack_bytes.is_empty():
 		_fail("Smoke gzip PCK bytes were empty.")
+		return
+
+	if _gzip_pack_bytes.size() <= _pack_bytes.size():
+		_fail("Expected smoke gzip transfer to be larger than decoded PCK for body_size_limit regression coverage.")
 
 
 func _make_directory(path: String) -> void:

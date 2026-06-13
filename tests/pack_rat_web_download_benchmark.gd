@@ -24,6 +24,8 @@ func _ready() -> void:
 	clear_options.cache_dir = CACHE_DIR
 	PackRat.clear_cache(clear_options)
 	_clear_directory(CACHE_DIR)
+	await _assert_fetch_non_success_fails_without_body(url)
+	await _assert_fetch_expected_size_cap(url)
 
 	var summaries: Dictionary = {}
 	for use_web_fetch in [true, false]:
@@ -107,6 +109,53 @@ func _run_case(url: String, use_web_fetch: bool, chunk_size: int, sample_index: 
 	}
 
 
+func _assert_fetch_non_success_fails_without_body(url: String) -> void:
+	var options: PackRatOptions = PackRatOptions.new()
+	options.id = "web_bench_missing_fetch"
+	options.cache_dir = CACHE_DIR
+	options.use_web_fetch = true
+	options.download_chunk_size = 4 * 1024 * 1024
+	options.capture_timings = true
+	options.always_download = true
+
+	var result: PackRatResult = await PackRat.load_resource_pack(_cache_busted_url(_missing_pack_url(url), "case=missing_%d" % Time.get_ticks_usec()), options)
+	if result.ok:
+		_fail("Expected Web fetch benchmark missing pack to fail.")
+		return
+
+	if int(result.timings_msec.get("download_http_write_chunks", 0)) != 0:
+		_fail("Expected Web fetch missing pack to fail before writing body chunks. Result: %s" % JSON.stringify(result.to_dictionary()))
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected Web fetch missing pack failure to clean .part files.")
+		return
+
+
+func _assert_fetch_expected_size_cap(url: String) -> void:
+	var options: PackRatOptions = PackRatOptions.new()
+	options.id = "web_bench_fetch_size_cap"
+	options.cache_dir = CACHE_DIR
+	options.use_web_fetch = true
+	options.download_chunk_size = 4 * 1024 * 1024
+	options.expected_size = 1
+	options.capture_timings = true
+	options.always_download = true
+
+	var result: PackRatResult = await PackRat.load_resource_pack(_cache_busted_url(url, "case=size_cap_%d" % Time.get_ticks_usec()), options)
+	if result.ok:
+		_fail("Expected Web fetch benchmark size cap to fail.")
+		return
+
+	if int(result.timings_msec.get("download_http_write_chunks", 0)) != 0:
+		_fail("Expected Web fetch size cap to fail before writing body chunks. Result: %s" % JSON.stringify(result.to_dictionary()))
+		return
+
+	if _has_part_files(CACHE_DIR):
+		_fail("Expected Web fetch size cap failure to clean .part files.")
+		return
+
+
 func _print_summaries(summaries: Dictionary) -> void:
 	for key in summaries.keys():
 		var samples: Array = summaries[key]
@@ -170,6 +219,15 @@ func _benchmark_sample_count() -> int:
 func _cache_busted_url(url: String, query: String) -> String:
 	var separator: String = "&" if url.contains("?") else "?"
 	return "%s%s%s" % [url, separator, query]
+
+
+func _missing_pack_url(url: String) -> String:
+	var clean_url: String = url.get_slice("?", 0)
+	var base_url: String = clean_url.get_base_dir()
+	if base_url.is_empty():
+		return "__packrat_missing__.pck"
+
+	return "%s/__packrat_missing__.pck" % base_url
 
 
 func _clear_directory(path: String) -> void:
