@@ -447,9 +447,13 @@ func _ready() -> void:
 	progress_options.timeout_seconds = 10.0
 	var slow_url: String = "http://127.0.0.1:%d/slow.pck" % _server.get_local_port()
 	var progress_events: Array[int] = [0]
+	var progress_downloaded: Array[int] = []
+	var progress_totals: Array[int] = []
 	var progress_request: PackRatRequest = PackRat.load_resource_pack_async(slow_url, progress_options)
-	progress_request.progress_changed.connect(func(_downloaded_bytes: int, _total_bytes: int) -> void:
+	progress_request.progress_changed.connect(func(downloaded_bytes: int, total_bytes: int) -> void:
 		progress_events[0] += 1
+		progress_downloaded.append(downloaded_bytes)
+		progress_totals.append(total_bytes)
 	)
 	await progress_request.completed
 	if progress_request.result == null:
@@ -464,6 +468,16 @@ func _ready() -> void:
 		_fail("Expected async load to emit progress_changed at least once.")
 		return
 
+	if (
+		progress_downloaded[progress_downloaded.size() - 1] != _pack_bytes.size()
+		or progress_totals[progress_totals.size() - 1] != _pack_bytes.size()
+	):
+		_fail("Expected async load to emit final complete progress, got %d/%d." % [
+			progress_downloaded[progress_downloaded.size() - 1],
+			progress_totals[progress_totals.size() - 1],
+		])
+		return
+
 	var expected_progress_options: PackRatOptions = _new_options()
 	expected_progress_options.id = "expected_progress_smoke"
 	expected_progress_options.cache_dir = CACHE_DIR
@@ -471,9 +485,11 @@ func _ready() -> void:
 	expected_progress_options.timeout_seconds = 10.0
 	expected_progress_options.expected_size = _pack_bytes.size()
 	var expected_progress_url: String = "http://127.0.0.1:%d/slow-no-length.pck" % _server.get_local_port()
+	var expected_progress_downloaded: Array[int] = []
 	var expected_progress_totals: Array[int] = []
 	var expected_progress_request: PackRatRequest = PackRat.load_resource_pack_async(expected_progress_url, expected_progress_options)
-	expected_progress_request.progress_changed.connect(func(_downloaded_bytes: int, total_bytes: int) -> void:
+	expected_progress_request.progress_changed.connect(func(downloaded_bytes: int, total_bytes: int) -> void:
+		expected_progress_downloaded.append(downloaded_bytes)
 		expected_progress_totals.append(total_bytes)
 	)
 	await expected_progress_request.completed
@@ -489,15 +505,27 @@ func _ready() -> void:
 		_fail("Expected progress to use expected_size when Content-Length is unavailable.")
 		return
 
+	if (
+		expected_progress_downloaded[expected_progress_downloaded.size() - 1] != _pack_bytes.size()
+		or expected_progress_totals[expected_progress_totals.size() - 1] != _pack_bytes.size()
+	):
+		_fail("Expected expected-size progress to finish complete, got %d/%d." % [
+			expected_progress_downloaded[expected_progress_downloaded.size() - 1],
+			expected_progress_totals[expected_progress_totals.size() - 1],
+		])
+		return
+
 	var hinted_progress_options: PackRatOptions = _new_options()
 	hinted_progress_options.id = "hinted_progress_smoke"
 	hinted_progress_options.cache_dir = CACHE_DIR
 	hinted_progress_options.entry_path = MOUNTED_MARKER
 	hinted_progress_options.timeout_seconds = 10.0
 	hinted_progress_options.progress_total_size = _pack_bytes.size()
+	var hinted_progress_downloaded: Array[int] = []
 	var hinted_progress_totals: Array[int] = []
 	var hinted_progress_request: PackRatRequest = PackRat.load_resource_pack_async(expected_progress_url, hinted_progress_options)
-	hinted_progress_request.progress_changed.connect(func(_downloaded_bytes: int, total_bytes: int) -> void:
+	hinted_progress_request.progress_changed.connect(func(downloaded_bytes: int, total_bytes: int) -> void:
+		hinted_progress_downloaded.append(downloaded_bytes)
 		hinted_progress_totals.append(total_bytes)
 	)
 	await hinted_progress_request.completed
@@ -511,6 +539,16 @@ func _ready() -> void:
 
 	if hinted_progress_totals.is_empty() or hinted_progress_totals[0] != _pack_bytes.size():
 		_fail("Expected progress to use progress_total_size when Content-Length is unavailable.")
+		return
+
+	if (
+		hinted_progress_downloaded[hinted_progress_downloaded.size() - 1] != _pack_bytes.size()
+		or hinted_progress_totals[hinted_progress_totals.size() - 1] != _pack_bytes.size()
+	):
+		_fail("Expected hinted progress to finish complete, got %d/%d." % [
+			hinted_progress_downloaded[hinted_progress_downloaded.size() - 1],
+			hinted_progress_totals[hinted_progress_totals.size() - 1],
+		])
 		return
 
 	await get_tree().process_frame

@@ -43,6 +43,10 @@ jobs:
           apt-get install -y libfontconfig1 zip
           mkdir -p "$EXPORT_ROOT/web/packs"
 
+      - name: Package PackRat addon
+        run: |
+          zip -r "$EXPORT_ROOT/packrat-addon.zip" addons/pack_rat README.md LICENSE
+
       - name: Prepare export templates
         run: |
           template_version="${GODOT_VERSION}.${GODOT_STATUS}"
@@ -119,6 +123,12 @@ jobs:
           name: packrat-demo-web
           path: ${{ env.EXPORT_ROOT }}/packrat-demo-web.zip
 
+      - name: Upload addon artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: packrat-addon
+          path: ${{ env.EXPORT_ROOT }}/packrat-addon.zip
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v5.0.0
         with:
@@ -129,6 +139,7 @@ jobs:
         uses: softprops/action-gh-release@v3.0.0
         with:
           files: |
+            ${{ env.EXPORT_ROOT }}/packrat-addon.zip
             ${{ env.EXPORT_ROOT }}/packrat-demo-web.zip
             ${{ env.EXPORT_ROOT }}/web/packs/packrat-demo-warehouse.pck
             ${{ env.EXPORT_ROOT }}/web/packs/packrat-demo-gallery.zip
