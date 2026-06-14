@@ -683,6 +683,14 @@ hosting:
 godot --headless --path . --scene "res://tests/pack_rat_performance_smoke.tscn"
 ```
 
+Native thread comparison is also explicit and hits the live GitHub Pages demo
+pack URLs. Use it when deciding whether `PackRatOptions.use_threads`
+should be enabled for a real native target:
+
+```powershell
+godot --headless --path . --scene "res://tests/pack_rat_native_thread_benchmark.tscn" -- --samples=24
+```
+
 The Web download benchmark is also explicit. Export a Web build that starts
 `res://tests/pack_rat_web_download_benchmark.tscn`, serve it over HTTP, and pass
 `?url=<pack-url>&samples=<count>` to compare Web `fetch()` and Godot
