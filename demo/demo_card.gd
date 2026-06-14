@@ -1,6 +1,10 @@
 class_name PackRatDemoCard extends PanelContainer
 ## Interactive baked scene card that loads one PackRat Portal demo pack.
 
+const _TIMING_DOWNLOAD_HTTP_TRANSFER: String = "download_http_transfer_msec"
+const _TIMING_DOWNLOAD: String = "download_msec"
+const _TIMING_TOTAL: String = "total_msec"
+
 ## Emitted when the pack is ready to show in the preview stage.
 signal preview_requested(pack: PackRatDemoPack, result: PackRatResult)
 
@@ -214,12 +218,12 @@ func _expected_display_size(result: PackRatResult) -> int:
 
 
 func _download_duration_msec(result: PackRatResult) -> int:
-	if result.timings_msec.has("download_http_transfer_msec"):
-		return int(result.timings_msec["download_http_transfer_msec"])
-	if result.timings_msec.has("download_msec"):
-		return int(result.timings_msec["download_msec"])
-	if result.timings_msec.has("total_msec"):
-		return int(result.timings_msec["total_msec"])
+	if result.timings_msec.has(_TIMING_DOWNLOAD_HTTP_TRANSFER):
+		return int(result.timings_msec[_TIMING_DOWNLOAD_HTTP_TRANSFER])
+	if result.timings_msec.has(_TIMING_DOWNLOAD):
+		return int(result.timings_msec[_TIMING_DOWNLOAD])
+	if result.timings_msec.has(_TIMING_TOTAL):
+		return int(result.timings_msec[_TIMING_TOTAL])
 	return -1
 
 

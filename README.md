@@ -681,6 +681,14 @@ The Web download benchmark is also explicit. Export a Web build that starts
 `?url=<pack-url>&samples=<count>` to compare Web `fetch()` and Godot
 `HTTPRequest` chunk sizes.
 
+Before a release that changes `PackRatWebFetch`, run a browser build and verify
+both Web download paths:
+
+- `use_web_fetch=true` downloads, reports progress, cancels, and mounts.
+- `use_web_fetch=false` still works through Godot `HTTPRequest`.
+- Progress reaches the expected total when `expected_size` or
+  `progress_total_size` is set.
+
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |

@@ -7,7 +7,7 @@ const EXPECTED_SPACE: int = 10
 const _PACK_DIR_ARG: String = "--pack-dir="
 
 var _server: TCPServer
-var _pack_bytes: Dictionary = {}
+var _pack_bytes: Dictionary[String, PackedByteArray] = {}
 var _head_count: int = 0
 var _get_count: int = 0
 var _active_peer_count: int = 0
