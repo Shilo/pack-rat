@@ -200,6 +200,11 @@ Builds a direct GitHub Release asset URL without calling the GitHub API.
 Returns `false` in Web exports because GitHub Release asset redirects are not
 CORS-friendly for browser downloads. Native/editor clients can use Release URLs.
 
+### `PackRat.versioned_url(url, version, version_key := "v") -> String`
+
+Adds a stable content-version query value, such as `?v=42`, so browser/CDN
+caches fetch a fresh file when your remote pack changes.
+
 ### `PackRat.join_url(base_url, path) -> String`
 
 Joins a static host base URL and relative path with slash cleanup only.
@@ -458,10 +463,13 @@ For ordinary static hosts or CDNs:
 
 ```gdscript
 var url: String = PackRat.join_url("https://cdn.example.com/worlds/", "/hub.pck")
+var versioned: String = PackRat.versioned_url(url, server_pack_version)
 ```
 
-`join_url()` only handles slash cleanup. It does not fetch catalogs, list
-directories, or encode provider-specific rules.
+`join_url()` only handles slash cleanup. `versioned_url()` is optional; use it
+when your server/master payload already knows the current content version and
+you want browser/CDN caches to fetch a fresh URL after a pack update. Neither
+helper fetches catalogs, lists directories, or encodes provider-specific rules.
 
 ## Cache Cleanup
 

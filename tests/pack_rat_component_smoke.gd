@@ -232,6 +232,22 @@ func _ready() -> void:
 		_fail("Expected join_url to build a clean URL.")
 		return
 
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck", "one two") != "https://cdn.example.com/hub.pck?v=one%20two":
+		_fail("Expected versioned_url to append the default version query.")
+		return
+
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck?source=cdn", "42", "pack version") != "https://cdn.example.com/hub.pck?source=cdn&pack%20version=42":
+		_fail("Expected versioned_url to append a custom version query.")
+		return
+
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck#scene", "42") != "https://cdn.example.com/hub.pck?v=42#scene":
+		_fail("Expected versioned_url to preserve URL fragments.")
+		return
+
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck", "") != "https://cdn.example.com/hub.pck":
+		_fail("Expected versioned_url to ignore an empty version.")
+		return
+
 	var pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub world.pck")
 	if pages_url != "https://owner.github.io/repo/packs/hub%20world.pck":
 		_fail("Expected github_pages_url to build a clean URL, got %s." % pages_url)

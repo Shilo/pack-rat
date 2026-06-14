@@ -56,17 +56,17 @@ static func create(
 
 ## Returns this pack's static-host URL.
 func pages_url() -> String:
-	return _versioned_url(PackRat.join_url(PackRatDemoCatalog.pages_pack_base_url, file_name))
+	return PackRat.versioned_url(PackRat.join_url(PackRatDemoCatalog.pages_pack_base_url, file_name), version_token)
 
 
 ## Returns this pack's GitHub Release URL.
 func github_release_url() -> String:
-	return _versioned_url(PackRat.github_release_url(
+	return PackRat.versioned_url(PackRat.github_release_url(
 		PackRatDemoCatalog.RELEASE_OWNER,
 		PackRatDemoCatalog.RELEASE_REPO,
 		file_name,
 		PackRatDemoCatalog.release_tag
-	))
+	), version_token)
 
 
 ## Returns this pack's URL for [param source].
@@ -87,14 +87,6 @@ func options() -> PackRatOptions:
 	pack_options.use_threads = PackRatDemoCatalog.use_threads
 	pack_options.capture_timings = true
 	return pack_options
-
-
-func _versioned_url(url: String) -> String:
-	if version_token.is_empty():
-		return url
-
-	var separator: String = "?" if not url.contains("?") else "&"
-	return "%s%sv=%s" % [url, separator, version_token.uri_encode()]
 
 
 func _cache_id() -> String:
