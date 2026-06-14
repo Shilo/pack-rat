@@ -240,12 +240,24 @@ func _ready() -> void:
 		_fail("Expected versioned_url to append a custom version query.")
 		return
 
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck?v=old&source=cdn", 42) != "https://cdn.example.com/hub.pck?v=42&source=cdn":
+		_fail("Expected versioned_url to replace an existing version query.")
+		return
+
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck?v=old&v=older", "new") != "https://cdn.example.com/hub.pck?v=new":
+		_fail("Expected versioned_url to collapse duplicate version queries.")
+		return
+
 	if PackRat.versioned_url("https://cdn.example.com/hub.pck#scene", "42") != "https://cdn.example.com/hub.pck?v=42#scene":
 		_fail("Expected versioned_url to preserve URL fragments.")
 		return
 
 	if PackRat.versioned_url("https://cdn.example.com/hub.pck", "") != "https://cdn.example.com/hub.pck":
 		_fail("Expected versioned_url to ignore an empty version.")
+		return
+
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck", "42", "") != "https://cdn.example.com/hub.pck":
+		_fail("Expected versioned_url to ignore an empty version key.")
 		return
 
 	var pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub world.pck")

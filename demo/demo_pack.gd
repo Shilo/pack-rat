@@ -80,17 +80,10 @@ func url_for_source(source: String) -> String:
 ## Builds PackRat options for this pack.
 func options() -> PackRatOptions:
 	var pack_options: PackRatOptions = PackRatOptions.new()
-	pack_options.id = _cache_id()
+	pack_options.id = id
 	pack_options.entry_path = entry_path
 	pack_options.progress_total_size = file_size
 	pack_options.offline_first = true
 	pack_options.use_threads = PackRatDemoCatalog.use_threads
 	pack_options.capture_timings = true
 	return pack_options
-
-
-func _cache_id() -> String:
-	if version_token.is_empty():
-		return id
-
-	return "%s-%s" % [id, version_token]

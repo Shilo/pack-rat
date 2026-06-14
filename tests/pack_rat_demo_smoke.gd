@@ -219,8 +219,8 @@ func _assert_public_api_helpers(build_dir: String) -> bool:
 	if not demo_pack.pages_url().ends_with("?v=%s" % demo_pack.version_token.uri_encode()):
 		_fail("Expected demo pack URLs to include a version query.")
 		return false
-	if demo_pack.options().id == demo_pack.id:
-		_fail("Expected demo pack cache ID to include the exported content version.")
+	if demo_pack.options().id != demo_pack.id:
+		_fail("Expected demo pack cache ID to stay stable.")
 		return false
 
 	var metadata: PackRatFileMetadata = PackRat.file_metadata(build_dir.path_join(PackRatDemoCatalog.WAREHOUSE_FILE_NAME))

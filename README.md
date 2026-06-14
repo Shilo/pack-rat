@@ -202,8 +202,9 @@ CORS-friendly for browser downloads. Native/editor clients can use Release URLs.
 
 ### `PackRat.versioned_url(url, version, version_key := "v") -> String`
 
-Adds a stable content-version query value, such as `?v=42`, so browser/CDN
-caches fetch a fresh file when your remote pack changes.
+Sets a stable content-version query value, such as `?v=42`, so browser/CDN
+caches fetch a fresh file when your remote pack changes. If the URL already has
+the same version key, PackRat replaces it.
 
 ### `PackRat.join_url(base_url, path) -> String`
 
@@ -470,6 +471,8 @@ var versioned: String = PackRat.versioned_url(url, server_pack_version)
 when your server/master payload already knows the current content version and
 you want browser/CDN caches to fetch a fresh URL after a pack update. Neither
 helper fetches catalogs, lists directories, or encodes provider-specific rules.
+Keep `options.id` stable for the logical pack; use `versioned_url()` or
+expected metadata to represent the content version.
 
 ## Cache Cleanup
 
