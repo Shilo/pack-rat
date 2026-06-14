@@ -29,13 +29,13 @@ const GALLERY_ENTRY_PATH: String = "res://demo/packs/gallery/main.tscn"
 const WAREHOUSE_FILE_SIZE: int = 10521460
 
 ## Exported byte size for the gallery ZIP.
-const GALLERY_FILE_SIZE: int = 16795486
+const GALLERY_FILE_SIZE: int = 16795489
 
 ## Exported content version for the warehouse PCK.
-const WAREHOUSE_VERSION_TOKEN: String = "10521460-0b2c1c63657f"
+const WAREHOUSE_VERSION_TOKEN: String = "10521460-884adbb1e1f7"
 
 ## Exported content version for the gallery ZIP.
-const GALLERY_VERSION_TOKEN: String = "16795486-af790028e4c5"
+const GALLERY_VERSION_TOKEN: String = "16795489-7fdaf7eab378"
 
 ## Canonical Pages pack mirror used outside Web exports.
 static var pages_pack_base_url: String = PackRat.github_pages_url(RELEASE_OWNER, RELEASE_REPO, "packs")
