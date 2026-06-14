@@ -21,7 +21,7 @@ object, or custom installer workflow is required.
 | --- | --- |
 | One-call happy path | Download, cache, mount, and get a result from one await. |
 | PCK and ZIP packs | Use Godot's native runtime resource-pack support. |
-| Web-friendly downloads | Web exports use browser-native `fetch()` by default instead of Godot Web `HTTPRequest`. |
+| Fast Web downloads | Web exports use browser-native `fetch()` by default for near-browser transfer speed. |
 | Large-file friendly | Bigger download chunks, gzip support, temp files, cancellation, and progress. |
 | Simple cache rules | Use freshness headers, server-provided size/mtime, `offline_first`, or forced downloads. |
 | Static-host friendly | Works with ordinary VPS/CDN/GitHub Pages URLs. |
@@ -317,7 +317,7 @@ var result: PackRatWebFetchResult = await PackRatWebFetch.download_file(
 ```
 
 Use `PackRat.load_resource_pack()` for PCK/ZIP packs. Use `PackRatWebFetch`
-only when you want PackRat's Web fetch download path for a non-pack file. The
+only when you want PackRat's fast Web download path for a non-pack file. The
 helper writes to a temporary file first and replaces `download_path` only after
 the request succeeds.
 
