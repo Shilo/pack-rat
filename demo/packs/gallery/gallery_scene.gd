@@ -17,7 +17,8 @@ func _process(_delta: float) -> void:
 	for index in range(_cards.size()):
 		var card: PanelContainer = _cards[index]
 		var pulse: float = sin(Time.get_ticks_msec() * 0.0014 + float(index) * 0.37) * 0.012
-		card.scale = Vector2.ONE * (1.0 + pulse)
+		var scale_value: float = 1.0 + pulse
+		card.scale = Vector2(scale_value, scale_value)
 
 
 func _update_card_pivots() -> void:

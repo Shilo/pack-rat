@@ -185,6 +185,8 @@ metadata in the selected cache directory.
 ### `PackRat.file_metadata(path) -> PackRatFileMetadata`
 
 Reads local file size and modified time for server-side metadata flows.
+Use `metadata.apply_to_options(options)` when you want to copy those values into
+`expected_size` and `expected_modified_time`.
 
 ### `PackRat.github_pages_url(owner, repo, path := "") -> String`
 
@@ -250,12 +252,19 @@ Useful fields:
 
 | Field | Meaning |
 | --- | --- |
+| `id` | Cache ID used for this pack. |
 | `status` | `"downloaded"`, `"cache_hit"`, or `"failed"`. |
 | `from_cache` | `true` when no download was needed for this request. |
 | `mounted` | `true` when Godot accepted the `.pck` or `.zip`. |
+| `source_url` | Remote URL used for this request. |
 | `local_path` | Cached file path under `user://`. |
 | `entry_path` | Copied from `PackRatOptions.entry_path`. |
+| `etag` | Remote `ETag` freshness header, when available. |
+| `last_modified` | Remote `Last-Modified` freshness header, when available. |
+| `content_length` | Remote or downloaded byte size, when available. |
+| `response_code` | Last HTTP response code observed during download. |
 | `warnings` | Non-fatal notes, such as missing comparable freshness headers. |
+| `timings_msec` | Profiling timings when `capture_timings` is enabled. |
 | `error` | Failure message when `ok == false`. |
 
 Entry-scene helpers:

@@ -130,7 +130,7 @@ func _set_idle_state() -> void:
 
 func _on_progress_changed(downloaded_bytes: int, total_bytes: int) -> void:
 	var display_total_bytes: int = total_bytes
-	if display_total_bytes <= 0 and _pack != null:
+	if display_total_bytes <= 0:
 		display_total_bytes = _pack.file_size
 
 	if display_total_bytes > 0:
