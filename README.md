@@ -229,7 +229,7 @@ Joins a static host base URL and relative path with slash cleanup only.
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Total HTTP request deadline in seconds. Large packs on slow links may need a higher value. |
 | `download_chunk_size` | `8 * 1024 * 1024` | Bytes per native `HTTPRequest` read or Web `fetch()` write chunk. Defaults to a balanced 8 MiB chunk for DLC-sized files. Try 4 MiB or 16 MiB only after profiling your own host/device mix. PackRat clamps larger values to Godot's 16 MiB maximum. |
-| `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Enable this after profiling a real native download that benefits from it. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
+| `use_threads` | `false` | Lets native `HTTPRequest` use its worker thread when supported. Leave this off unless your own target benefits from it; PackRat's Windows/GitHub Pages benchmarks found the threaded path was usually slower or neutral. PackRat does not pass this through to Web `HTTPRequest`; Web exports use browser `fetch()` by default. |
 | `use_web_fetch` | `true` | Uses PackRat's browser `fetch()` downloader for Web exports when available. Set `false` to force Godot `HTTPRequest`. |
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. On Web `fetch()`, `0` disables redirects and positive values use the browser redirect behavior. |
@@ -536,8 +536,8 @@ rules before using it.
   longer single-step stalls. Treat 4 MiB and 16 MiB as opt-in profiling knobs.
 - PackRat exposes native `HTTPRequest` worker threads through
   `PackRatOptions.use_threads`, but leaves them off by default. In repeated
-  GitHub Pages tests, the threaded path was not consistently faster than the
-  default native path.
+  Windows/GitHub Pages tests, the threaded path was usually slower or neutral
+  compared with the default native path.
 - Native desktop/mobile exports still use Godot's built-in HTTP stack. PackRat
   tunes the path for large resource-pack downloads, but it cannot fully bypass
   Godot's native `HTTPRequest` behavior from pure GDScript. A future optional
