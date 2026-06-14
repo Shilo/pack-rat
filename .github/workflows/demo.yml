@@ -45,7 +45,7 @@ jobs:
 
       - name: Package PackRat addon
         run: |
-          zip -r "$EXPORT_ROOT/packrat-addon.zip" addons/pack_rat README.md LICENSE
+          zip -r "$EXPORT_ROOT/packrat-addon.zip" addons/pack_rat LICENSE
 
       - name: Prepare export templates
         run: |

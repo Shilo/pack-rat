@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://b6vk6y7wdkiuq"]
 
-[ext_resource type="Texture2D" uid="uid://b2tkacsu1viqp" path="res://addons/pack_rat/icon.svg" id="1_icon"]
+[ext_resource type="Texture2D" uid="uid://b2tkacsu1viqp" path="res://icon.svg" id="1_icon"]
 
 [sub_resource type="PhysicsMaterial" id="BoxMaterial"]
 friction = 0.82

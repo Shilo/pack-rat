@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://3byluonui30j"]
 
 [ext_resource type="Script" uid="uid://bfduncj4b7uos" path="res://demo/packs/warehouse/warehouse_scene.gd" id="1_scene"]
-[ext_resource type="Texture2D" uid="uid://b2tkacsu1viqp" path="res://addons/pack_rat/icon.svg" id="2_icon"]
+[ext_resource type="Texture2D" uid="uid://b2tkacsu1viqp" path="res://icon.svg" id="2_icon"]
 [ext_resource type="PackedScene" uid="uid://b6vk6y7wdkiuq" path="res://demo/packs/warehouse/box.tscn" id="3_box"]
 
 [sub_resource type="SegmentShape2D" id="FloorShape"]

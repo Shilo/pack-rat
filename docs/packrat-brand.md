@@ -1,6 +1,6 @@
 # PackRat Brand
 
-<img src="../addons/pack_rat/icon.svg" alt="PackRat icon" width="128">
+<img src="../icon.svg" alt="PackRat icon" width="128">
 
 ## Mascot
 
@@ -9,7 +9,7 @@ box-shaped face/body. It should feel friendly, lightweight, and practical.
 
 ## Icon
 
-- Source: `addons/pack_rat/icon.svg`
+- Source: `icon.svg`
 - Format: transparent SVG
 - Style: two-tone, cartoon, readable on light and dark backgrounds
 - Do not add a background plate or extra highlight colors unless the whole

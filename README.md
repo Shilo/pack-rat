@@ -1,4 +1,4 @@
-<img src="addons/pack_rat/icon.svg" alt="PackRat icon" width="128">
+<img src="icon.svg" alt="PackRat icon" width="128">
 
 # PackRat
 

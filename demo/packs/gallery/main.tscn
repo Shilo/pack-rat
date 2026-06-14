@@ -1,7 +1,7 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://demo/packs/gallery/gallery_scene.gd" id="1_scene"]
-[ext_resource type="Texture2D" path="res://addons/pack_rat/icon.svg" id="2_icon"]
+[ext_resource type="Texture2D" path="res://icon.svg" id="2_icon"]
 
 [sub_resource type="StyleBoxFlat" id="TilePanel"]
 bg_color = Color(1, 1, 1, 1)
