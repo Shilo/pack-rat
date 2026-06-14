@@ -21,7 +21,7 @@ object, or custom installer workflow is required.
 | --- | --- |
 | One-call happy path | Download, cache, mount, and get a result from one await. |
 | PCK and ZIP packs | Use Godot's native runtime resource-pack support. |
-| Fast Web downloads | Web exports use browser-native `fetch()` by default for near-browser transfer speed. |
+| Web-friendly downloads | Web exports use browser-native `fetch()` by default instead of Godot Web `HTTPRequest`. |
 | Large-file friendly | Bigger download chunks, gzip support, temp files, cancellation, and progress. |
 | Simple cache rules | Use freshness headers, server-provided size/mtime, `offline_first`, or forced downloads. |
 | Static-host friendly | Works with ordinary VPS/CDN/GitHub Pages URLs. |
@@ -317,7 +317,7 @@ var result: PackRatWebFetchResult = await PackRatWebFetch.download_file(
 ```
 
 Use `PackRat.load_resource_pack()` for PCK/ZIP packs. Use `PackRatWebFetch`
-only when you want PackRat's fast Web download path for a non-pack file. The
+only when you want PackRat's Web fetch download path for a non-pack file. The
 helper writes to a temporary file first and replaces `download_path` only after
 the request succeeds.
 
@@ -539,11 +539,12 @@ rules before using it.
   Windows/GitHub Pages tests, the threaded path was usually slower or neutral
   compared with the default native path.
 - Native desktop/mobile exports still use Godot's built-in HTTP stack. PackRat
-  tunes the path for large resource-pack downloads, but it cannot fully bypass
-  Godot's native `HTTPRequest` behavior from pure GDScript. A future optional
-  GDExtension downloader using a native HTTP library could be faster for very
-  large native downloads, but that is intentionally outside the lightweight core
-  addon for now.
+  tunes the path for large resource-pack downloads with bigger chunks, gzip, and
+  direct-to-file caching. Recent Windows/GitHub Pages tests put native downloads
+  close to the Web fetch path for the demo packs, but pure GDScript still cannot
+  bypass Godot's native `HTTPRequest` behavior. A future optional GDExtension
+  downloader using a native HTTP library may be useful for very large native
+  downloads, but that is intentionally outside the lightweight core addon for now.
 - PackRat keeps gzip/deflate transfer compression enabled for native
   `HTTPRequest`. Web browsers decode fetch bodies before Godot reads them, so
   PackRat disables Web `HTTPRequest`'s extra decode step and still caches normal
@@ -551,9 +552,10 @@ rules before using it.
 - Web exports use a browser `fetch()` fast path for file downloads because
   Godot's Web HTTP client cannot progress more than once per frame. This is on
   by default through `PackRatOptions.use_web_fetch`, and can be disabled to
-  compare against Godot `HTTPRequest`. This gives Web builds near-browser
-  download speed, so Web does not have the same native `HTTPRequest` caveat.
-  It still uses browser and WebAssembly memory while chunks are handed to Godot.
+  compare against Godot `HTTPRequest`. This mainly avoids the Web
+  `HTTPRequest` frame-polling bottleneck; native Windows downloads can already
+  be close in practice with PackRat's tuned `HTTPRequest` path. It still uses
+  browser and WebAssembly memory while chunks are handed to Godot.
   Web `fetch()` writes chunks using `download_chunk_size`, so the normal
   `.part` download path is shared with native `HTTPRequest`. Progress UI
   callbacks are rate-limited to 2 FPS to avoid bridge spam without slowing the
