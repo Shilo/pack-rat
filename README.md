@@ -691,6 +691,10 @@ should be enabled for a real native target:
 godot --headless --path . --scene "res://tests/pack_rat_native_thread_benchmark.tscn" -- --samples=24
 ```
 
+Optional benchmark-only args include `--max-fps=60`, `--max-fps=0`, and
+`--vsync-mode=0`. These are for profiling engine behavior, not recommended
+PackRat defaults.
+
 The Web download benchmark is also explicit. Export a Web build that starts
 `res://tests/pack_rat_web_download_benchmark.tscn`, serve it over HTTP, and pass
 `?url=<pack-url>&samples=<count>` to compare Web `fetch()` and Godot

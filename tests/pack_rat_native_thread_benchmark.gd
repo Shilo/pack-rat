@@ -3,6 +3,8 @@ extends Node
 const CACHE_DIR: String = "user://pack_rat_native_thread_benchmark_cache"
 const DOWNLOAD_CHUNK_SIZE: int = PackRatOptions.DEFAULT_DOWNLOAD_CHUNK_SIZE
 const DEFAULT_SAMPLE_COUNT: int = 8
+const UNCHANGED_MAX_FPS: int = -1
+const UNCHANGED_VSYNC_MODE: int = -1
 const TIMEOUT_SECONDS: float = 180.0
 const WAREHOUSE_PACK: Dictionary = {
 	"id": "warehouse",
@@ -19,18 +21,35 @@ const GALLERY_PACK: Dictionary = {
 
 var _sample_count: int = DEFAULT_SAMPLE_COUNT
 var _summaries: Dictionary = {}
+var _previous_max_fps: int = 0
+var _previous_vsync_mode: DisplayServer.VSyncMode = DisplayServer.VSYNC_ENABLED
+var _configured_max_fps: int = UNCHANGED_MAX_FPS
+var _configured_vsync_mode: int = UNCHANGED_VSYNC_MODE
 
 
 func _ready() -> void:
 	_sample_count = _argument_int("samples", DEFAULT_SAMPLE_COUNT)
 	_sample_count = maxi(1, _sample_count)
+	_previous_max_fps = Engine.max_fps
+	_previous_vsync_mode = DisplayServer.window_get_vsync_mode()
+	_configured_max_fps = _argument_int("max-fps", UNCHANGED_MAX_FPS)
+	if _configured_max_fps >= 0:
+		Engine.max_fps = _configured_max_fps
+	_configured_vsync_mode = _argument_int("vsync-mode", UNCHANGED_VSYNC_MODE)
+	if _configured_vsync_mode >= 0:
+		DisplayServer.window_set_vsync_mode(_configured_vsync_mode)
+
 	_clear_directory(CACHE_DIR)
 	_make_directory(CACHE_DIR)
 
-	print("NATIVE_THREAD_BENCH start samples=%d chunk_size=%d platform=%s" % [
+	print("NATIVE_THREAD_BENCH start samples=%d chunk_size=%d platform=%s previous_max_fps=%d active_max_fps=%d previous_vsync=%d active_vsync=%d" % [
 		_sample_count,
 		DOWNLOAD_CHUNK_SIZE,
 		OS.get_name(),
+		_previous_max_fps,
+		Engine.max_fps,
+		_previous_vsync_mode,
+		DisplayServer.window_get_vsync_mode(),
 	])
 
 	for pack in [WAREHOUSE_PACK, GALLERY_PACK]:
@@ -49,6 +68,7 @@ func _ready() -> void:
 
 	_print_summaries()
 	_clear_directory(CACHE_DIR)
+	_restore_engine_timing()
 	print("NATIVE_THREAD_BENCH passed.")
 	get_tree().quit(0)
 
@@ -219,6 +239,11 @@ func _argument_int(name: String, fallback: int) -> int:
 	return fallback
 
 
+func _restore_engine_timing() -> void:
+	Engine.max_fps = _previous_max_fps
+	DisplayServer.window_set_vsync_mode(_previous_vsync_mode)
+
+
 func _thread_label(value: bool) -> String:
 	return "on" if value else "off"
 
@@ -294,5 +319,6 @@ func _remove_directory_recursive(path: String) -> void:
 
 
 func _fail(message: String) -> void:
+	_restore_engine_timing()
 	push_error(message)
 	get_tree().quit(1)
