@@ -728,6 +728,7 @@ Useful demo CLI args:
 | `--pack-base-url=...` | Static URL base for mirrored demo packs. |
 | `--source=pages` | Use same-origin/static-host URLs. |
 | `--source=github_release` | Use GitHub Release asset URLs for native/editor testing. Browser Web exports disable this source because GitHub release redirects do not provide game-friendly CORS headers. |
+| `--source=editor_export` | Editor-only mode that builds each demo pack from its Godot export preset, then loads it through PackRat with simulated local progress. |
 | `--release-tag=...` | GitHub Release tag for demo packs. |
 | `--auto-load=warehouse,gallery` | Load one or more packs after startup. |
 | `--quit-when-done` | Exit after auto-load finishes. |
@@ -736,13 +737,16 @@ Useful demo CLI args:
 
 ```powershell
 godot --headless --path . --scene "res://tests/pack_rat_component_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_local_file_smoke.tscn"
+godot --headless --path . --scene "res://tests/pack_rat_editor_export_preset_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_pck_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_http_zip_smoke.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_pck_hot_update_probe.tscn"
 godot --headless --path . --scene "res://tests/pack_rat_demo_smoke.tscn"
 ```
 
-These smokes cover local metadata reads, `expected_size`,
+These smokes cover local metadata reads, `file://`, `user://`, `res://`,
+editor export presets, simulated editor-local progress, `expected_size`,
 `expected_modified_time`, cache hits without `HEAD`/`GET`, changed metadata
 redownloads, missing `Last-Modified` warnings, offline-first cache reuse,
 independent concurrent loads, progress/cancel signals, fast-cache cancellation,

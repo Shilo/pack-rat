@@ -7,6 +7,9 @@ const SOURCE_PAGES: String = "pages"
 ## GitHub Release source, mainly for native/editor testing.
 const SOURCE_GITHUB_RELEASE: String = "github_release"
 
+## Editor-only local source backed by Godot export presets.
+const SOURCE_EDITOR_EXPORT: String = "editor_export"
+
 ## Repository owner for canonical GitHub Release assets.
 const RELEASE_OWNER: String = "Shilo"
 
@@ -18,6 +21,12 @@ const WAREHOUSE_FILE_NAME: String = "packrat-demo-warehouse.pck"
 
 ## Gallery ZIP release asset filename.
 const GALLERY_FILE_NAME: String = "packrat-demo-gallery.zip"
+
+## Warehouse editor export preset.
+const WAREHOUSE_EXPORT_PRESET: String = "Warehouse DLC"
+
+## Gallery editor export preset.
+const GALLERY_EXPORT_PRESET: String = "Gallery DLC"
 
 ## Warehouse PCK entry scene.
 const WAREHOUSE_ENTRY_PATH: String = "res://demo/packs/warehouse/main.tscn"
@@ -49,6 +58,9 @@ static var cache_dir: String = "user://pack_rat_demo"
 ## Whether demo cards use native HTTPRequest worker threads.
 static var use_threads: bool = true
 
+## Editor-only duration used to make local export-preset loads visibly test progress.
+static var editor_simulated_local_load_seconds: float = 1.25
+
 
 ## Uses the current browser page as the static pack host when running on Web.
 static func use_web_same_origin_pack_base() -> void:
@@ -76,6 +88,7 @@ static func packs() -> Array[PackRatDemoPack]:
 		WAREHOUSE_ENTRY_PATH,
 		WAREHOUSE_FILE_SIZE,
 		WAREHOUSE_VERSION_TOKEN,
+		WAREHOUSE_EXPORT_PRESET,
 		Color.html("#8A5729")
 	))
 	result.append(PackRatDemoPack.create(
@@ -87,6 +100,7 @@ static func packs() -> Array[PackRatDemoPack]:
 		GALLERY_ENTRY_PATH,
 		GALLERY_FILE_SIZE,
 		GALLERY_VERSION_TOKEN,
+		GALLERY_EXPORT_PRESET,
 		Color.html("#27806C")
 	))
 	return result
@@ -105,5 +119,7 @@ static func pack_by_id(id: String) -> PackRatDemoPack:
 static func source_label(source: String) -> String:
 	if source == SOURCE_GITHUB_RELEASE:
 		return "GitHub Release"
+	if source == SOURCE_EDITOR_EXPORT:
+		return "Editor export preset"
 
 	return "GitHub Pages"

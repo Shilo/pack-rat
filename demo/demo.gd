@@ -10,6 +10,9 @@ const _DOWNLOADER_FETCH: String = "fetch"
 const _DOWNLOADER_HTTP_REQUEST: String = "httprequest"
 const _NARROW_WIDTH: float = 900.0
 const _SPACE: int = 10
+const _SOURCE_INDEX_PAGES: int = 0
+const _SOURCE_INDEX_GITHUB_RELEASE: int = 1
+const _SOURCE_INDEX_EDITOR_EXPORT: int = 2
 
 var _source: String = PackRatDemoCatalog.SOURCE_PAGES
 var _use_web_fetch: bool = true
@@ -37,10 +40,10 @@ var _auto_load_failed: bool = false
 
 func _ready() -> void:
 	_apply_user_args()
-	_apply_web_source_limits()
+	_apply_source_limits()
 	get_viewport().size_changed.connect(_apply_responsive_layout)
 	_cards = [_warehouse_card, _gallery_card]
-	_source_selector.select(1 if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE else 0)
+	_source_selector.select(_source_index(_source))
 	_download_client_row.visible = OS.has_feature("web")
 	_download_client_selector.select(0 if _use_web_fetch else 1)
 	_source_selector.item_selected.connect(_on_source_selected)
@@ -104,13 +107,19 @@ func _scroll_output_to_bottom() -> void:
 
 
 func _on_source_selected(index: int) -> void:
-	if index == 1 and not PackRat.can_download_github_releases():
-		_source_selector.select(0)
+	if index == _SOURCE_INDEX_GITHUB_RELEASE and not PackRat.can_download_github_releases():
+		_source_selector.select(_SOURCE_INDEX_PAGES)
 		_source = PackRatDemoCatalog.SOURCE_PAGES
 		_append_output("GitHub Release assets are blocked by browser CORS; using GitHub Pages.", true)
 		return
 
-	_source = PackRatDemoCatalog.SOURCE_GITHUB_RELEASE if index == 1 else PackRatDemoCatalog.SOURCE_PAGES
+	if index == _SOURCE_INDEX_EDITOR_EXPORT and not OS.has_feature("editor"):
+		_source_selector.select(_SOURCE_INDEX_PAGES)
+		_source = PackRatDemoCatalog.SOURCE_PAGES
+		_append_output("Editor export preset source is only available in editor runs; using GitHub Pages.", true)
+		return
+
+	_source = _source_from_index(index)
 	for card in _cards:
 		card.set_source(_source)
 	_append_output("Source set to %s." % PackRatDemoCatalog.source_label(_source))
@@ -193,7 +202,11 @@ func _apply_user_args() -> void:
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with(_SOURCE_ARG):
 			var source: String = argument.substr(_SOURCE_ARG.length())
-			if source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE or source == PackRatDemoCatalog.SOURCE_PAGES:
+			if (
+				source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE
+				or source == PackRatDemoCatalog.SOURCE_PAGES
+				or source == PackRatDemoCatalog.SOURCE_EDITOR_EXPORT
+			):
 				_source = source
 		elif argument.begins_with(_PACK_BASE_ARG):
 			_pack_base_arg_applied = true
@@ -215,15 +228,38 @@ func _apply_user_args() -> void:
 		PackRatDemoCatalog.use_web_same_origin_pack_base()
 
 
-func _apply_web_source_limits() -> void:
-	if PackRat.can_download_github_releases():
-		return
+func _apply_source_limits() -> void:
+	if not PackRat.can_download_github_releases():
+		if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE:
+			_source = PackRatDemoCatalog.SOURCE_PAGES
 
-	if _source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE:
-		_source = PackRatDemoCatalog.SOURCE_PAGES
+		_source_selector.set_item_disabled(_SOURCE_INDEX_GITHUB_RELEASE, true)
+		_source_selector.set_item_text(_SOURCE_INDEX_GITHUB_RELEASE, "GitHub Release asset (native only)")
 
-	_source_selector.set_item_disabled(1, true)
-	_source_selector.set_item_text(1, "GitHub Release asset (native only)")
+	if not OS.has_feature("editor"):
+		if _source == PackRatDemoCatalog.SOURCE_EDITOR_EXPORT:
+			_source = PackRatDemoCatalog.SOURCE_PAGES
+
+		_source_selector.set_item_disabled(_SOURCE_INDEX_EDITOR_EXPORT, true)
+		_source_selector.set_item_text(_SOURCE_INDEX_EDITOR_EXPORT, "Editor export preset (editor only)")
+
+
+func _source_from_index(index: int) -> String:
+	if index == _SOURCE_INDEX_GITHUB_RELEASE:
+		return PackRatDemoCatalog.SOURCE_GITHUB_RELEASE
+	if index == _SOURCE_INDEX_EDITOR_EXPORT:
+		return PackRatDemoCatalog.SOURCE_EDITOR_EXPORT
+
+	return PackRatDemoCatalog.SOURCE_PAGES
+
+
+func _source_index(source: String) -> int:
+	if source == PackRatDemoCatalog.SOURCE_GITHUB_RELEASE:
+		return _SOURCE_INDEX_GITHUB_RELEASE
+	if source == PackRatDemoCatalog.SOURCE_EDITOR_EXPORT:
+		return _SOURCE_INDEX_EDITOR_EXPORT
+
+	return _SOURCE_INDEX_PAGES
 
 
 func _downloader_label() -> String:

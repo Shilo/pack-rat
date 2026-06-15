@@ -25,6 +25,9 @@ var file_size: int = 0
 ## Exported content token used to avoid stale HTTP and PackRat cache hits.
 var version_token: String = ""
 
+## Editor export preset that builds this pack for local testing.
+var editor_export_preset: String = ""
+
 ## Card accent color.
 var accent_color: Color = Color.WHITE
 
@@ -39,6 +42,7 @@ static func create(
 	pack_entry_path: String,
 	pack_file_size: int,
 	pack_version_token: String,
+	pack_editor_export_preset: String,
 	pack_accent_color: Color
 ) -> PackRatDemoPack:
 	var pack: PackRatDemoPack = PackRatDemoPack.new()
@@ -50,6 +54,7 @@ static func create(
 	pack.entry_path = pack_entry_path
 	pack.file_size = pack_file_size
 	pack.version_token = pack_version_token
+	pack.editor_export_preset = pack_editor_export_preset
 	pack.accent_color = pack_accent_color
 	return pack
 
@@ -86,4 +91,14 @@ func options() -> PackRatOptions:
 	pack_options.offline_first = true
 	pack_options.use_threads = PackRatDemoCatalog.use_threads
 	pack_options.capture_timings = true
+	return pack_options
+
+
+## Builds PackRat options for this pack and source mode.
+func options_for_source(source: String) -> PackRatOptions:
+	var pack_options: PackRatOptions = options()
+	if source == PackRatDemoCatalog.SOURCE_EDITOR_EXPORT:
+		pack_options.editor_pack_export_preset = editor_export_preset
+		pack_options.editor_simulated_local_load_seconds = PackRatDemoCatalog.editor_simulated_local_load_seconds
+
 	return pack_options

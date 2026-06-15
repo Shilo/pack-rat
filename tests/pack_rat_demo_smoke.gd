@@ -84,6 +84,17 @@ func _ready() -> void:
 	if downloader_selector.item_count != 2:
 		_fail("Expected demo downloader selector to compare fetch and HTTPRequest.")
 		return
+
+	var source_selector: OptionButton = _option_button(demo, "SourceSelector")
+	if source_selector == null:
+		return
+	if source_selector.item_count != 3:
+		_fail("Expected demo source selector to include Pages, Release, and editor export preset modes.")
+		return
+	var expected_editor_source_disabled: bool = not OS.has_feature("editor")
+	if source_selector.is_item_disabled(2) != expected_editor_source_disabled:
+		_fail("Expected demo editor export source to be enabled only in editor runs.")
+		return
 	if OS.has_feature("web"):
 		downloader_selector.select(1)
 		downloader_selector.item_selected.emit(1)
@@ -195,6 +206,28 @@ func _ready() -> void:
 	if not clear_output_text.text.contains("Gallery ZIP failed"):
 		_fail("Expected output log to keep earlier actions after new actions.")
 		return
+
+	if OS.has_feature("editor"):
+		source_selector.select(2)
+		source_selector.item_selected.emit(2)
+		await get_tree().process_frame
+		var editor_source_options: PackRatOptions = warehouse_card.pack().options_for_source(PackRatDemoCatalog.SOURCE_EDITOR_EXPORT)
+		if editor_source_options.editor_pack_export_preset != PackRatDemoCatalog.WAREHOUSE_EXPORT_PRESET:
+			_fail("Expected demo editor source to configure the warehouse export preset.")
+			return
+		if editor_source_options.editor_simulated_local_load_seconds <= 0.0:
+			_fail("Expected demo editor source to configure simulated local load progress.")
+			return
+
+		var editor_warehouse: PackRatResult = await _press_load(warehouse_card)
+		if editor_warehouse == null:
+			return
+		if not editor_warehouse.ok or editor_warehouse.from_cache:
+			_fail("Expected editor export source to build/load a fresh local warehouse pack. Result: %s" % JSON.stringify(editor_warehouse.to_dictionary()))
+			return
+		if not editor_warehouse.local_path.get_file().contains("warehouse"):
+			_fail("Expected editor export source to cache a warehouse pack, got %s." % editor_warehouse.local_path)
+			return
 
 	await _finish_success("PackRat demo smoke passed. GET=%d HEAD=%d" % [_get_count, _head_count])
 

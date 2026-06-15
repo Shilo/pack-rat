@@ -142,11 +142,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 12
 selected = 0
-item_count = 2
+item_count = 3
 popup/item_0/text = "GitHub Pages mirror"
 popup/item_0/id = 0
 popup/item_1/text = "GitHub Release asset"
 popup/item_1/id = 1
+popup/item_2/text = "Editor export preset"
+popup/item_2/id = 2
 
 [node name="Body" type="BoxContainer" parent="Page/Root" unique_id=1219259480]
 unique_name_in_owner = true

@@ -86,7 +86,7 @@ func load_pack() -> void:
 	if _request != null and not _request.is_completed():
 		return
 
-	var options: PackRatOptions = _pack.options()
+	var options: PackRatOptions = _pack.options_for_source(_source)
 	options.cache_dir = PackRatDemoCatalog.cache_dir
 	options.use_web_fetch = _use_web_fetch
 	_request = PackRat.load_resource_pack_async(_pack.url_for_source(_source), options)
@@ -94,8 +94,8 @@ func load_pack() -> void:
 	_request.completed.connect(_on_completed, CONNECT_ONE_SHOT)
 	message_requested.emit("Loading %s..." % _pack.title, false)
 
-	_status_label.text = "Downloading"
-	_detail_label.text = "Remote download in progress."
+	_status_label.text = "Loading"
+	_detail_label.text = "%s in progress." % _load_source_label().capitalize()
 	_detail_label.visible = true
 	_bytes_label.text = _download_text(0, _pack.file_size)
 	_update_timing_label()
@@ -162,7 +162,7 @@ func _on_completed(result: PackRatResult) -> void:
 		_bytes_label.text = _download_text(result.content_length, _expected_display_size(result))
 		_update_timing_label()
 		message_requested.emit(
-			"Mounted %s from %s." % [_pack.title, "cache" if result.from_cache else "remote"],
+			"Mounted %s from %s." % [_pack.title, "cache" if result.from_cache else _load_source_label()],
 			false
 		)
 		preview_requested.emit(_pack, result)
@@ -198,7 +198,7 @@ func _log_result_timings(result: PackRatResult) -> void:
 
 
 func _update_loaded_detail() -> void:
-	_detail_label.text = "Mounted from %s." % ("cache" if _last_result.from_cache else "remote")
+	_detail_label.text = "Mounted from %s." % ("cache" if _last_result.from_cache else _load_source_label())
 	_detail_label.visible = true
 
 
@@ -251,7 +251,7 @@ func _on_clear_pressed() -> void:
 	if _pack == null:
 		return
 
-	var options: PackRatOptions = _pack.options()
+	var options: PackRatOptions = _pack.options_for_source(_source)
 	options.cache_dir = PackRatDemoCatalog.cache_dir
 	var error: Error = PackRat.clear_cached_resource_pack(options.id, options)
 	if error == OK:
@@ -282,3 +282,10 @@ func _format_duration(msec: int) -> String:
 		return "%d ms" % msec
 
 	return "%.2f s" % (float(msec) / 1000.0)
+
+
+func _load_source_label() -> String:
+	if _source == PackRatDemoCatalog.SOURCE_EDITOR_EXPORT:
+		return "editor export"
+
+	return "remote"
