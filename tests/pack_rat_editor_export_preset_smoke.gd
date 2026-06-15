@@ -16,10 +16,13 @@ func _ready() -> void:
 		return
 
 	_clear_directory(CACHE_DIR)
-	var warehouse_export_path: String = EDITOR_PACK_EXPORT_SCRIPT.exported_pack_path(WAREHOUSE_PRESET_NAME)
-	var gallery_export_path: String = EDITOR_PACK_EXPORT_SCRIPT.exported_pack_path(GALLERY_PRESET_NAME)
+	var warehouse_export_path: String = await EDITOR_PACK_EXPORT_SCRIPT.exported_pack_path(WAREHOUSE_PRESET_NAME, CACHE_DIR)
+	var gallery_export_path: String = await EDITOR_PACK_EXPORT_SCRIPT.exported_pack_path(GALLERY_PRESET_NAME, CACHE_DIR)
 	DirAccess.remove_absolute(warehouse_export_path)
 	DirAccess.remove_absolute(gallery_export_path)
+	if not warehouse_export_path.begins_with(CACHE_DIR.path_join("editor_exports")):
+		_fail("Expected editor export preset output to live under the selected cache dir, got %s." % warehouse_export_path)
+		return
 
 	var options: PackRatOptions = PackRatOptions.new()
 	options.id = "editor-export-warehouse"

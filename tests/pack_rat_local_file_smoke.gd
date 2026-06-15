@@ -7,11 +7,13 @@ const USER_ZIP_PATH: String = "user://pack_rat_local_file_smoke_source/user_pack
 const RES_PACK_PATH: String = "res://tests/tmp_pack_rat_local_file_smoke.pck"
 const FILE_PACK_PATH: String = "user://pack_rat_local_file_smoke_source/file_pack.pck"
 const CANCEL_PACK_PATH: String = "user://pack_rat_local_file_smoke_source/cancel_pack.pck"
+const STALE_PACK_PATH: String = "user://pack_rat_local_file_smoke_source/stale_pack.pck"
 const USER_MARKER: String = "res://pack_rat_local_file_smoke/user_marker.txt"
 const ZIP_MARKER: String = "res://pack_rat_local_file_smoke/zip_marker.txt"
 const FILE_MARKER: String = "res://pack_rat_local_file_smoke/file_marker.txt"
 const RES_MARKER: String = "res://pack_rat_local_file_smoke/res_marker.txt"
 const CANCEL_MARKER: String = "res://pack_rat_local_file_smoke/cancel_marker.txt"
+const STALE_MARKER: String = "res://pack_rat_local_file_smoke/stale_marker.txt"
 
 
 func _ready() -> void:
@@ -29,6 +31,8 @@ func _ready() -> void:
 	if not _build_pack(RES_PACK_PATH, RES_MARKER, "res-pack"):
 		return
 	if not _build_pack(CANCEL_PACK_PATH, CANCEL_MARKER, "cancel-pack", 1024 * 1024):
+		return
+	if not _build_pack(STALE_PACK_PATH, STALE_MARKER, "stale-old-a"):
 		return
 
 	var user_result: PackRatResult = await PackRat.load_resource_pack(USER_PACK_PATH, _options("user-pack"))
@@ -56,9 +60,26 @@ func _ready() -> void:
 	var file_result: PackRatResult = await PackRat.load_resource_pack(file_url, _options("file-pack"))
 	if not _assert_loaded(file_result, FILE_MARKER, "file-pack"):
 		return
+	var localhost_file_url: String = file_url.replace("file:///", "file://localhost/")
+	if not PackRatLocalFileClient.is_local_pack_source(localhost_file_url):
+		_fail("Expected PackRatLocalFileClient to accept file://localhost PCK sources.")
+		return
 
 	var res_result: PackRatResult = await PackRat.load_resource_pack(RES_PACK_PATH, _options("res-pack"))
 	if not _assert_loaded(res_result, RES_MARKER, "res-pack"):
+		return
+
+	if not _prime_stale_expected_metadata_cache():
+		return
+	if not _build_pack(STALE_PACK_PATH, STALE_MARKER, "stale-new-b"):
+		return
+	var stale_options: PackRatOptions = _options("stale-pack")
+	stale_options.expected_size = FileAccess.get_size(STALE_PACK_PATH)
+	var stale_result: PackRatResult = await PackRat.load_resource_pack(STALE_PACK_PATH, stale_options)
+	if not _assert_loaded(stale_result, STALE_MARKER, "stale-new-b"):
+		return
+	if stale_result.from_cache:
+		_fail("Expected stale same-cache-path local source to replace the old cached pack.")
 		return
 
 	var simulated_options: PackRatOptions = _options("simulated-pack")
@@ -129,6 +150,53 @@ func _assert_loaded(result: PackRatResult, marker_path: String, expected_text: S
 		_fail("Expected local pack to copy into PackRat cache, got %s." % result.local_path)
 		return false
 
+	return true
+
+
+func _prime_stale_expected_metadata_cache() -> bool:
+	var stale_options: PackRatOptions = _options("stale-pack")
+	stale_options.expected_size = FileAccess.get_size(STALE_PACK_PATH)
+	var metadata: PackRatHttpResponse = PackRatLocalFileClient.metadata(STALE_PACK_PATH)
+	if not metadata.ok:
+		_fail("Could not read stale local pack metadata: %s." % metadata.error)
+		return false
+
+	var stale_key: String = PackRatCachePaths.cache_key(STALE_PACK_PATH, stale_options.id, stale_options)
+	var stale_cache_path: String = PackRatCachePaths.local_path(STALE_PACK_PATH, CACHE_DIR, stale_options.id, metadata, stale_options)
+	if not _copy_file(STALE_PACK_PATH, stale_cache_path):
+		return false
+
+	var stale_result: PackRatResult = PackRatResult.new()
+	stale_result.id = stale_options.id
+	stale_result.local_path = stale_cache_path
+	stale_result.etag = metadata.etag
+	stale_result.last_modified = metadata.last_modified
+	stale_result.content_length = metadata.content_length
+	var cache: PackRatCache = PackRatCache.load(CACHE_DIR)
+	cache.set_record(stale_key, PackRatCacheRecord.from_result(STALE_PACK_PATH, stale_cache_path, stale_result, stale_options))
+	var save_error: Error = cache.save()
+	if save_error != OK:
+		_fail("Could not save primed stale local cache (error %d)." % save_error)
+		return false
+
+	return true
+
+
+func _copy_file(source_path: String, target_path: String) -> bool:
+	var source_file: FileAccess = FileAccess.open(source_path, FileAccess.READ)
+	if source_file == null:
+		_fail("Could not open source file for copy: %s." % source_path)
+		return false
+
+	var target_file: FileAccess = FileAccess.open(target_path, FileAccess.WRITE)
+	if target_file == null:
+		source_file.close()
+		_fail("Could not open target file for copy: %s." % target_path)
+		return false
+
+	target_file.store_buffer(source_file.get_buffer(source_file.get_length()))
+	source_file.close()
+	target_file.close()
 	return true
 
 
