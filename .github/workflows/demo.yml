@@ -79,6 +79,8 @@ jobs:
       - name: Run PackRat smokes
         run: |
           godot --headless --path . --scene res://tests/pack_rat_component_smoke.tscn
+          godot --headless --path . --scene res://tests/pack_rat_local_file_smoke.tscn
+          godot --headless --path . --scene res://tests/pack_rat_editor_export_preset_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_http_zip_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_http_pck_smoke.tscn
           godot --headless --path . --scene res://tests/pack_rat_pck_hot_update_probe.tscn

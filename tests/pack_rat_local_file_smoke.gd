@@ -150,6 +150,11 @@ func _assert_loaded(result: PackRatResult, marker_path: String, expected_text: S
 		_fail("Expected local pack to copy into PackRat cache, got %s." % result.local_path)
 		return false
 
+	var slash_variant: String = result.local_path.replace("/", "\\")
+	if not PackRatMountRegistry.is_mounted_path(slash_variant):
+		_fail("Expected mounted path registry to normalize %s." % slash_variant)
+		return false
+
 	return true
 
 

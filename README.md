@@ -527,9 +527,12 @@ cache records but may keep mounted pack files on disk until the process exits.
 ## Security Notes
 
 Downloaded packs are treated as authoritative content by default. Use trusted
-URLs, because mounted packs can replace existing `res://` paths.
+URLs, because mounted packs can replace existing `res://` paths, including
+scenes and scripts.
 
-Set `replace_files=false` only when override behavior is unwanted.
+Keep `replace_files=true` for trusted DLC/patch workflows that intentionally
+override content. Set `replace_files=false` when a pack should only add
+namespaced content and must not shadow existing project paths.
 
 HTTP metadata is useful for freshness, not authenticity. It answers "does this
 look changed?" rather than "is this trusted content?"
