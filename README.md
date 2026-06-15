@@ -53,6 +53,10 @@ object, or custom installer workflow is required.
 - [Smoke Tests](#smoke-tests)
 - [Explicit Benchmarks](#explicit-benchmarks)
 - [Troubleshooting](#troubleshooting)
+- [Maintainer: publish the addon branch](#maintainer-publish-the-addon-branch)
+- [Using PackRat as a subtree dependency](#using-packrat-as-a-subtree-dependency)
+- [VS Code task for updating without typing the CLI command](#vs-code-task-for-updating-without-typing-the-cli-command)
+- [Used By](#used-by)
 - [License](#license)
 
 ## Install
@@ -803,6 +807,138 @@ both Web download paths:
 | Web console prints `Failed to save IDB file system`. | Godot Web is syncing `user://` cache files to browser IndexedDB. DevTools may show a very large minified engine stack trace for one storage sync message. | Treat browser cache as a performance cache, keep using same-origin pack URLs, and clear the site's browser storage if IndexedDB gets wedged during testing. |
 | Godot cannot mount the downloaded pack. | The pack may be invalid or built with an incompatible Godot version. | Rebuild the pack with the same Godot version family as the client. |
 | Updated resources do not behave like a clean restart. | Godot cannot unload an already mounted pack. | Use versioned internal resource paths or restart between incompatible pack versions. |
+
+## Maintainer: publish the addon branch
+
+The public subtree branch is always named `addon`. After changing files under
+`addons/pack_rat` on `main`, the GitHub workflow publishes that directory as the
+root of `addon` automatically.
+
+To create or repair the branch manually from the PackRat repo root, publish the
+addon directory tree with `git commit-tree`:
+
+```powershell
+$addonDir = "addons/pack_rat"
+git fetch origin "+refs/heads/addon:refs/remotes/origin/addon" 2>$null
+$addonTree = git rev-parse "main:$addonDir"
+$currentTree = git rev-parse "origin/addon^{tree}" 2>$null
+
+if ($LASTEXITCODE -eq 0 -and $addonTree -eq $currentTree) {
+  "addon branch already up to date"
+} else {
+  $parent = git rev-parse --verify origin/addon 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    $newCommit = git commit-tree $addonTree -p $parent -m "chore: sync addon branch from $(git rev-parse --short main)"
+  } else {
+    $newCommit = git commit-tree $addonTree -m "chore: sync addon branch from $(git rev-parse --short main)"
+  }
+  git push origin "${newCommit}:refs/heads/addon"
+}
+```
+
+The `addon` branch contains only the files that belong inside a dependent
+project's `addons/pack_rat` directory. It is a generated one-way publish branch,
+so make source changes under `addons/pack_rat` on `main` instead of editing
+`addon` directly.
+
+The `.github/workflows/sync-addon-branch.yml` workflow uses the same
+`git commit-tree` publish flow whenever `main` receives changes under
+`addons/pack_rat`, or when the workflow itself changes and needs to seed or
+repair the generated branch.
+
+## Using PackRat as a subtree dependency
+
+Dependent Godot projects should keep PackRat at:
+
+```text
+addons/pack_rat
+```
+
+Git subtree is useful here because the dependent repo gets real committed files
+instead of a submodule pointer. That means the project opens normally in Godot,
+CI jobs do not need a recursive checkout step, and monorepos can treat PackRat
+like ordinary source.
+
+The tradeoff is that subtree is a vendoring workflow, not a package manager.
+Updates are explicit merge commits, local edits can create conflicts, and the
+`addon` branch follows the latest `main` addon snapshot. For a frozen release,
+prefer a tagged release zip; for discoverability, a Godot Asset Library listing
+would complement this branch rather than replace it.
+
+This repository is a full Godot demo project. The reusable addon files live in
+`addons/pack_rat`, so subtree consumers should use the generated `addon` branch.
+
+### Initialize the subtree
+
+From the root of the repo that depends on PackRat:
+
+```powershell
+git subtree add --prefix=addons/pack_rat https://github.com/Shilo/pack-rat.git addon --squash
+```
+
+This adds the shared PackRat files into `addons/pack_rat` and records enough
+subtree history for future updates.
+
+### Update to the latest PackRat commit
+
+From the dependent repo root:
+
+```powershell
+git subtree pull --prefix=addons/pack_rat https://github.com/Shilo/pack-rat.git addon --squash
+```
+
+If Git reports conflicts, resolve them like a normal merge, then commit the
+result.
+
+## VS Code task for updating without typing the CLI command
+
+In any dependent repo, create `.vscode/tasks.json` with this task:
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Update PackRat subtree",
+      "type": "shell",
+      "command": "git",
+      "args": [
+        "subtree",
+        "pull",
+        "--prefix=addons/pack_rat",
+        "https://github.com/Shilo/pack-rat.git",
+        "addon",
+        "--squash"
+      ],
+      "problemMatcher": []
+    }
+  ]
+}
+```
+
+Then run it from VS Code:
+
+1. Open the Command Palette with `Ctrl+Shift+P`.
+2. Choose `Tasks: Run Task`.
+3. Choose `Update PackRat subtree`.
+
+Optional keyboard shortcut in VS Code `keybindings.json`:
+
+```json
+{
+  "key": "ctrl+alt+u",
+  "command": "workbench.action.tasks.runTask",
+  "args": "Update PackRat subtree"
+}
+```
+
+The task still runs Git under the hood, but you can trigger it from VS Code
+without retyping the subtree command.
+
+## Used By
+
+- [Shilo/multi-server-test](https://github.com/Shilo/multi-server-test) - uses
+  PackRat for downloadable world/content pack loading.
 
 ## License
 
