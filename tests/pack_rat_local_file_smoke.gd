@@ -61,6 +61,29 @@ func _ready() -> void:
 	if not _assert_loaded(res_result, RES_MARKER, "res-pack"):
 		return
 
+	var simulated_options: PackRatOptions = _options("simulated-pack")
+	simulated_options.editor_simulated_local_load_seconds = 0.15
+	var simulated_start_msec: int = Time.get_ticks_msec()
+	var simulated_result: PackRatResult = await PackRat.load_resource_pack(FILE_PACK_PATH, simulated_options)
+	var simulated_elapsed_msec: int = Time.get_ticks_msec() - simulated_start_msec
+	if not _assert_loaded(simulated_result, FILE_MARKER, "file-pack"):
+		return
+
+	if OS.has_feature("editor") and simulated_elapsed_msec < 75:
+		_fail("Expected editor_simulated_local_load_seconds to slow local copy progress, got %d ms." % simulated_elapsed_msec)
+		return
+
+	var simulated_cache_start_msec: int = Time.get_ticks_msec()
+	var simulated_cache_result: PackRatResult = await PackRat.load_resource_pack(FILE_PACK_PATH, simulated_options)
+	var simulated_cache_elapsed_msec: int = Time.get_ticks_msec() - simulated_cache_start_msec
+	if not simulated_cache_result.ok or not simulated_cache_result.from_cache:
+		_fail("Expected simulated local second load to use cache. Result: %s" % JSON.stringify(simulated_cache_result.to_dictionary()))
+		return
+
+	if OS.has_feature("editor") and simulated_cache_elapsed_msec > 75:
+		_fail("Expected editor_simulated_local_load_seconds not to slow cache hits, got %d ms." % simulated_cache_elapsed_msec)
+		return
+
 	var bad_size_options: PackRatOptions = _options("bad-size")
 	bad_size_options.expected_size = FileAccess.get_size(USER_PACK_PATH) + 1
 	var bad_size_result: PackRatResult = await PackRat.load_resource_pack(USER_PACK_PATH, bad_size_options)

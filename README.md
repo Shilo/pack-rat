@@ -230,6 +230,7 @@ loads.
 | `offset` | `0` | Byte offset for embedded PCK files. ZIP packs must use `0`. |
 | `entry_path` | `""` | Optional `res://` scene path copied into the result for caller convenience. PackRat only uses it when you call result entry-scene helpers. |
 | `editor_pack_export_preset` | `""` | Editor-only local testing helper. When set in an editor run, PackRat builds this Godot export preset with `--export-pack`, then loads the generated local pack instead of downloading the URL. Exported games ignore it and use the URL normally. |
+| `editor_simulated_local_load_seconds` | `0.0` | Editor-only minimum duration for uncached local pack copy progress. Use this to dogfood loading screens, progress bars, cancellation, and transfer timing with local packs. Exported games ignore it. |
 | `expected_size` | `0` | If greater than `0`, becomes part of cache identity and is checked against downloaded bytes. |
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `progress_total_size` | `0` | Optional non-validating byte total for progress bars when a platform cannot report a reliable HTTP body size. |
@@ -673,6 +674,17 @@ and the remote URL is used normally.
 PackRat reuses the generated pack across sessions until `export_presets.cfg` or
 a project resource has a newer filesystem modified time. That keeps normal
 play-button tests fresh without manually rebuilding PCKs.
+
+To test game-side loading UI without waiting on a real network, set
+`editor_simulated_local_load_seconds`:
+
+```gdscript
+options.editor_simulated_local_load_seconds = 1.5
+```
+
+This only affects editor runs and only when a local/editor-generated pack is
+being copied into cache. Cache hits stay instant, and exported games ignore the
+setting.
 
 The demo pack presets enable both desktop and mobile Web VRAM texture
 compression targets. This makes the PCK/ZIP exports larger when they contain

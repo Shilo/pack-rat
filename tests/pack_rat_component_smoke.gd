@@ -109,6 +109,7 @@ func _ready() -> void:
 
 	metadata_options.request_headers.append("X-PackRat-Test: one")
 	metadata_options.editor_pack_export_preset = "Warehouse DLC"
+	metadata_options.editor_simulated_local_load_seconds = 0.25
 	metadata_options.download_chunk_size = 2 * 1024 * 1024
 	metadata_options.capture_timings = true
 	metadata_options.use_web_fetch = false
@@ -119,6 +120,7 @@ func _ready() -> void:
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
 	metadata_options.editor_pack_export_preset = "Changed DLC"
+	metadata_options.editor_simulated_local_load_seconds = 0.0
 	metadata_options.download_chunk_size = 1024
 	metadata_options.capture_timings = false
 	metadata_options.use_web_fetch = true
@@ -135,6 +137,10 @@ func _ready() -> void:
 
 	if copied_options.editor_pack_export_preset != "Warehouse DLC":
 		_fail("Expected PackRatOptions.copy to snapshot editor_pack_export_preset.")
+		return
+
+	if not is_equal_approx(copied_options.editor_simulated_local_load_seconds, 0.25):
+		_fail("Expected PackRatOptions.copy to snapshot editor_simulated_local_load_seconds.")
 		return
 
 	if copied_options.download_chunk_size != 2 * 1024 * 1024:
