@@ -164,8 +164,9 @@ if error != OK:
 
 ### `PackRat.load_resource_pack(url, options := PackRatOptions.new()) -> PackRatResult`
 
-Downloads or copies when needed, caches the file, mounts the `.pck` or `.zip`,
-and returns a completed `PackRatResult`.
+Downloads a remote pack when needed, caches the file, and mounts the `.pck` or
+`.zip`. Alternatively handles local packs for rapid development testing. Returns
+a completed `PackRatResult`.
 
 ### `PackRat.load_resource_pack_async(url, options := PackRatOptions.new()) -> PackRatRequest`
 
@@ -212,7 +213,14 @@ the same version key, PackRat replaces it.
 
 Joins a static host base URL and relative path with slash cleanup only.
 
-## Options
+## PackRatOptions
+
+`PackRatOptions` is the optional settings object passed to
+`PackRat.load_resource_pack()` and `PackRat.load_resource_pack_async()`. PackRat
+copies it when a request starts, so later mutations do not affect in-flight
+loads.
+
+### Public Properties
 
 | Option | Default | Purpose |
 | --- | --- | --- |
@@ -235,6 +243,16 @@ Joins a static host base URL and relative path with slash cleanup only.
 | `capture_timings` | `false` | Fills `PackRatResult.timings_msec` for profiling. Leave off for the leanest production path. |
 | `max_redirects` | `8` | Redirect limit for `HTTPRequest`. On Web `fetch()`, `0` disables redirects and positive values use the browser redirect behavior. |
 | `always_download` | `false` | Forces a fresh download instead of using a matching cache file. |
+
+### Constants
+
+| Constant | Value | Purpose |
+| --- | --- | --- |
+| `MIN_DOWNLOAD_CHUNK_SIZE` | `256` | Smallest supported `download_chunk_size`. |
+| `MAX_DOWNLOAD_CHUNK_SIZE` | `16 * 1024 * 1024` | Largest supported `download_chunk_size`; matches Godot's `HTTPRequest` maximum. |
+| `DEFAULT_DOWNLOAD_CHUNK_SIZE` | `8 * 1024 * 1024` | Balanced default chunk size for DLC-sized files. |
+
+### Helpers
 
 Create options from server-provided file metadata:
 
@@ -612,8 +630,8 @@ PackRat mounts those paths back at runtime.
 
 ## Local Pack Testing
 
-PackRat can load local `.pck` and `.zip` files through the same cache and mount
-pipeline:
+PackRat is designed around remote HTTP(S) packs, but it can also load local
+`.pck` and `.zip` files through the same cache and mount pipeline:
 
 ```gdscript
 await PackRat.load_resource_pack("user://local_packs/hub.pck")
@@ -621,10 +639,15 @@ await PackRat.load_resource_pack("res://local_packs/hub.pck")
 await PackRat.load_resource_pack("file:///C:/projects/game/local_packs/hub.pck")
 ```
 
+Local packs work in editor and exported builds when Godot can read the path. For
+example, native exports can use accessible absolute paths, `user://`, and
+included `res://` files. Web exports are limited by the browser sandbox, so
+arbitrary `file:///C:/...` paths are not available there.
+
 Local packs are copied into the PackRat cache with `.part` files, progress
 signals, cancellation checks, metadata validation, and the normal final
-`ProjectSettings.load_resource_pack()` mount. This is useful for editor/dev
-testing; production distribution should usually use HTTP(S).
+`ProjectSettings.load_resource_pack()` mount. This is mostly useful for rapid
+development testing; production distribution should usually use HTTP(S).
 
 For the lowest-friction editor workflow, point an option at a Godot export
 preset:
@@ -641,10 +664,11 @@ var result: PackRatResult = await PackRat.load_resource_pack(
 )
 ```
 
-In editor runs, PackRat calls Godot's own `--export-pack` pipeline for `Hub DLC`
-and loads that generated pack. Exporting is synchronous, so very large presets
-can briefly pause the editor while Godot builds the pack. In exported games, the
-option has no effect and the remote URL is used normally.
+Only `editor_pack_export_preset` is editor-only. In editor runs, PackRat calls
+Godot's own `--export-pack` pipeline for `Hub DLC` and loads that generated
+pack. Exporting is synchronous, so very large presets can briefly pause the
+editor while Godot builds the pack. In exported games, the option has no effect
+and the remote URL is used normally.
 
 PackRat reuses the generated pack across sessions until `export_presets.cfg` or
 a project resource has a newer filesystem modified time. That keeps normal
