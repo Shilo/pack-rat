@@ -164,8 +164,8 @@ if error != OK:
 
 ### `PackRat.load_resource_pack(url, options := PackRatOptions.new()) -> PackRatResult`
 
-Downloads when needed, caches the file, mounts the `.pck` or `.zip`, and returns
-a completed `PackRatResult`.
+Downloads or copies when needed, caches the file, mounts the `.pck` or `.zip`,
+and returns a completed `PackRatResult`.
 
 ### `PackRat.load_resource_pack_async(url, options := PackRatOptions.new()) -> PackRatRequest`
 
@@ -221,6 +221,7 @@ Joins a static host base URL and relative path with slash cleanup only.
 | `replace_files` | `true` | Passed to `ProjectSettings.load_resource_pack()`. Allows the pack to override existing `res://` paths. |
 | `offset` | `0` | Byte offset for embedded PCK files. ZIP packs must use `0`. |
 | `entry_path` | `""` | Optional `res://` scene path copied into the result for caller convenience. PackRat only uses it when you call result entry-scene helpers. |
+| `editor_pack_export_preset` | `""` | Editor-only local testing helper. When set in an editor run, PackRat builds this Godot export preset with `--export-pack`, then loads the generated local pack instead of downloading the URL. Exported games ignore it and use the URL normally. |
 | `expected_size` | `0` | If greater than `0`, becomes part of cache identity and is checked against downloaded bytes. |
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `progress_total_size` | `0` | Optional non-validating byte total for progress bars when a platform cannot report a reliable HTTP body size. |
@@ -256,7 +257,7 @@ Useful fields:
 | `status` | `"downloaded"`, `"cache_hit"`, or `"failed"`. |
 | `from_cache` | `true` when no download was needed for this request. |
 | `mounted` | `true` when Godot accepted the `.pck` or `.zip`. |
-| `source_url` | Remote URL used for this request. |
+| `source_url` | URL or local source path used for this request. |
 | `local_path` | Cached file path under `user://`. |
 | `entry_path` | Copied from `PackRatOptions.entry_path`. |
 | `etag` | Remote `ETag` freshness header, when available. |
@@ -609,6 +610,46 @@ version tokens. The pack source scenes live in `demo/packs/` so they are
 visible in the Godot editor. The Web export excludes `demo/packs/*`, then
 PackRat mounts those paths back at runtime.
 
+## Local Pack Testing
+
+PackRat can load local `.pck` and `.zip` files through the same cache and mount
+pipeline:
+
+```gdscript
+await PackRat.load_resource_pack("user://local_packs/hub.pck")
+await PackRat.load_resource_pack("res://local_packs/hub.pck")
+await PackRat.load_resource_pack("file:///C:/projects/game/local_packs/hub.pck")
+```
+
+Local packs are copied into the PackRat cache with `.part` files, progress
+signals, cancellation checks, metadata validation, and the normal final
+`ProjectSettings.load_resource_pack()` mount. This is useful for editor/dev
+testing; production distribution should usually use HTTP(S).
+
+For the lowest-friction editor workflow, point an option at a Godot export
+preset:
+
+```gdscript
+var options: PackRatOptions = PackRatOptions.new()
+options.id = "hub"
+options.entry_path = "res://server/worlds/hub/hub.tscn"
+options.editor_pack_export_preset = "Hub DLC"
+
+var result: PackRatResult = await PackRat.load_resource_pack(
+	"https://cdn.example.com/worlds/hub.pck",
+	options
+)
+```
+
+In editor runs, PackRat calls Godot's own `--export-pack` pipeline for `Hub DLC`
+and loads that generated pack. Exporting is synchronous, so very large presets
+can briefly pause the editor while Godot builds the pack. In exported games, the
+option has no effect and the remote URL is used normally.
+
+PackRat reuses the generated pack across sessions until `export_presets.cfg` or
+a project resource has a newer filesystem modified time. That keeps normal
+play-button tests fresh without manually rebuilding PCKs.
+
 The demo pack presets enable both desktop and mobile Web VRAM texture
 compression targets. This makes the PCK/ZIP exports larger when they contain
 VRAM-compressed textures, but better demonstrates one universal Web pack that
@@ -714,7 +755,8 @@ both Web download paths:
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| `PackRat only accepts HTTP(S) URLs.` | Local file paths are not supported by the load API. | Serve the pack over HTTP(S), or use `file_metadata()` only for metadata collection. |
+| `PackRat only accepts HTTP(S) URLs, local .pck/.zip files, or editor export presets.` | The URL is not HTTP(S), not a local `.pck`/`.zip`, and no editor export preset was provided. | Use an HTTP(S) URL, a local pack path, or `options.editor_pack_export_preset`. |
+| `PackRat could not build editor export preset` | The preset name is wrong, export templates are missing, or Godot's `--export-pack` failed. | Check `export_presets.cfg`, install export templates for that preset's platform, and try the same `godot --headless --path . --export-pack "Preset Name" output.pck` command manually. |
 | Freshness is always unknown. | Server or browser CORS is hiding `ETag`/`Last-Modified`, or the host cannot provide reliable freshness. | Expose freshness headers or use expected metadata. |
 | `.zip` URL fails with nonzero offset. | Godot only supports offsets for PCK packs. | Keep `offset = 0` for ZIP packs. |
 | Cache cleanup returns `ERR_INVALID_PARAMETER`. | `cache_dir` is root `user://`, outside `user://`, or contains `..`. | Use a dedicated directory such as `user://pack_rat`. |

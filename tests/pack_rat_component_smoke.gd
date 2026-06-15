@@ -1,5 +1,7 @@
 extends Node
 
+const LOCAL_FILE_CLIENT_SCRIPT: GDScript = preload("res://addons/pack_rat/filesystem/pack_rat_local_file_client.gd")
+
 const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/pack_rat.gd"),
 	preload("res://addons/pack_rat/cache/pack_rat_cache.gd"),
@@ -10,12 +12,14 @@ const PACKRAT_SCRIPTS: Array[Script] = [
 	preload("res://addons/pack_rat/core/pack_rat_request.gd"),
 	preload("res://addons/pack_rat/core/pack_rat_result.gd"),
 	preload("res://addons/pack_rat/filesystem/pack_rat_file_metadata.gd"),
+	preload("res://addons/pack_rat/filesystem/pack_rat_local_file_client.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_web_fetch.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_web_fetch_bridge.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_web_fetch_result.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_client.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_http_response.gd"),
 	preload("res://addons/pack_rat/request/pack_rat_request_runner.gd"),
+	preload("res://addons/pack_rat/resource_pack/pack_rat_editor_pack_export.gd"),
 	preload("res://addons/pack_rat/resource_pack/pack_rat_loader.gd"),
 	preload("res://addons/pack_rat/resource_pack/pack_rat_mount_registry.gd"),
 ]
@@ -104,6 +108,7 @@ func _ready() -> void:
 		return
 
 	metadata_options.request_headers.append("X-PackRat-Test: one")
+	metadata_options.editor_pack_export_preset = "Warehouse DLC"
 	metadata_options.download_chunk_size = 2 * 1024 * 1024
 	metadata_options.capture_timings = true
 	metadata_options.use_web_fetch = false
@@ -113,6 +118,7 @@ func _ready() -> void:
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
+	metadata_options.editor_pack_export_preset = "Changed DLC"
 	metadata_options.download_chunk_size = 1024
 	metadata_options.capture_timings = false
 	metadata_options.use_web_fetch = true
@@ -125,6 +131,10 @@ func _ready() -> void:
 
 	if copied_options.request_headers.size() != 1:
 		_fail("Expected PackRatOptions.copy to duplicate request headers.")
+		return
+
+	if copied_options.editor_pack_export_preset != "Warehouse DLC":
+		_fail("Expected PackRatOptions.copy to snapshot editor_pack_export_preset.")
 		return
 
 	if copied_options.download_chunk_size != 2 * 1024 * 1024:
@@ -315,6 +325,14 @@ func _ready() -> void:
 	var unsafe_load: PackRatResult = await PackRat.load_resource_pack("https://example.com/hub.pck", unsafe_load_options)
 	if unsafe_load.ok or not unsafe_load.error.contains("cache_dir"):
 		_fail("Expected load_resource_pack to reject unsafe cache_dir.")
+		return
+
+	if not LOCAL_FILE_CLIENT_SCRIPT.is_local_pack_source("file:///C:/packs/hub.pck"):
+		_fail("Expected PackRatLocalFileClient to accept file:// PCK sources.")
+		return
+
+	if LOCAL_FILE_CLIENT_SCRIPT.is_local_pack_source("file:///C:/packs/hub.txt"):
+		_fail("Expected PackRatLocalFileClient to reject non-pack local sources.")
 		return
 
 	print("PackRat component smoke passed.")
