@@ -510,7 +510,7 @@ or encodes provider-specific rules.
 By default, `PackRatOptions.query_version` is copied from
 `ProjectSettings.get_setting("application/config/version")`. If that value is
 set, PackRat appends it to remote requests as `?v=<version>` unless the URL
-already contains `v`:
+already contains the configured query key:
 
 ```gdscript
 var options: PackRatOptions = PackRatOptions.new()
