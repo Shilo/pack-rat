@@ -952,11 +952,12 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 
 	var method: String = request.get_slice(" ", 0)
 	var path: String = request.get_slice(" ", 1)
+	var route_path: String = path.get_slice("?", 0)
 	if method == "HEAD":
 		_last_head_path = path
 	elif method == "GET":
 		_last_get_path = path
-	if path == "/invalid.pck":
+	if route_path == "/invalid.pck":
 		if method == "HEAD":
 			_head_count += 1
 			_write_invalid_response(peer, false)
@@ -965,20 +966,20 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 			_write_invalid_response(peer, true)
 		else:
 			_write_not_found(peer)
-	elif path == "/redirect.pck":
+	elif route_path == "/redirect.pck":
 		_write_redirect(peer, "/hub.pck")
-	elif path == "/timeout.pck":
+	elif route_path == "/timeout.pck":
 		await _write_delayed_response(peer)
-	elif path == "/slow.pck" and method == "GET":
+	elif route_path == "/slow.pck" and method == "GET":
 		_get_count += 1
 		await _write_slow_response(peer)
-	elif path == "/slow-no-length.pck" and method == "GET":
+	elif route_path == "/slow-no-length.pck" and method == "GET":
 		_get_count += 1
 		await _write_slow_chunked_response(peer)
-	elif path == "/hub-gzip.pck" and method == "GET":
+	elif route_path == "/hub-gzip.pck" and method == "GET":
 		_get_count += 1
 		_write_gzip_response(peer)
-	elif path == "/hub-gzip.pck" and method == "HEAD":
+	elif route_path == "/hub-gzip.pck" and method == "HEAD":
 		_head_count += 1
 		_write_gzip_head(peer)
 	elif _fail_get and method == "GET":
