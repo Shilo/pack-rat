@@ -213,6 +213,11 @@ Sets a stable content-version query value, such as `?v=42`, so browser/CDN
 caches fetch a fresh file when your remote pack changes. If the URL already has
 the same version key, PackRat replaces it.
 
+### `PackRat.versioned_url_if_missing(url, version, version_key := "v") -> String`
+
+Appends a stable content-version query only when that query key is missing
+already. If the URL already has the same key, PackRat leaves it unchanged.
+
 ### `PackRat.join_url(base_url, path) -> String`
 
 Joins a static host base URL and relative path with slash cleanup only.
@@ -239,6 +244,8 @@ loads.
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `progress_total_size` | `0` | Optional non-validating byte total for progress bars when a platform cannot report a reliable HTTP body size. |
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
+| `auto_project_version_query` | `false` | Appends `application/config/version` to remote request URLs when the chosen query key is missing. This only affects the outbound request URL, not PackRat cache identity. |
+| `project_version_query_key` | `"v"` | Query key used by `auto_project_version_query`. |
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Total HTTP request deadline in seconds. Large packs on slow links may need a higher value. |
@@ -506,6 +513,24 @@ you want browser/CDN caches to fetch a fresh URL after a pack update. Neither
 helper fetches catalogs, lists directories, or encodes provider-specific rules.
 Keep `options.id` stable for the logical pack; use `versioned_url()` or
 expected metadata to represent the content version.
+
+If your project already uses its Godot app version as the cache-busting token,
+PackRat can do that automatically at request time:
+
+```gdscript
+var options: PackRatOptions = PackRatOptions.new()
+options.auto_project_version_query = true
+
+var result: PackRatResult = await PackRat.load_resource_pack(
+	"https://cdn.example.com/world_packs/hub.pck",
+	options
+)
+```
+
+That reads `ProjectSettings.get_setting("application/config/version")` and
+appends `?v=<version>` only when the URL does not already contain `v`. It does
+not change PackRat's cache identity, cache filenames, or expected-metadata
+validation.
 
 ## Cache Cleanup
 

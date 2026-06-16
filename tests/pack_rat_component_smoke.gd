@@ -116,6 +116,8 @@ func _ready() -> void:
 	metadata_options.accept_gzip = false
 	metadata_options.progress_total_size = 2048
 	metadata_options.use_threads = false
+	metadata_options.auto_project_version_query = true
+	metadata_options.project_version_query_key = "build"
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
@@ -127,6 +129,8 @@ func _ready() -> void:
 	metadata_options.accept_gzip = true
 	metadata_options.progress_total_size = 4096
 	metadata_options.use_threads = true
+	metadata_options.auto_project_version_query = false
+	metadata_options.project_version_query_key = "v"
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
@@ -165,6 +169,14 @@ func _ready() -> void:
 
 	if copied_options.use_threads:
 		_fail("Expected PackRatOptions.copy to snapshot use_threads.")
+		return
+
+	if not copied_options.auto_project_version_query:
+		_fail("Expected PackRatOptions.copy to snapshot auto_project_version_query.")
+		return
+
+	if copied_options.project_version_query_key != "build":
+		_fail("Expected PackRatOptions.copy to snapshot project_version_query_key.")
 		return
 
 	var gzip_response: PackRatHttpResponse = PackRatHttpResponse.from_completed(
@@ -274,6 +286,22 @@ func _ready() -> void:
 
 	if PackRat.versioned_url("https://cdn.example.com/hub.pck", "42", "") != "https://cdn.example.com/hub.pck":
 		_fail("Expected versioned_url to ignore an empty version key.")
+		return
+
+	if PackRat.versioned_url_if_missing("https://cdn.example.com/hub.pck?source=cdn", "42") != "https://cdn.example.com/hub.pck?source=cdn&v=42":
+		_fail("Expected versioned_url_if_missing to append a missing version query.")
+		return
+
+	if PackRat.versioned_url_if_missing("https://cdn.example.com/hub.pck?v=custom&source=cdn", "42") != "https://cdn.example.com/hub.pck?v=custom&source=cdn":
+		_fail("Expected versioned_url_if_missing to keep an existing version query unchanged.")
+		return
+
+	if PackRat.versioned_url_if_missing("https://cdn.example.com/hub.pck?source=cdn#scene", "42") != "https://cdn.example.com/hub.pck?source=cdn&v=42#scene":
+		_fail("Expected versioned_url_if_missing to preserve URL fragments.")
+		return
+
+	if PackRat.versioned_url_if_missing("https://cdn.example.com/hub.pck", "", "v") != "https://cdn.example.com/hub.pck":
+		_fail("Expected versioned_url_if_missing to ignore an empty version.")
 		return
 
 	var pages_url: String = PackRat.github_pages_url("owner", "repo", "packs/hub world.pck")

@@ -26,6 +26,8 @@ var _fail_get: bool = false
 var _omit_last_modified: bool = false
 var _require_header: bool = false
 var _active_peers: int = 0
+var _last_head_path: String = ""
+var _last_get_path: String = ""
 
 
 func _new_options() -> PackRatOptions:
@@ -408,6 +410,107 @@ func _ready() -> void:
 	if not mutation_request.result.ok or mutation_request.result.id != "mutation_smoke":
 		_fail("Expected async request to snapshot options before caller mutation. Result: %s" % JSON.stringify(mutation_request.result.to_dictionary()))
 		return
+
+	var version_setting_key: String = "application/config/version"
+	var original_project_version: Variant = ProjectSettings.get_setting(version_setting_key)
+	ProjectSettings.set_setting(version_setting_key, "0.7 smoke")
+
+	var auto_version_options: PackRatOptions = _new_options()
+	auto_version_options.id = "auto_project_version_smoke"
+	auto_version_options.cache_dir = CACHE_DIR
+	auto_version_options.timeout_seconds = 10.0
+	auto_version_options.expected_size = _pack_bytes.size()
+	auto_version_options.auto_project_version_query = true
+	_reset_request_paths()
+	var auto_version_first: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_options)
+	if not auto_version_first.ok or auto_version_first.from_cache:
+		_fail("Expected auto project version URL load to download. Result: %s" % JSON.stringify(auto_version_first.to_dictionary()))
+		return
+
+	if _last_get_path != "/hub.pck?v=0.7%20smoke":
+		_fail("Expected auto project version query on GET, got %s." % _last_get_path)
+		return
+
+	var auto_version_key: String = PackRatCachePaths.cache_key(_url, auto_version_options.id, auto_version_options)
+	var auto_version_record: PackRatCacheRecord = PackRatCache.load(CACHE_DIR).record(auto_version_key)
+	if auto_version_record.source_url != _url:
+		_fail("Expected auto project version query to leave cache record source_url unchanged, got %s." % auto_version_record.source_url)
+		return
+
+	ProjectSettings.set_setting(version_setting_key, "0.8")
+	var auto_version_head_count: int = _head_count
+	var auto_version_get_count: int = _get_count
+	_reset_request_paths()
+	var auto_version_second: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_options)
+	if not auto_version_second.ok or not auto_version_second.from_cache:
+		_fail("Expected changed project version query to keep the same cache identity. Result: %s" % JSON.stringify(auto_version_second.to_dictionary()))
+		return
+
+	if _head_count != auto_version_head_count or _get_count != auto_version_get_count:
+		_fail("Expected changed project version query to avoid extra HEAD and GET requests.")
+		return
+
+	if not _last_head_path.is_empty() or not _last_get_path.is_empty():
+		_fail("Expected fast cache hit to avoid recording request paths after project version changed.")
+		return
+
+	var custom_query_options: PackRatOptions = _new_options()
+	custom_query_options.id = "auto_project_version_custom_query_smoke"
+	custom_query_options.cache_dir = CACHE_DIR
+	custom_query_options.timeout_seconds = 10.0
+	custom_query_options.expected_size = _pack_bytes.size()
+	custom_query_options.auto_project_version_query = true
+	var custom_query_url: String = "%s?x=1&v=custom#scene" % _url
+	_reset_request_paths()
+	var custom_query_result: PackRatResult = await PackRat.load_resource_pack(custom_query_url, custom_query_options)
+	if not custom_query_result.ok:
+		_fail("Expected existing project version query to stay valid. Result: %s" % JSON.stringify(custom_query_result.to_dictionary()))
+		return
+
+	if _last_get_path != "/hub.pck?x=1&v=custom":
+		_fail("Expected existing project version query to stay unchanged, got %s." % _last_get_path)
+		return
+
+	ProjectSettings.set_setting(version_setting_key, "0.9")
+	var auto_version_head_options: PackRatOptions = _new_options()
+	auto_version_head_options.id = "auto_project_version_head_smoke"
+	auto_version_head_options.cache_dir = CACHE_DIR
+	auto_version_head_options.timeout_seconds = 10.0
+	auto_version_head_options.auto_project_version_query = true
+	var auto_version_head_first: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_head_options)
+	if not auto_version_head_first.ok or auto_version_head_first.from_cache:
+		_fail("Expected HEAD auto project version setup load to download. Result: %s" % JSON.stringify(auto_version_head_first.to_dictionary()))
+		return
+
+	_reset_request_paths()
+	var auto_version_head_second: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_head_options)
+	if not auto_version_head_second.ok or not auto_version_head_second.from_cache:
+		_fail("Expected HEAD auto project version second load to reuse cache. Result: %s" % JSON.stringify(auto_version_head_second.to_dictionary()))
+		return
+
+	if _last_head_path != "/hub.pck?v=0.9":
+		_fail("Expected auto project version query on HEAD, got %s." % _last_head_path)
+		return
+
+	ProjectSettings.set_setting(version_setting_key, "")
+	var empty_version_options: PackRatOptions = _new_options()
+	empty_version_options.id = "auto_project_version_empty_smoke"
+	empty_version_options.cache_dir = CACHE_DIR
+	empty_version_options.timeout_seconds = 10.0
+	empty_version_options.expected_size = _pack_bytes.size()
+	empty_version_options.auto_project_version_query = true
+	var empty_version_url: String = "%s?x=1" % _url
+	_reset_request_paths()
+	var empty_version_result: PackRatResult = await PackRat.load_resource_pack(empty_version_url, empty_version_options)
+	if not empty_version_result.ok:
+		_fail("Expected empty project version to skip query injection. Result: %s" % JSON.stringify(empty_version_result.to_dictionary()))
+		return
+
+	if _last_get_path != "/hub.pck?x=1":
+		_fail("Expected empty project version to leave URL unchanged, got %s." % _last_get_path)
+		return
+
+	ProjectSettings.set_setting(version_setting_key, original_project_version)
 
 	var concurrent_head_count: int = _head_count
 	var concurrent_get_count: int = _get_count
@@ -830,6 +933,10 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 
 	var method: String = request.get_slice(" ", 0)
 	var path: String = request.get_slice(" ", 1)
+	if method == "HEAD":
+		_last_head_path = path
+	elif method == "GET":
+		_last_get_path = path
 	if path == "/invalid.pck":
 		if method == "HEAD":
 			_head_count += 1
@@ -881,6 +988,11 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 func _collect_load(options: PackRatOptions, output: Array[PackRatResult]) -> void:
 	var result: PackRatResult = await PackRat.load_resource_pack(_url, options)
 	output.append(result)
+
+
+func _reset_request_paths() -> void:
+	_last_head_path = ""
+	_last_get_path = ""
 
 
 func _assert_download_timings(result: PackRatResult) -> bool:
