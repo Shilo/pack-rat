@@ -80,6 +80,7 @@ func save() -> Error:
 		return FileAccess.get_open_error()
 
 	file.store_string(JSON.stringify({"items": latest_items}))
+	file.flush()
 	var write_error: Error = file.get_error()
 	file.close()
 	if write_error != OK:
