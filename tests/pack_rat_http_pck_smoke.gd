@@ -420,7 +420,6 @@ func _ready() -> void:
 	auto_version_options.cache_dir = CACHE_DIR
 	auto_version_options.timeout_seconds = 10.0
 	auto_version_options.expected_size = _pack_bytes.size()
-	auto_version_options.auto_project_version_query = true
 	_reset_request_paths()
 	var auto_version_first: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_options)
 	if not auto_version_first.ok or auto_version_first.from_cache:
@@ -438,10 +437,15 @@ func _ready() -> void:
 		return
 
 	ProjectSettings.set_setting(version_setting_key, "0.8")
+	var auto_version_second_options: PackRatOptions = _new_options()
+	auto_version_second_options.id = "auto_project_version_smoke"
+	auto_version_second_options.cache_dir = CACHE_DIR
+	auto_version_second_options.timeout_seconds = 10.0
+	auto_version_second_options.expected_size = _pack_bytes.size()
 	var auto_version_head_count: int = _head_count
 	var auto_version_get_count: int = _get_count
 	_reset_request_paths()
-	var auto_version_second: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_options)
+	var auto_version_second: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_second_options)
 	if not auto_version_second.ok or not auto_version_second.from_cache:
 		_fail("Expected changed project version query to keep the same cache identity. Result: %s" % JSON.stringify(auto_version_second.to_dictionary()))
 		return
@@ -459,7 +463,6 @@ func _ready() -> void:
 	custom_query_options.cache_dir = CACHE_DIR
 	custom_query_options.timeout_seconds = 10.0
 	custom_query_options.expected_size = _pack_bytes.size()
-	custom_query_options.auto_project_version_query = true
 	var custom_query_url: String = "%s?x=1&v=custom#scene" % _url
 	_reset_request_paths()
 	var custom_query_result: PackRatResult = await PackRat.load_resource_pack(custom_query_url, custom_query_options)
@@ -471,12 +474,29 @@ func _ready() -> void:
 		_fail("Expected existing project version query to stay unchanged, got %s." % _last_get_path)
 		return
 
+	var manual_version_options: PackRatOptions = _new_options()
+	manual_version_options.id = "manual_version_smoke"
+	manual_version_options.cache_dir = CACHE_DIR
+	manual_version_options.timeout_seconds = 10.0
+	manual_version_options.expected_size = _pack_bytes.size()
+	manual_version_options.version = "manual smoke"
+	manual_version_options.version_key = "build"
+	var manual_version_url: String = "%s?x=1#scene" % _url
+	_reset_request_paths()
+	var manual_version_result: PackRatResult = await PackRat.load_resource_pack(manual_version_url, manual_version_options)
+	if not manual_version_result.ok:
+		_fail("Expected manual request version to load. Result: %s" % JSON.stringify(manual_version_result.to_dictionary()))
+		return
+
+	if _last_get_path != "/hub.pck?x=1&build=manual%20smoke":
+		_fail("Expected manual request version query, got %s." % _last_get_path)
+		return
+
 	ProjectSettings.set_setting(version_setting_key, "0.9")
 	var auto_version_head_options: PackRatOptions = _new_options()
 	auto_version_head_options.id = "auto_project_version_head_smoke"
 	auto_version_head_options.cache_dir = CACHE_DIR
 	auto_version_head_options.timeout_seconds = 10.0
-	auto_version_head_options.auto_project_version_query = true
 	var auto_version_head_first: PackRatResult = await PackRat.load_resource_pack(_url, auto_version_head_options)
 	if not auto_version_head_first.ok or auto_version_head_first.from_cache:
 		_fail("Expected HEAD auto project version setup load to download. Result: %s" % JSON.stringify(auto_version_head_first.to_dictionary()))
@@ -498,7 +518,6 @@ func _ready() -> void:
 	empty_version_options.cache_dir = CACHE_DIR
 	empty_version_options.timeout_seconds = 10.0
 	empty_version_options.expected_size = _pack_bytes.size()
-	empty_version_options.auto_project_version_query = true
 	var empty_version_url: String = "%s?x=1" % _url
 	_reset_request_paths()
 	var empty_version_result: PackRatResult = await PackRat.load_resource_pack(empty_version_url, empty_version_options)
