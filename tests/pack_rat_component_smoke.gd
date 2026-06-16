@@ -288,6 +288,10 @@ func _ready() -> void:
 		_fail("Expected versioned_url to replace an existing version query.")
 		return
 
+	if PackRat.versioned_url("https://cdn.example.com/hub.pck?v=old&source=cdn", 42, "v", false) != "https://cdn.example.com/hub.pck?v=old&source=cdn":
+		_fail("Expected versioned_url to preserve an existing version query when replacement is disabled.")
+		return
+
 	if PackRat.versioned_url("https://cdn.example.com/hub.pck?v=old&v=older", "new") != "https://cdn.example.com/hub.pck?v=new":
 		_fail("Expected versioned_url to collapse duplicate version queries.")
 		return

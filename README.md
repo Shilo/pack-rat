@@ -207,11 +207,11 @@ Builds a direct GitHub Release asset URL without calling the GitHub API.
 Returns `false` in Web exports because GitHub Release asset redirects are not
 CORS-friendly for browser downloads. Native/editor clients can use Release URLs.
 
-### `PackRat.versioned_url(url, query_version, query_version_key := "v") -> String`
+### `PackRat.versioned_url(url, query_version, query_version_key := "v", replace_existing_query_version := true) -> String`
 
 Sets a stable content-version query value, such as `?v=42`, so browser/CDN
 caches fetch a fresh file when your remote pack changes. If the URL already has
-the same version key, PackRat replaces it.
+the same version key, PackRat replaces it by default.
 
 ### `PackRat.join_url(base_url, path) -> String`
 
