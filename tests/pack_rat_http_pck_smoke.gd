@@ -479,8 +479,8 @@ func _ready() -> void:
 	manual_version_options.cache_dir = CACHE_DIR
 	manual_version_options.timeout_seconds = 10.0
 	manual_version_options.expected_size = _pack_bytes.size()
-	manual_version_options.version = "manual smoke"
-	manual_version_options.version_key = "build"
+	manual_version_options.query_version = "manual smoke"
+	manual_version_options.query_version_key = "build"
 	var manual_version_url: String = "%s?x=1#scene" % _url
 	_reset_request_paths()
 	var manual_version_result: PackRatResult = await PackRat.load_resource_pack(manual_version_url, manual_version_options)

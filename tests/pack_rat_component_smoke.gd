@@ -34,14 +34,14 @@ func _ready() -> void:
 	var original_project_version: Variant = ProjectSettings.get_setting(version_setting_key)
 	ProjectSettings.set_setting(version_setting_key, "component-version")
 	var version_options: PackRatOptions = PackRatOptions.new()
-	if version_options.version != "component-version":
-		_fail("Expected PackRatOptions.version to default to the project version.")
+	if version_options.query_version != "component-version":
+		_fail("Expected PackRatOptions.query_version to default to the project version.")
 		return
 
 	ProjectSettings.set_setting(version_setting_key, "")
 	var empty_version_options: PackRatOptions = PackRatOptions.new()
-	if not empty_version_options.version.is_empty():
-		_fail("Expected PackRatOptions.version to stay empty when the project version is empty.")
+	if not empty_version_options.query_version.is_empty():
+		_fail("Expected PackRatOptions.query_version to stay empty when the project version is empty.")
 		return
 
 	ProjectSettings.set_setting(version_setting_key, original_project_version)
@@ -132,8 +132,8 @@ func _ready() -> void:
 	metadata_options.accept_gzip = false
 	metadata_options.progress_total_size = 2048
 	metadata_options.use_threads = false
-	metadata_options.version = "build-42"
-	metadata_options.version_key = "build"
+	metadata_options.query_version = "build-42"
+	metadata_options.query_version_key = "build"
 	var copied_options: PackRatOptions = metadata_options.copy()
 	metadata_options.cache_dir = "user://changed_after_copy"
 	metadata_options.request_headers.append("X-PackRat-Test: two")
@@ -145,8 +145,8 @@ func _ready() -> void:
 	metadata_options.accept_gzip = true
 	metadata_options.progress_total_size = 4096
 	metadata_options.use_threads = true
-	metadata_options.version = ""
-	metadata_options.version_key = "v"
+	metadata_options.query_version = ""
+	metadata_options.query_version_key = "v"
 	if copied_options.cache_dir == metadata_options.cache_dir:
 		_fail("Expected PackRatOptions.copy to snapshot cache_dir.")
 		return
@@ -187,12 +187,12 @@ func _ready() -> void:
 		_fail("Expected PackRatOptions.copy to snapshot use_threads.")
 		return
 
-	if copied_options.version != "build-42":
-		_fail("Expected PackRatOptions.copy to snapshot version.")
+	if copied_options.query_version != "build-42":
+		_fail("Expected PackRatOptions.copy to snapshot query_version.")
 		return
 
-	if copied_options.version_key != "build":
-		_fail("Expected PackRatOptions.copy to snapshot version_key.")
+	if copied_options.query_version_key != "build":
+		_fail("Expected PackRatOptions.copy to snapshot query_version_key.")
 		return
 
 	var gzip_response: PackRatHttpResponse = PackRatHttpResponse.from_completed(

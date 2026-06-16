@@ -207,7 +207,7 @@ Builds a direct GitHub Release asset URL without calling the GitHub API.
 Returns `false` in Web exports because GitHub Release asset redirects are not
 CORS-friendly for browser downloads. Native/editor clients can use Release URLs.
 
-### `PackRat.versioned_url(url, version, version_key := "v") -> String`
+### `PackRat.versioned_url(url, query_version, query_version_key := "v") -> String`
 
 Sets a stable content-version query value, such as `?v=42`, so browser/CDN
 caches fetch a fresh file when your remote pack changes. If the URL already has
@@ -239,8 +239,8 @@ loads.
 | `expected_modified_time` | `0` | If greater than `0`, becomes part of cache identity and is compared to `Last-Modified` when available. |
 | `progress_total_size` | `0` | Optional non-validating byte total for progress bars when a platform cannot report a reliable HTTP body size. |
 | `offline_first` | `false` | Uses a matching cached file immediately; downloads only on cache miss. |
-| `version` | `application/config/version` or `""` | Stable request URL version. PackRat appends it to remote requests when `version_key` is missing from the URL. Set to `""` to disable this. This only affects the outbound request URL, not PackRat cache identity. |
-| `version_key` | `"v"` | Query key used by `version`. |
+| `query_version` | `application/config/version` or `""` | Stable request URL query value. PackRat appends it to remote requests when `query_version_key` is missing from the URL. Set to `""` to disable this. This only affects the outbound request URL, not PackRat cache identity. |
+| `query_version_key` | `"v"` | Query key used by `query_version`. |
 | `request_headers` | `[]` | Extra headers for `HEAD` and `GET`. |
 | `accept_gzip` | `true` | Lets native Godot `HTTPRequest` request gzip/deflate transfer compression. Web browsers already decode fetch bodies, so PackRat avoids a second Web `HTTPRequest` decode while still receiving browser-managed compression. |
 | `timeout_seconds` | `120.0` | Total HTTP request deadline in seconds. Large packs on slow links may need a higher value. |
@@ -507,7 +507,7 @@ server/master payload already knows the current content version and you want to
 build the full URL yourself. Neither helper fetches catalogs, lists directories,
 or encodes provider-specific rules.
 
-By default, `PackRatOptions.version` is copied from
+By default, `PackRatOptions.query_version` is copied from
 `ProjectSettings.get_setting("application/config/version")`. If that value is
 set, PackRat appends it to remote requests as `?v=<version>` unless the URL
 already contains `v`:
@@ -521,10 +521,11 @@ var result: PackRatResult = await PackRat.load_resource_pack(
 )
 ```
 
-Override `options.version` for a different stable token, set
-`options.version_key` for a different query key, or set `options.version = ""`
-to disable request URL versioning. This does not change PackRat's cache
-identity, cache filenames, or expected-metadata validation.
+Override `options.query_version` for a different stable token, set
+`options.query_version_key` for a different query key, or set
+`options.query_version = ""` to disable request URL versioning. This does not
+change PackRat's cache identity, cache filenames, or expected-metadata
+validation.
 
 ## Cache Cleanup
 
