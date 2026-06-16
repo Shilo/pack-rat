@@ -100,7 +100,8 @@ func _serve_peer(peer: StreamPeerTCP) -> void:
 
 	var method: String = request.get_slice(" ", 0)
 	var path: String = request.get_slice(" ", 1)
-	if path != "/hub.zip":
+	var route_path: String = path.get_slice("?", 0)
+	if route_path != "/hub.zip":
 		_write_not_found(peer)
 	elif method == "HEAD":
 		_head_count += 1
